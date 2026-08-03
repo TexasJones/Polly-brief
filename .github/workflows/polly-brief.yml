@@ -1,1 +1,31 @@
+name: Generate Polly Brief
 
+on:
+  schedule:
+    # Runs daily at 12:00 UTC (~7am CT / 8am ET). Adjust the hour as you like.
+    - cron: '0 12 * * *'
+  workflow_dispatch: {}   # adds a manual "Run workflow" button on the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 feedparser
+
+      - name: Generate the Brief
+        run: python3 polly_brief/generate_brief.py --out polly_brief.html
+
+      - name: Send via Brevo
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          BREVO_LIST_ID: ${{
