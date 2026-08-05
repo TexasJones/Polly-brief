@@ -36,4 +36,23 @@ def _sample_data():
                         ("Senate Offices", 0), ("Movement Labs", 0)],
     )
     stories = [
-        TopStory("Congress", "🏛", NewsItem("Politico", "Sample Congress headline",
+        TopStory("Congress", "🏛", NewsItem("Politico", "Sample Congress headline", "https://example.com", "Two-sentence summary would appear here.")),
+        TopStory("Campaigns", "🗳", NewsItem("Axios", "Sample campaign headline", "https://example.com", "Two-sentence summary would appear here.")),
+        TopStory("Politics & Money", "💰", NewsItem("The Hill", "Sample fundraising headline", "https://example.com", "Two-sentence summary would appear here.")),
+        TopStory("Public Affairs", "🌎", NewsItem("Roll Call", "Sample lobbying headline", "https://example.com", "Two-sentence summary would appear here.")),
+    ]
+    jobs = [
+        JobPosting("Communications Director", "Morning Consult", "Washington, DC", "https://www.thepolly.co/jobs/sample-1", dt.date.today()),
+        JobPosting("Deputy Political Director", "Campaign", "Arizona", "https://www.thepolly.co/jobs/sample-2", dt.date.today()),
+        JobPosting("Digital Fundraising Manager", None, "Remote", "https://www.thepolly.co/jobs/sample-3", dt.date.today()),
+        JobPosting("Government Relations Manager", None, "Austin", "https://www.thepolly.co/jobs/sample-4", dt.date.today()),
+    ]
+    return pulse, stories, jobs
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Generate The Polly Brief")
+    parser.add_argument("--sample", action="store_true", help="Use sample data instead of live scraping")
+    parser.add_argument("--out", default="polly_brief.html", help="Output HTML file path")
+    parser.add_argument("--headlines-per-outlet", type=int, default=10)
+    parser.add_argument("--quote", default=None, help="Quote of the Day
