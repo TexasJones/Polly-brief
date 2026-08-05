@@ -21,66 +21,52 @@ def _days_until_election(today=None):
     return max((ELECTION_DAY - today).days, 0)
 
 def _divider():
-    return '<tr><td style="padding:0 40px;"><div style="border-top:1px solid ' + HAIRLINE + '; margin:28px 0;"></div></td></tr>'
+    a = '<tr><td style="padding:0 40px;">'
+    b = '<div style="border-top:1px solid ' + HAIRLINE + '; margin:28px 0;"></div>'
+    c = '</td></tr>'
+    return a + b + c
 
 def _section_heading(emoji, title):
-    return '<div style="font-size:15px; font-weight:700; color:' + INK + '; margin-bottom:16px;">' + emoji + ' ' + _esc(title) + '</div>'
+    a = '<div style="font-size:15px; font-weight:700; color:' + INK + '; margin-bottom:16px;">'
+    return a + emoji + ' ' + _esc(title) + '</div>'
 
 def _list_row(text):
-    return '<tr><td style="padding:3px 0; font-size:14px; color:' + INK + ';">' + _esc(text) + '</td></tr>'
+    a = '<tr><td style="padding:3px 0; font-size:14px; color:' + INK + ';">'
+    return a + _esc(text) + '</td></tr>'
 
 def _stat_block(number, label):
-    return '<td style="padding-right:32px;"><div style="font-size:30px; font-weight:700; color:' + INK + '; letter-spacing:-0.5px;">' + number + '</div><div style="font-size:11px; color:' + MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;">' + _esc(label) + '</div></td>'
+    a = '<td style="padding-right:32px;">'
+    b = '<div style="font-size:30px; font-weight:700; color:' + INK + '; letter-spacing:-0.5px;">'
+    c = number + '</div>'
+    d = '<div style="font-size:11px; color:' + MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;">'
+    e = _esc(label) + '</div></td>'
+    return a + b + c + d + e
 
 def _story_block(story):
+    heading = _section_heading(story.emoji, story.section)
     if not story.item:
-        return '<tr><td style="padding-bottom:6px;">' + _section_heading(story.emoji, story.section) + '<div style="font-size:13px; color:' + MUTED + '; font-style:italic;">No story matched this section today.</div></td></tr>'
+        a = '<tr><td style="padding-bottom:6px;">' + heading
+        b = '<div style="font-size:13px; color:' + MUTED + '; font-style:italic;">'
+        c = 'No story matched this section today.</div></td></tr>'
+        return a + b + c
     item = story.item
     summary_html = ''
     if item.summary:
-        summary_html = '<div style="font-size:14px; color:' + MUTED + '; line-height:1.5; margin:6px 0 10px 0;">' + _esc(item.summary) + '</div>'
-    return '<tr><td style="padding-bottom:6px;">' + _section_heading(story.emoji, story.section) + '<div style="font-size:15px; font-weight:600; color:' + INK + '; line-height:1.4;">' + _esc(item.title) + '</div>' + summary_html + '<a href="' + _esc(item.url) + '" style="font-size:13px; font-weight:600; color:' + ACCENT + '; text-decoration:none;">Read More &rarr;</a></td></tr>'
+        s1 = '<div style="font-size:14px; color:' + MUTED + '; line-height:1.5; margin:6px 0 10px 0;">'
+        summary_html = s1 + _esc(item.summary) + '</div>'
+    a = '<tr><td style="padding-bottom:6px;">' + heading
+    b = '<div style="font-size:15px; font-weight:600; color:' + INK + '; line-height:1.4;">'
+    c = _esc(item.title) + '</div>' + summary_html
+    d = '<a href="' + _esc(item.url) + '" style="font-size:13px; font-weight:600; color:' + ACCENT + '; text-decoration:none;">'
+    e = 'Read More &rarr;</a></td></tr>'
+    return a + b + c + d + e
 
 def _job_block(job):
     location = _esc(job.location) if job.location else ''
     company = _esc(job.company)
     parts = [p for p in [company, location] if p]
     meta = ' &middot; '.join(parts)
-    return '<tr><td style="padding-bottom:6px;"><a href="' + _esc(job.url) + '" style="font-size:15px; font-weight:600; color:' + INK + '; text-decoration:none;">' + _esc(job.title) + '</a><div style="font-size:13px; color:' + MUTED + '; margin-top:2px;">' + meta + '</div></td></tr>'
-
-def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_source=None, today=None):
-    today = today or dt.date.today()
-    date_label = today.strftime('%A, %B %-d, %Y')
-
-    category_rows = ''.join(_list_row(name) for name, _c in pulse.top_categories)
-    if not category_rows:
-        category_rows = '<tr><td style="font-size:13px; color:' + MUTED + ';">No category data available.</td></tr>'
-
-    employer_rows = ''.join(_list_row(name) for name, _c in pulse.top_employers)
-    if not employer_rows:
-        employer_rows = '<tr><td style="font-size:13px; color:' + MUTED + ';">No employer data available.</td></tr>'
-
-    story_rows = ''
-    for i, s in enumerate(top_stories):
-        if i > 0:
-            story_rows += _divider()
-        story_rows += _story_block(s)
-
-    job_rows = ''
-    for i, j in enumerate(featured_jobs):
-        if i > 0:
-            job_rows += _divider()
-        job_rows += _job_block(j)
-    if not job_rows:
-        job_rows = '<tr><td style="font-size:13px; color:' + MUTED + ';">No featured jobs today.</td></tr>'
-
-    days_left = _days_until_election(today)
-
-    quote_section = ''
-    if quote_text:
-        attribution = ''
-        if quote_source:
-            attribution = '<div style="font-size:13px; color:' + MUTED + '; margin-top:8px;">&mdash; ' + _esc(quote_source) + '</div>'
-        quote_section = _divider() + '<tr><td style="padding:0 40px;">' + _section_heading('\U0001F4AC', 'Quote of the Day') + '<div style="font-size:16px; color:' + INK + '; font-style:italic; line-height:1.5;">&ldquo;' + _esc(quote_text) + '&rdquo;</div>' + attribution + '</td></tr>'
-
-    html_out = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>The Polly
+    a = '<tr><td style="padding-bottom:6px;">'
+    b = '<a href="' + _esc(job.url) + '" style="font-size:15px; font-weight:600; color:' + INK + '; text-decoration:none;">'
+    c = _esc(job.title) + '</a>'
+    d = '<div style="font-size:13px; color:' + MUTED
