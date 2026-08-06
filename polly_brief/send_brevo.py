@@ -8,4 +8,106 @@ Why the Campaign API specifically, not just "send an email": Brevo
 auto-attaches a working, one-click unsubscribe link to every campaign send
 and permanently honors opt-outs — that's a legal requirement for bulk/
 promotional email (CAN-SPAM, GDPR, etc.), and this way we get it for free
-without building or
+without building or hosting anything ourselves.
+
+Required environment variables (set these as GitHub Secrets):
+  BREVO_API_KEY     - from Brevo dashboard > SMTP & API > API Keys
+  BREVO_LIST_ID     - the numeric ID of your subscriber list in Brevo
+  BREVO_SENDER_EMAIL - a verified sender address on your domain (e.g. brief@thepolly.co)
+  BREVO_SENDER_NAME  - display name, e.g. "The Polly Brief"
+
+CAN-SPAM requires a physical mailing address in the email body — Brevo does
+NOT add this for you. Set MAILING_ADDRESS below or pass --address.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+
+import requests
+
+BREVO_API_BASE = "https://api.brevo.com/v3"
+
+
+def _headers(api_key: str) -> dict:
+    return {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "api-key": api_key,
+    }
+
+
+def create_campaign(api_key: str, subject: str, html_content: str,
+                     sender_email: str, sender_name: str, list_id: int) -> int:
+    payload = {
+        "name": subject,
+        "subject": subject,
+        "sender": {"name": sender_name, "email": sender_email},
+        "htmlContent": html_content,
+        "recipients": {"listIds": [list_id]},
+    }
+    resp = requests.post(f"{BREVO_API_BASE}/emailCampaigns",
+                          json=payload, headers=_headers(api_key), timeout=30)
+    if resp.status_code not in (200, 201):
+        raise RuntimeError(f"Failed to create campaign: {resp.status_code} {resp.text}")
+    return resp.json()["id"]
+
+
+def send_now(api_key: str, campaign_id: int) -> None:
+    resp = requests.post(f"{BREVO_API_BASE}/emailCampaigns/{campaign_id}/sendNow",
+                          headers=_headers(api_key), timeout=30)
+    if resp.status_code not in (200, 201, 204):
+        raise RuntimeError(f"Failed to send campaign: {resp.status_code} {resp.text}")
+
+
+def append_mailing_address(html_content: str, address: str) -> str:
+    footer = f'<div style="font-size:11px; color:#999999; text-align:center; padding:16px 40px;">{address}</div>'
+    if "</body>" in html_content:
+        return html_content.replace("</body>", footer + "</body>")
+    return html_content + footer
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Send the generated Brief via Brevo")
+    parser.add_argument("--html-file", default="polly_brief.html", help="Path to the generated HTML")
+    parser.add_argument("--subject", default=None, help="Email subject; defaults to a dated subject")
+    parser.add_argument("--address", default=os.environ.get("MAILING_ADDRESS"),
+                         help="Physical mailing address, required by CAN-SPAM")
+    args = parser.parse_args()
+
+    api_key = os.environ.get("BREVO_API_KEY")
+    list_id = os.environ.get("BREVO_LIST_ID")
+    sender_email = os.environ.get("BREVO_SENDER_EMAIL")
+    sender_name = os.environ.get("BREVO_SENDER_NAME", "The Polly Brief")
+
+    missing = [name for name, val in [
+        ("BREVO_API_KEY", api_key), ("BREVO_LIST_ID", list_id), ("BREVO_SENDER_EMAIL", sender_email),
+    ] if not val]
+    if missing:
+        print(f"Missing required environment variables: {', '.join(missing)}", file=sys.stderr)
+        return 1
+
+    if not args.address:
+        print("No mailing address provided (--address or MAILING_ADDRESS env var). "
+              "CAN-SPAM requires one in every bulk email — refusing to send without it.", file=sys.stderr)
+        return 1
+
+    with open(args.html_file, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    html_content = append_mailing_address(html_content, args.address)
+
+    import datetime as dt
+    subject = args.subject or f"The Polly Brief — {dt.date.today().strftime('%B %-d, %Y')}"
+
+    print(f"Creating campaign: {subject}")
+    campaign_id = create_campaign(api_key, subject, html_content, sender_email, sender_name, int(list_id))
+    print(f"Campaign {campaign_id} created. Sending now...")
+    send_now(api_key, campaign_id)
+    print("Sent.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
