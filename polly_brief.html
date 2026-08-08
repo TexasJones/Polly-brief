@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Polly Brief</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 0;
+    background: #f8f1e7;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #111111;
+}
+
+.container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.header {
+    background: #050505;
+    color: white;
+    padding: 26px;
+    border-radius: 12px 12px 0 0;
+}
+
+.logo {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -1px;
+}
+
+.tagline {
+    margin-top: 5px;
+    color: #dddddd;
+    font-size: 13px;
+}
+
+.date {
+    margin-top: 20px;
+    font-size: 13px;
+    color: #bbbbbb;
+}
+
+.intro {
+    background: white;
+    padding: 25px;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.intro h1 {
+    margin: 0 0 8px 0;
+    font-size: 28px;
+}
+
+.intro p {
+    margin: 0;
+    color: #555555;
+    line-height: 1.5;
+}
+
+.section {
+    background: white;
+    margin-top: 14px;
+    padding: 25px;
+}
+
+.section-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 18px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.stat {
+    background: #f5f5f5;
+    padding: 17px;
+    border-radius: 8px;
+}
+
+.stat-number {
+    font-size: 27px;
+    font-weight: 800;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #666666;
+    margin-top: 4px;
+}
+
+.story {
+    padding: 16px 0;
+    border-top: 1px solid #eeeeee;
+}
+
+.story-source {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #777777;
+    margin-bottom: 6px;
+}
+
+.story-title {
+    color: #111111;
+    font-size: 17px;
+    line-height: 1.35;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.read-more {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111111;
+    text-decoration: none;
+}
+
+.employer {
+    display: inline-block;
+    background: #f1f1f1;
+    padding: 9px 12px;
+    border-radius: 20px;
+    margin: 0 5px 7px 0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.job {
+    border: 1px solid #eeeeee;
+    border-radius: 9px;
+    padding: 17px;
+    margin-bottom: 10px;
+}
+
+.job-title {
+    font-weight: 800;
+    font-size: 16px;
+}
+
+.job-company {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #555555;
+}
+
+.job-location {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #777777;
+}
+
+.job-button {
+    display: inline-block;
+    margin-top: 12px;
+    background: #111111;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.countdown {
+    text-align: center;
+    background: #111111;
+    color: white;
+    border-radius: 10px;
+    padding: 25px;
+}
+
+.countdown-number {
+    font-size: 42px;
+    font-weight: 800;
+}
+
+.countdown-label {
+    margin-top: 3px;
+    font-size: 12px;
+    color: #cccccc;
+    text-transform: uppercase;
+}
+
+.footer {
+    text-align: center;
+    padding: 30px 10px;
+    color: #777777;
+    font-size: 11px;
+}
+
+.empty {
+    color: #777777;
+    font-size: 13px;
+    padding: 10px 0;
+}
+
+@media(max-width: 500px) {
+    .container {
+        padding: 10px;
+    }
+
+    .stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+    <div class="header">
+        <div class="logo">Polly</div>
+        <div class="tagline">
+            The Talent Marketplace for Politics &amp; Public Affairs
+        </div>
+        <div class="date">Saturday, August 8, 2026</div>
+    </div>
+
+    <div class="intro">
+        <h1>The Polly Brief</h1>
+        <p>
+            What's happening in political hiring and campaign politics,
+            in about 60 seconds.
+        </p>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📊 Hiring Pulse</div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Active Jobs</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">New Today</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Campaign Jobs</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Public Affairs</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Communications</div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-number">0</div>
+                <div class="stat-label">Remote</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📰 Political News</div>
+        
+    <div class="story">
+        <div class="story-source">Politico</div>
+        <a href="https://www.politico.com/news/2026/08/08/rhode-island-governor-bridge-01030024" target="_blank" class="story-title">Why Rhode Island may oust a sitting governor over a bridge</a>
+        <a href="https://www.politico.com/news/2026/08/08/rhode-island-governor-bridge-01030024" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">Politico</div>
+        <a href="https://www.politico.com/news/2026/08/07/pete-buttigieg-abdul-el-sayed-unity-rally-01030009" target="_blank" class="story-title">Pete Buttigieg: Everyone’s ‘watching the state of Michigan right now’</a>
+        <a href="https://www.politico.com/news/2026/08/07/pete-buttigieg-abdul-el-sayed-unity-rally-01030009" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">Politico</div>
+        <a href="https://www.politico.com/gallery/2026/08/07/the-nations-cartoonists-on-the-week-in-politics-01028030" target="_blank" class="story-title">The nation’s cartoonists on the week in politics</a>
+        <a href="https://www.politico.com/gallery/2026/08/07/the-nations-cartoonists-on-the-week-in-politics-01028030" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">The Hill</div>
+        <a href="https://thehill.com/homenews/administration/6018782-ice-chief-david-venturella-ap-bodycam/" target="_blank" class="story-title">Acting ICE chief knocks AP for ‘misleading’ report on body cam policy</a>
+        <a href="https://thehill.com/homenews/administration/6018782-ice-chief-david-venturella-ap-bodycam/" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">The Hill</div>
+        <a href="https://thehill.com/homenews/senate/6018748-democrats-oppose-blanche-confirmation/" target="_blank" class="story-title">Dems blast Blanche as enabler of ‘Trump’s corruption’ after AG confirmation</a>
+        <a href="https://thehill.com/homenews/senate/6018748-democrats-oppose-blanche-confirmation/" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">The Hill</div>
+        <a href="https://thehill.com/business/6018716-usps-financial-woes-2-billion-loss/" target="_blank" class="story-title">USPS reports $2.5B loss in third quarter as financial woes persist</a>
+        <a href="https://thehill.com/business/6018716-usps-financial-woes-2-billion-loss/" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">Axios</div>
+        <a href="https://www.axios.com/2026/08/08/senate-government-funding-shutdown-stopgap" target="_blank" class="story-title">Senate passes stopgap to avert pre-election shutdown</a>
+        <a href="https://www.axios.com/2026/08/08/senate-government-funding-shutdown-stopgap" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    <div class="story">
+        <div class="story-source">Axios</div>
+        <a href="https://www.axios.com/2026/08/08/simplify-book-axios-smart-brevity" target="_blank" class="story-title">Simplify: How to exponentially improve work, life</a>
+        <a href="https://www.axios.com/2026/08/08/simplify-book-axios-smart-brevity" target="_blank" class="read-more">Read story →</a>
+    </div>
+    
+    </div>
+
+    <div class="section">
+        <div class="section-title">🔥 Hiring Now</div>
+        
+        <div class="empty">
+            New hiring data coming soon.
+        </div>
+        
+    </div>
+
+    <div class="section">
+        <div class="section-title">👀 Jobs Worth Looking At</div>
+        
+        <div class="empty">
+            Featured jobs will appear here as Polly's job data is connected.
+        </div>
+        
+    </div>
+
+    <div class="section">
+        <div class="countdown">
+            <div class="countdown-number">87</div>
+            <div class="countdown-label">Days Until Election Day</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <strong>The Polly Brief</strong>
+        <br><br>
+        The daily briefing for politics,
+        public affairs and campaign professionals.
+        <br><br>
+        Powered by Polly
+    </div>
+
+</div>
+</body>
+</html>
