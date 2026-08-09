@@ -8,6 +8,7 @@ from news_snapshot import TopStory
 INK = '#161616'
 MUTED = '#767676'
 ACCENT = '#2B5A4D'
+ACCENT_LIGHT = '#E4EDE9'
 HAIRLINE = '#E7E5E0'
 BG = '#F4F3EF'
 CARD = '#FFFFFF'
@@ -35,12 +36,13 @@ def _list_row(text):
     return a + _esc(text) + '</td></tr>'
 
 def _stat_block(number, label):
-    a = '<td style="padding-right:32px;">'
-    b = '<div style="font-size:30px; font-weight:700; color:' + INK + '; letter-spacing:-0.5px;">'
-    c = number + '</div>'
-    d = '<div style="font-size:11px; color:' + MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;">'
-    e = _esc(label) + '</div></td>'
-    return a + b + c + d + e
+    a = '<td style="padding-right:12px;">'
+    b = '<div style="background-color:' + ACCENT_LIGHT + '; border-radius:10px; padding:16px 20px;">'
+    c = '<div style="font-size:30px; font-weight:800; color:' + ACCENT + '; letter-spacing:-0.5px;">'
+    d = number + '</div>'
+    e = '<div style="font-size:11px; color:' + MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;">'
+    f = _esc(label) + '</div></div></td>'
+    return a + b + c + d + e + f
 
 def _story_block(story):
     heading = _section_heading(story.emoji, story.section)
@@ -57,7 +59,7 @@ def _story_block(story):
     a = '<tr><td style="padding-bottom:6px;">' + heading
     b = '<div style="font-size:15px; font-weight:600; color:' + INK + '; line-height:1.4;">'
     c = _esc(item.title) + '</div>' + summary_html
-    d = '<a href="' + _esc(item.url) + '" style="font-size:13px; font-weight:600; color:' + ACCENT + '; text-decoration:none;">'
+    d = '<a href="' + _esc(item.url) + '" style="font-size:13px; font-weight:700; color:' + ACCENT + '; text-decoration:none;">'
     e = 'Read More &rarr;</a></td></tr>'
     return a + b + c + d + e
 
@@ -66,11 +68,12 @@ def _job_block(job):
     company = _esc(job.company)
     parts = [p for p in [company, location] if p]
     meta = ' &middot; '.join(parts)
-    a = '<tr><td style="padding-bottom:6px;">'
-    b = '<a href="' + _esc(job.url) + '" style="font-size:15px; font-weight:600; color:' + INK + '; text-decoration:none;">'
-    c = _esc(job.title) + '</a>'
-    d = '<div style="font-size:13px; color:' + MUTED + '; margin-top:2px;">' + meta + '</div></td></tr>'
-    return a + b + c + d
+    a = '<tr><td style="padding-bottom:10px;">'
+    b = '<div style="background-color:' + BG + '; border-radius:10px; padding:14px 18px;">'
+    c = '<a href="' + _esc(job.url) + '" style="font-size:15px; font-weight:700; color:' + INK + '; text-decoration:none;">'
+    d = _esc(job.title) + '</a>'
+    e = '<div style="font-size:13px; color:' + MUTED + '; margin-top:4px;">' + meta + '</div></div></td></tr>'
+    return a + b + c + d + e
 
 def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_source=None, today=None):
     today = today or dt.date.today()
@@ -92,8 +95,6 @@ def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_sourc
 
     job_rows = ''
     for i, j in enumerate(featured_jobs):
-        if i > 0:
-            job_rows += _divider()
         job_rows += _job_block(j)
     if not job_rows:
         job_rows = '<tr><td style="font-size:13px; color:' + MUTED + ';">No featured jobs today.</td></tr>'
@@ -120,8 +121,9 @@ def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_sourc
     parts.append('<body style="margin:0; padding:0; background-color:' + BG + '; font-family:sans-serif;">')
     parts.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:' + BG + '; padding:32px 0;">')
     parts.append('<tr><td align="center">')
-    parts.append('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:' + CARD + '; border-radius:12px;">')
-    parts.append('<tr><td style="padding:40px 40px 24px 40px;">')
+    parts.append('<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:' + CARD + '; border-radius:12px; overflow:hidden;">')
+    parts.append('<tr><td style="background-color:' + ACCENT + '; height:6px; line-height:6px; font-size:0;">&nbsp;</td></tr>')
+    parts.append('<tr><td style="padding:36px 40px 24px 40px;">')
     parts.append('<div style="font-size:20px; font-weight:700; color:' + INK + '; letter-spacing:-0.3px;">The Polly Brief</div>')
     parts.append('<div style="font-size:13px; color:' + MUTED + '; margin-top:4px;">' + _esc(date_label) + '</div>')
     parts.append('</td></tr>')
@@ -152,9 +154,11 @@ def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_sourc
     parts.append('</td></tr>')
     parts.append(_divider())
     parts.append('<tr><td style="padding:0 40px;">')
-    parts.append(_section_heading('\U0001F4C5', 'Election Countdown'))
-    parts.append('<div style="font-size:15px; color:' + INK + ';">' + str(days_left) + ' Days Until Election Day</div>')
-    parts.append('</td></tr>')
+    parts.append('<div style="background-color:' + INK + '; border-radius:10px; padding:24px; text-align:center;">')
+    parts.append(_section_heading('\U0001F4C5', 'Election Countdown').replace(INK, '#FFFFFF').replace(MUTED, '#CCCCCC'))
+    parts.append('<div style="font-size:32px; font-weight:800; color:#FFFFFF;">' + str(days_left) + '</div>')
+    parts.append('<div style="font-size:12px; color:#CCCCCC; text-transform:uppercase; letter-spacing:0.6px;">Days Until Election Day</div>')
+    parts.append('</div></td></tr>')
     parts.append(quote_section)
     parts.append('<tr><td style="padding:36px 40px 40px 40px;">')
     parts.append('<div style="border-top:1px solid ' + HAIRLINE + '; padding-top:20px; text-align:center;">')
