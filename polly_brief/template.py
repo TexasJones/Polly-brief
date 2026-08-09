@@ -59,7 +59,7 @@ def _story_block(story):
     a = '<tr><td style="padding-bottom:6px;">' + heading
     b = '<div style="font-size:15px; font-weight:600; color:' + INK + '; line-height:1.4;">'
     c = _esc(item.title) + '</div>' + summary_html
-    d = '<a href="' + _esc(item.url) + '" style="font-size:13px; font-weight:700; color:' + ACCENT + '; text-decoration:none;">'
+    d = '<a href="' + _esc(item.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:13px; font-weight:700; color:' + ACCENT + '; text-decoration:none;">'
     e = 'Read More &rarr;</a></td></tr>'
     return a + b + c + d + e
 
@@ -70,7 +70,7 @@ def _job_block(job):
     meta = ' &middot; '.join(parts)
     a = '<tr><td style="padding-bottom:10px;">'
     b = '<div style="background-color:' + BG + '; border-radius:10px; padding:14px 18px;">'
-    c = '<a href="' + _esc(job.url) + '" style="font-size:15px; font-weight:700; color:' + INK + '; text-decoration:none;">'
+    c = '<a href="' + _esc(job.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:15px; font-weight:700; color:' + INK + '; text-decoration:none;">'
     d = _esc(job.title) + '</a>'
     e = '<div style="font-size:13px; color:' + MUTED + '; margin-top:4px;">' + meta + '</div></div></td></tr>'
     return a + b + c + d + e
