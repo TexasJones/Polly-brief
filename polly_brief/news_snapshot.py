@@ -21,15 +21,16 @@ RSS_FEEDS = {
     'CNN': 'https://rss.cnn.com/rss/cnn_allpolitics.rss',
     'NYT': 'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml',
     'Washington Post': 'https://feeds.washingtonpost.com/rss/politics',
+    'NBC News': 'https://feeds.nbcnews.com/feeds/nbcpolitics',
 }
 AXIOS_URL = 'https://www.axios.com/politics-policy'
 
 SECTIONS = [
     ('Campaigns', chr(0x1F5F3), ['campaign', 'candidate', 'primary', 'midterm', 'election day', 'ballot', 'poll', 'voters', 'runs for', 'reelection', "governor's race", 'senate race']),
-    ('Media', chr(0x1F4FA), ['press secretary', 'press briefing', 'journalist', 'newsroom', 'broadcast', 'press corps', 'leaked', 'scoop', 'media coverage', 'editor-in-chief', 'newsroom layoffs', 'subscription model']),
+    ('Media', chr(0x1F4FA), ['press secretary', 'press briefing', 'journalist', 'newsroom', 'broadcast', 'press corps', 'leaked', 'scoop', 'media coverage', 'editor-in-chief', 'newsroom layoffs', 'subscription model', 'cable news', 'network news']),
     ('AI+Policy', chr(0x1F916), ['artificial intelligence', 'ai regulation', 'ai policy', 'chatgpt', 'openai', 'algorithm', 'tech policy', 'data privacy', 'section 230', 'ai safety', 'machine learning', 'big tech']),
     ('Energy', chr(0x26A1), ['energy policy', 'oil', 'pipeline', 'renewable', 'solar', 'wind power', 'epa', 'emissions', 'climate rule', 'power grid', 'utility rates', 'drilling', 'lng']),
-    ('Finance', chr(0x1F4B0), ['banking', ' sec ', 'federal reserve', 'fintech', 'wall street', 'financial regulation', 'interest rate', 'tariff', 'treasury', 'irs', 'tax bill', 'donor', 'super pac', 'campaign finance']),
+    ('Finance', chr(0x1F4B0), ['banking', 'sec', 'federal reserve', 'fintech', 'wall street', 'financial regulation', 'interest rate', 'tariff', 'treasury', 'irs', 'tax bill', 'donor', 'super pac', 'campaign finance']),
     ('Legislative', chr(0x1F3DB), ['congress', 'senate', 'house republicans', 'house democrats', 'capitol hill', 'speaker', 'majority leader', 'filibuster', 'committee', 'lawmakers', 'appropriations', 'confirmation hearing', 'state legislature', 'statehouse', 'governor signs', 'bill passes']),
 ]
 
@@ -90,7 +91,7 @@ def _fetch_axios_pool(limit, session=None):
             break
     return items
 
-def _fetch_pool(per_outlet=10):
+def _fetch_pool(per_outlet=15):
     pool = []
     for outlet, feed_url in RSS_FEEDS.items():
         try:
@@ -103,11 +104,13 @@ def _fetch_pool(per_outlet=10):
 def _classify(title):
     t = title.lower()
     for name, _emoji, keywords in SECTIONS:
-        if any(kw in t for kw in keywords):
-            return name
+        for kw in keywords:
+            pattern = r'\b' + re.escape(kw.strip()) + r'\b'
+            if re.search(pattern, t):
+                return name
     return None
 
-def get_top_stories(per_outlet=10):
+def get_top_stories(per_outlet=15):
     pool = _fetch_pool(per_outlet=per_outlet)
     by_section = {}
     for item in pool:
