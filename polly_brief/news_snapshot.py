@@ -27,10 +27,10 @@ AXIOS_URL = 'https://www.axios.com/politics-policy'
 
 SECTIONS = [
     ('Campaigns', chr(0x1F5F3), ['campaign', 'candidate', 'primary', 'midterm', 'election day', 'ballot', 'poll', 'voters', 'runs for', 'reelection', "governor's race", 'senate race']),
-    ('Media', chr(0x1F4FA), ['press secretary', 'press briefing', 'journalist', 'newsroom', 'broadcast', 'press corps', 'leaked', 'scoop', 'media coverage', 'editor-in-chief', 'newsroom layoffs', 'subscription model', 'cable news', 'network news']),
+    ('Media', chr(0x1F4FA), ['press secretary', 'press briefing', 'journalist', 'newsroom', 'broadcast', 'press corps', 'leaked', 'scoop', 'media coverage', 'editor-in-chief', 'newsroom layoffs', 'subscription model', 'cable news', 'network news', 'tv ratings', 'streaming service', 'media merger', 'press freedom', 'fcc', 'disinformation', 'misinformation']),
     ('AI+Policy', chr(0x1F916), ['artificial intelligence', 'ai regulation', 'ai policy', 'chatgpt', 'openai', 'algorithm', 'tech policy', 'data privacy', 'section 230', 'ai safety', 'machine learning', 'big tech']),
-    ('Energy', chr(0x26A1), ['energy policy', 'oil', 'pipeline', 'renewable', 'solar', 'wind power', 'epa', 'emissions', 'climate rule', 'power grid', 'utility rates', 'drilling', 'lng']),
-    ('Finance', chr(0x1F4B0), ['banking', 'sec', 'federal reserve', 'fintech', 'wall street', 'financial regulation', 'interest rate', 'tariff', 'treasury', 'irs', 'tax bill', 'donor', 'super pac', 'campaign finance']),
+    ('Energy', chr(0x26A1), ['energy policy', 'oil', 'pipeline', 'renewable', 'solar', 'wind power', 'epa', 'emissions', 'climate rule', 'power grid', 'grid reliability', 'utility rates', 'utility regulator', 'drilling', 'lng', 'natural gas', 'coal plant', 'nuclear power', 'offshore wind', 'carbon capture']),
+    ('Finance', chr(0x1F4B0), ['banking', 'sec', 'federal reserve', 'fed chair', 'rate cut', 'rate hike', 'fintech', 'wall street', 'stock market', 'financial regulation', 'interest rate', 'inflation data', 'economic growth', 'recession', 'tariff', 'treasury', 'irs', 'tax bill', 'donor', 'super pac', 'campaign finance']),
     ('Legislative', chr(0x1F3DB), ['congress', 'senate', 'house republicans', 'house democrats', 'capitol hill', 'speaker', 'majority leader', 'filibuster', 'committee', 'lawmakers', 'appropriations', 'confirmation hearing', 'state legislature', 'statehouse', 'governor signs', 'bill passes']),
 ]
 
@@ -91,7 +91,7 @@ def _fetch_axios_pool(limit, session=None):
             break
     return items
 
-def _fetch_pool(per_outlet=15):
+def _fetch_pool(per_outlet=20):
     pool = []
     for outlet, feed_url in RSS_FEEDS.items():
         try:
@@ -101,8 +101,10 @@ def _fetch_pool(per_outlet=15):
     pool.extend(_fetch_axios_pool(per_outlet))
     return pool
 
-def _classify(title):
-    t = title.lower()
+def _classify(item):
+    # Match against title + summary combined, not just the headline --
+    # a lot of relevant context only shows up in the article summary.
+    t = (item.title + ' ' + item.summary).lower()
     for name, _emoji, keywords in SECTIONS:
         for kw in keywords:
             pattern = r'\b' + re.escape(kw.strip()) + r'\b'
@@ -110,11 +112,11 @@ def _classify(title):
                 return name
     return None
 
-def get_top_stories(per_outlet=15):
+def get_top_stories(per_outlet=20):
     pool = _fetch_pool(per_outlet=per_outlet)
     by_section = {}
     for item in pool:
-        section = _classify(item.title)
+        section = _classify(item)
         if section and section not in by_section:
             by_section[section] = item
     return [TopStory(section=name, emoji=emoji, item=by_section.get(name)) for name, emoji, _keywords in SECTIONS]
