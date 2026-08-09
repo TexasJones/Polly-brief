@@ -75,7 +75,13 @@ def _parse_feed_xml(xml_bytes: bytes) -> list[JobPosting]:
             continue  # skip malformed entries rather than crash the whole run
 
         location = _text(job_el, "location") or _text(job_el, "office_location")
-        url = _text(job_el, "canonical_url") or _text(job_el, "apply_url") or ""
+        # apply_url comes straight from the original source (Greenhouse, Lever,
+        # etc.) and is always correct. canonical_url is the scraper's *guess*
+        # at what URL Job Boardly will assign the job on import, and that
+        # guess doesn't always match reality — which is what was causing
+        # 404s in the newsletter. Preferring apply_url means links always
+        # work, at the cost of sending readers off Polly's own site to apply.
+        url = _text(job_el, "apply_url") or _text(job_el, "canonical_url") or ""
 
         jobs.append(JobPosting(
             title=title,
