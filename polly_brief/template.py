@@ -35,13 +35,15 @@ def _list_row(text):
     a = '<tr><td style="padding:3px 0; font-size:14px; color:' + INK + ';">'
     return a + _esc(text) + '</td></tr>'
 
-def _stat_block(number, label):
+def _stat_block(number, label, url=None):
     a = '<td style="padding-right:12px;">'
-    b = '<div style="background-color:' + ACCENT_LIGHT + '; border-radius:10px; padding:16px 20px;">'
+    open_tag = '<a href="' + url + '" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">' if url else '<div>'
+    close_tag = '</a>' if url else '</div>'
+    b = open_tag + '<div style="background-color:' + ACCENT_LIGHT + '; border-radius:10px; padding:16px 20px;">'
     c = '<div style="font-size:30px; font-weight:800; color:' + ACCENT + '; letter-spacing:-0.5px;">'
     d = number + '</div>'
     e = '<div style="font-size:11px; color:' + MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-top:2px;">'
-    f = _esc(label) + '</div></div></td>'
+    f = _esc(label) + '</div></div>' + close_tag + '</td>'
     return a + b + c + d + e + f
 
 def _story_block(story):
@@ -70,7 +72,7 @@ def _job_block(job):
     meta = ' &middot; '.join(parts)
     a = '<tr><td style="padding-bottom:10px;">'
     b = '<div style="background-color:' + BG + '; border-radius:10px; padding:14px 18px;">'
-    c = '<a href="' + _esc(job.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:15px; font-weight:700; color:' + INK + '; text-decoration:none;">'
+    c = '<a href="' + _esc(job.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:15px; font-weight:700; color:' + ACCENT + '; text-decoration:none;">'
     d = _esc(job.title) + '</a>'
     e = '<div style="font-size:13px; color:' + MUTED + '; margin-top:4px;">' + meta + '</div></div></td></tr>'
     return a + b + c + d + e
@@ -131,7 +133,7 @@ def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_sourc
     parts.append('<tr><td style="padding:0 40px;">')
     parts.append(_section_heading('\U0001F4CA', 'Polly Hiring Pulse'))
     parts.append('<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;"><tr>')
-    parts.append(_stat_block(f'{pulse.total_active:,}', 'Active Jobs'))
+    parts.append(_stat_block(f'{pulse.total_active:,}', 'Active Jobs', url='https://jobs.thepolly.co/jobs'))
     parts.append(_stat_block(str(pulse.new_today), 'New Today'))
     parts.append('</tr></table>')
     parts.append('<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>')
@@ -162,7 +164,7 @@ def render_brief(pulse, top_stories, featured_jobs, quote_text=None, quote_sourc
     parts.append(quote_section)
     parts.append('<tr><td style="padding:36px 40px 40px 40px;">')
     parts.append('<div style="border-top:1px solid ' + HAIRLINE + '; padding-top:20px; text-align:center;">')
-    parts.append('<div style="font-size:13px; font-weight:600; color:' + INK + ';">Powered by &ldquo;Pollyai&rdquo;</div>')
+    parts.append('<div style="font-size:13px; font-weight:600; color:' + INK + ';">Powered by Pollyai</div>')
     parts.append('<div style="font-size:12px; color:' + MUTED + '; margin-top:2px;">The Talent Marketplace for Politics &amp; Public Affairs</div>')
     parts.append('</div></td></tr>')
     parts.append('</table></td></tr></table></body></html>')
