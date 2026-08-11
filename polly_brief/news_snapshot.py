@@ -67,9 +67,10 @@ def _fetch_topic_story(query, limit=5):
         if not raw_title or not link:
             continue
         headline, source = _split_title_source(raw_title)
-        raw_summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
-        summary = _summary_from_description(raw_summary)
-        return NewsItem(outlet=source, title=headline, url=link, summary=summary)
+        # Google News RSS descriptions turned out to just repeat the
+        # title/source as boilerplate, not a real snippet -- so we skip
+        # trying to extract a summary at all rather than show duplicate text.
+        return NewsItem(outlet=source, title=headline, url=link, summary='')
     return None
 
 def get_top_stories(per_outlet=5):
