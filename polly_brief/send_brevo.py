@@ -100,7 +100,6 @@ def main() -> int:
     html_content = append_mailing_address(html_content, args.address)
 
     import datetime as dt
-    import os
     subject = args.subject
     if not subject and os.path.exists(args.subject_file):
         with open(args.subject_file, "r", encoding="utf-8") as f:
