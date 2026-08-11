@@ -72,7 +72,8 @@ def append_mailing_address(html_content: str, address: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Send the generated Brief via Brevo")
     parser.add_argument("--html-file", default="polly_brief.html", help="Path to the generated HTML")
-    parser.add_argument("--subject", default=None, help="Email subject; defaults to a dated subject")
+    parser.add_argument("--subject", default=None, help="Email subject; overrides everything else")
+    parser.add_argument("--subject-file", default="polly_brief_subject.txt", help="Path to a file containing the dynamic subject line written by generate_brief.py")
     parser.add_argument("--address", default=os.environ.get("MAILING_ADDRESS"),
                          help="Physical mailing address, required by CAN-SPAM")
     args = parser.parse_args()
@@ -99,7 +100,13 @@ def main() -> int:
     html_content = append_mailing_address(html_content, args.address)
 
     import datetime as dt
-    subject = args.subject or f"The Polly Brief — {dt.date.today().strftime('%B %-d, %Y')}"
+    import os
+    subject = args.subject
+    if not subject and os.path.exists(args.subject_file):
+        with open(args.subject_file, "r", encoding="utf-8") as f:
+            subject = f.read().strip()
+    if not subject:
+        subject = f"The Polly Brief — {dt.date.today().strftime('%B %-d, %Y')}"
 
     print(f"Creating campaign: {subject}")
     campaign_id = create_campaign(api_key, subject, html_content, sender_email, sender_name, int(list_id))
