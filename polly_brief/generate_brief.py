@@ -28,11 +28,14 @@ def _build_subject(pulse, stories, today):
             top_headline = s.item.title
             break
     if top_headline:
-        # keep total subject length reasonable for inbox display
-        max_headline_len = 70
+        # Keep total subject length under ~60 chars -- most inbox lists
+        # (Gmail especially) truncate well before 70-90 chars, which was
+        # cutting headlines off mid-word.
+        prefix = 'The Polly Brief: '
+        max_headline_len = 60 - len(prefix)
         if len(top_headline) > max_headline_len:
             top_headline = top_headline[:max_headline_len].rsplit(' ', 1)[0] + '...'
-        return f'The Polly Brief: {top_headline}'
+        return prefix + top_headline
     return f'The Polly Brief -- {date_str}'
 
 def main():
