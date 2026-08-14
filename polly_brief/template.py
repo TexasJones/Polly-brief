@@ -1,6 +1,7 @@
 from __future__ import annotations
 import datetime as dt
 import html
+import inspect
 from typing import Optional
 from jobs_snapshot import HiringPulse, JobPosting
 from news_snapshot import TopStory
@@ -12,7 +13,7 @@ ELECTION_DAY = dt.date(2026, 11, 3)
 # header mark next to "The Polly Brief" wordmark. If you ever want to
 # swap the logo, base64-encode the new PNG (e.g. `base64 -w 0 logo.png`)
 # and replace the string below.
-LOGO_BASE64 = "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"
+LOGO_BASE64 = "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"
 
 
 def _esc(text):
@@ -39,9 +40,7 @@ def _divider() -> str:
 
 
 def _section_heading(emoji: str, title: str, color: str = None) -> str:
-    """Render a plain (non-badge) section heading with emoji. Used for the
-    main section titles (Hiring Pulse, Jobs Worth Looking At, etc.) — topic
-    labels use _topic_badge instead so their color reads as a real block."""
+    """Render a plain (non-badge) section heading with emoji."""
     color = color or s.INK
     heading_style = s.section_heading_style(color)
     return (f'<div style="{heading_style}">'
@@ -99,10 +98,29 @@ def _story_block(story: TopStory) -> str:
             f'Read More &rarr;</a></td></tr>')
 
 
+def _call_style_fn(func, *args, **kwargs):
+    """Safely call a style function whether or not it expects parameters."""
+    sig = inspect.signature(func)
+    params = sig.parameters
+    if not params:
+        return func()
+    
+    # Pass positional args if defined
+    bound_args = []
+    for i, p in enumerate(params.values()):
+        if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+            if i < len(args):
+                bound_args.append(args[i])
+            elif p.name in kwargs:
+                bound_args.append(kwargs[p.name])
+            elif p.default is not inspect.Parameter.empty:
+                bound_args.append(p.default)
+
+    return func(*bound_args)
+
+
 def _featured_job_block(job: JobPosting) -> str:
-    """Render a featured job card. Uses the job's category topic color when
-    available so 'Jobs Worth Looking At' picks up the same color palette as
-    the news sections, instead of every card being the same plain sage."""
+    """Render a featured job card."""
     location = _esc(job.location) if job.location else ''
     company = _esc(job.company)
 
@@ -111,12 +129,16 @@ def _featured_job_block(job: JobPosting) -> str:
     meta_parts = [p for p in [company, location] if p]
     meta = ' &middot; '.join(meta_parts)
 
+    # Safely call style functions to prevent argument mismatch issues
+    card_style = _call_style_fn(s.featured_job_card_style, job_color)
+    muted_style = _call_style_fn(s.muted_text_style, size="13px")
+
     return (f'<tr><td style="padding-bottom: 14px;">'
-            f'<div style="{s.featured_job_card_style(job_color)}">'
+            f'<div style="{card_style}">'
             f'<a href="{_esc(job.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="{s.link_style(job_color)}; font-size: 15px">'
             f'{_esc(job.title)}</a>'
-            f'<div style="{s.muted_text_style(size="13px")}; margin-top: 6px">{meta}</div>'
+            f'<div style="{muted_style}; margin-top: 6px">{meta}</div>'
             f'</div></td></tr>')
 
 
@@ -158,10 +180,7 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the header logo + wordmark row. The logo sits in a light
-    colored chip so the black silhouette has contrast, and falls back to
-    text-only if LOGO_BASE64 isn't set (rather than an <img> with an empty
-    data URI, which just renders as a broken-image icon)."""
+    """Render the header logo + wordmark row."""
     if LOGO_BASE64:
         logo_cell = (
             f'<td style="padding-right: 12px; vertical-align: middle">'
