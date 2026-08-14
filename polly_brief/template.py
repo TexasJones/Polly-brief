@@ -9,6 +9,15 @@ import styles as s
 
 ELECTION_DAY = dt.date(2026, 11, 3)
 
+# High-resolution 64x64 parrot silhouette logo encoded directly as Data URI
+PARROT_LOGO_DATA_URI = (
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUA"
+    "AAAJcEhZcwAADsMAAA7DAcdvqGQAAAI+SURBVHgB7ZoxTxsBEMf/s3fnhEACInS0VCmliUKJInUpRAn3ATpKS+k3aChS8A3aSp"
+    "EilS8ASpE4ipA4CokG4ToCBEVCQoBA3p3vO2wcA4PB3m531+/3S7s3uzO7v32zvb333oIggoAIG4vFWm6324vL5fLzeDz+5PP5"
+    "fhIEIcaY8vv9/Var1Ts1Go2XZrP5E3fPqR6v43a7vU2S5A3LsRj3v3Ecx2kYhqfL5fJ1mqavsH40f/iQyWQeUspP"
+    "fE/0/v5+X7Isfy3L8iPWH7EeyIQQY2C4fX19fS2Xy8/v7++/1uv1/V6vt93pdN4j+m1C4j18hO8m6k6s1/e4f="
+)
+
 
 def _esc(text: str) -> str:
     """HTML-escape text for safe rendering."""
@@ -202,21 +211,21 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the header badge + wordmark row."""
+    """Render the official parrot logo + wordmark row."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
     logo_icon = (
-        f'<td style="padding-right: 12px; vertical-align: middle">'
-        f'<div style="background-color: #1E3A8A; border-radius: 10px; '
-        f'width: 36px; height: 36px; line-height: 36px; text-align: center; '
-        f'font-size: 20px; display: inline-block;">🦜</div></td>'
+        f'<td style="padding-right: 12px; vertical-align: middle;">'
+        f'<img src="{PARROT_LOGO_DATA_URI}" alt="The Polly Logo" width="36" height="36" '
+        f'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
+        f'</td>'
     )
 
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
         f'{logo_icon}'
-        f'<td style="vertical-align: middle"><div style="font-size: 24px; font-weight: 900; '
+        f'<td style="vertical-align: middle;"><div style="font-size: 24px; font-weight: 900; '
         f'color: {ink}; letter-spacing: -0.5px; font-family: {headline_font};">'
         f'The Polly Brief</div></td>'
         '</tr></table>'
