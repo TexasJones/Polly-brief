@@ -47,7 +47,8 @@ def _list_row(text: str) -> str:
 
 def _stat_block(number: str, label: str, url: str = None) -> str:
     """Render an enhanced stat block (Active Jobs, New Today, etc.)."""
-    open_tag = f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">' if url else '<div>'
+    open_tag = (f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
+                f'style="text-decoration:none;">') if url else '<div>'
     close_tag = '</a>' if url else '</div>'
 
     return (f'<td style="padding-right: 16px;">'
@@ -123,7 +124,7 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
             f'<div style="{s.highlight_block_style(color, color)}">'
             f'<div style="{s.section_heading_style(color, size="12px")}; '
             f'text-transform: uppercase; margin-bottom: 10px;">'
-            f"Today's Top Story &middot; {story.emoji} {_esc(story.section)}</div>"'
+            f"Today's Top Story &middot; {story.emoji} {_esc(story.section)}</div>"
             f'<div style="{s.headline_style(size="19px")}">{_esc(item.title)}</div>'
             f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="{s.link_style(color)}; font-size: 13px; margin-top: 12px; display: inline-block;">'
@@ -178,7 +179,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
             f'&ldquo;{_esc(quote_text)}&rdquo;</div>{attribution}</td></tr>'
         )
 
-    # Base64 logo - placeholder kept empty to avoid massive inline data in repo
+    # Base64 logo - keep empty in repo; real image is injected in production deployments
     logo_b64 = ""
 
     days_left = _days_until_election(today)
@@ -190,7 +191,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
         '<title>The Polly Brief</title></head>',
         f'<body style="margin: 0; padding: 0; background-color: {s.BG}; font-family: {s.BODY_FONT};">',
-        '# Preheader text',
+        # Preheader text
         '<div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">',
     ]
 
