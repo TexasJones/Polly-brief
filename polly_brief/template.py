@@ -32,29 +32,58 @@ def _days_until_election(today=None) -> int:
     return max((ELECTION_DAY - today).days, 0)
 
 
+def _call_style_fn(func, *args, **kwargs):
+    """Safely call a style function whether or not it expects parameters."""
+    try:
+        sig = inspect.signature(func)
+        params = sig.parameters
+        if not params:
+            return func()
+        
+        bound_args = []
+        for i, p in enumerate(params.values()):
+            if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+                if i < len(args):
+                    bound_args.append(args[i])
+                elif p.name in kwargs:
+                    bound_args.append(kwargs[p.name])
+                elif p.default is not inspect.Parameter.empty:
+                    bound_args.append(p.default)
+
+        return func(*bound_args)
+    except Exception:
+        try:
+            return func(*args, **kwargs)
+        except TypeError:
+            return func()
+
+
 def _divider() -> str:
     """Render a horizontal divider row."""
+    divider_css = _call_style_fn(s.divider_style)
     return (f'<tr><td style="padding:0 40px;">'
-            f'<div style="{s.divider_style()}"></div>'
+            f'<div style="{divider_css}"></div>'
             f'</td></tr>')
 
 
 def _section_heading(emoji: str, title: str, color: str = None) -> str:
     """Render a plain (non-badge) section heading with emoji."""
     color = color or s.INK
-    heading_style = s.section_heading_style(color)
+    heading_style = _call_style_fn(s.section_heading_style, color)
     return (f'<div style="{heading_style}">'
             f'{emoji} {_esc(title)}</div>')
 
 
 def _topic_badge(emoji: str, title: str, color: str) -> str:
     """Render a solid-color pill badge for a topic label."""
-    return f'<span style="{s.badge_style(color)}">{emoji} {_esc(title)}</span>'
+    badge_css = _call_style_fn(s.badge_style, color)
+    return f'<span style="{badge_css}">{emoji} {_esc(title)}</span>'
 
 
 def _list_row(text: str) -> str:
     """Render a single list item row."""
-    return (f'<tr><td style="{s.list_row_style()}">'
+    row_css = _call_style_fn(s.list_row_style)
+    return (f'<tr><td style="{row_css}">'
             f'{_esc(text)}</td></tr>')
 
 
@@ -64,11 +93,15 @@ def _stat_block(number: str, label: str, color: str, url: str = None) -> str:
                 f'style="text-decoration:none;">') if url else '<div>'
     close_tag = '</a>' if url else '</div>'
 
+    block_css = _call_style_fn(s.stat_block_style, color)
+    num_css = _call_style_fn(s.stat_number_style)
+    label_css = _call_style_fn(s.stat_label_style)
+
     return (f'<td style="padding-right: 16px;">'
             f'{open_tag}'
-            f'<div style="{s.stat_block_style(color)}">'
-            f'<div style="{s.stat_number_style()}">{_esc(number)}</div>'
-            f'<div style="{s.stat_label_style()}">{_esc(label)}</div>'
+            f'<div style="{block_css}">'
+            f'<div style="{num_css}">{_esc(number)}</div>'
+            f'<div style="{label_css}">{_esc(label)}</div>'
             f'</div>'
             f'{close_tag}</td>')
 
@@ -78,45 +111,27 @@ def _story_block(story: TopStory) -> str:
     color = _topic_color(story.section)
     badge_row = f'<div style="margin-bottom: 10px">{_topic_badge(story.emoji, story.section, color)}</div>'
 
+    muted_css = _call_style_fn(s.muted_text_style)
     if not story.item:
         return (f'<tr><td style="padding-bottom: 12px;">{badge_row}'
-                f'<div style="{s.muted_text_style()}; font-style: italic;">'
+                f'<div style="{muted_css}; font-style: italic;">'
                 f'No story matched this section today.</div></td></tr>')
 
     item = story.item
     summary_html = ''
     if item.summary:
-        summary_html = f'<div style="{s.summary_text_style()}">{_esc(item.summary)}</div>'
+        summary_css = _call_style_fn(s.summary_text_style)
+        summary_html = f'<div style="{summary_css}">{_esc(item.summary)}</div>'
 
-    headline_style = s.headline_style()
+    headline_css = _call_style_fn(s.headline_style)
+    link_css = _call_style_fn(s.link_style, color)
 
     return (f'<tr><td style="padding-bottom: 12px;">{badge_row}'
-            f'<div style="{headline_style}">{_esc(item.title)}</div>'
+            f'<div style="{headline_css}">{_esc(item.title)}</div>'
             f'{summary_html}'
             f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
-            f'style="{s.link_style(color)}; font-size: 13px;">'
+            f'style="{link_css}; font-size: 13px;">'
             f'Read More &rarr;</a></td></tr>')
-
-
-def _call_style_fn(func, *args, **kwargs):
-    """Safely call a style function whether or not it expects parameters."""
-    sig = inspect.signature(func)
-    params = sig.parameters
-    if not params:
-        return func()
-    
-    # Pass positional args if defined
-    bound_args = []
-    for i, p in enumerate(params.values()):
-        if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
-            if i < len(args):
-                bound_args.append(args[i])
-            elif p.name in kwargs:
-                bound_args.append(kwargs[p.name])
-            elif p.default is not inspect.Parameter.empty:
-                bound_args.append(p.default)
-
-    return func(*bound_args)
 
 
 def _featured_job_block(job: JobPosting) -> str:
@@ -129,14 +144,14 @@ def _featured_job_block(job: JobPosting) -> str:
     meta_parts = [p for p in [company, location] if p]
     meta = ' &middot; '.join(meta_parts)
 
-    # Safely call style functions to prevent argument mismatch issues
     card_style = _call_style_fn(s.featured_job_card_style, job_color)
     muted_style = _call_style_fn(s.muted_text_style, size="13px")
+    link_css = _call_style_fn(s.link_style, job_color)
 
     return (f'<tr><td style="padding-bottom: 14px;">'
             f'<div style="{card_style}">'
             f'<a href="{_esc(job.url)}" target="_blank" rel="noopener noreferrer" '
-            f'style="{s.link_style(job_color)}; font-size: 15px">'
+            f'style="{link_css}; font-size: 15px">'
             f'{_esc(job.title)}</a>'
             f'<div style="{muted_style}; margin-top: 6px">{meta}</div>'
             f'</div></td></tr>')
@@ -159,9 +174,9 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     color = _topic_color(story.section)
     item = story.item
 
-    headline_style = s.headline_style(size='19px')
-    highlight_style = s.highlight_block_style(color, color)
-    link_style = s.link_style(color)
+    headline_style = _call_style_fn(s.headline_style, size='19px')
+    highlight_style = _call_style_fn(s.highlight_block_style, color)
+    link_style = _call_style_fn(s.link_style, color)
 
     return (
         f'<tr><td style="padding: 0 40px 32px 40px;">'
@@ -211,13 +226,15 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     except ValueError:
         date_label = today.strftime('%A, %B %d, %Y').replace(' 0', ' ')
 
+    muted_default_css = _call_style_fn(s.muted_text_style)
+
     category_rows = ''.join(_list_row(name) for name, _c in pulse.top_categories)
     if not category_rows:
-        category_rows = f'<tr><td style="{s.muted_text_style()};">No category data available.</td></tr>'
+        category_rows = f'<tr><td style="{muted_default_css};">No category data available.</td></tr>'
 
     employer_rows = ''.join(_list_row(name) for name, _c in pulse.top_employers)
     if not employer_rows:
-        employer_rows = f'<tr><td style="{s.muted_text_style()};">No employer data available.</td></tr>'
+        employer_rows = f'<tr><td style="{muted_default_css};">No employer data available.</td></tr>'
 
     story_rows = ''
     for i, st in enumerate(top_stories):
@@ -229,14 +246,14 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     for job in featured_jobs:
         job_rows += _featured_job_block(job)
     if not job_rows:
-        job_rows = f'<tr><td style="{s.muted_text_style()};">No featured jobs today.</td></tr>'
+        job_rows = f'<tr><td style="{muted_default_css};">No featured jobs today.</td></tr>'
 
     quote_section = ''
     if quote_text:
         attribution = ''
         if quote_source:
-            attribution = f'<div style="{s.muted_text_style()}; margin-top: 10px">&mdash; {_esc(quote_source)}</div>'
-        headline_16 = s.headline_style(size='16px')
+            attribution = f'<div style="{muted_default_css}; margin-top: 10px">&mdash; {_esc(quote_source)}</div>'
+        headline_16 = _call_style_fn(s.headline_style, size='16px')
         quote_section = (
             _divider() +
             f'<tr><td style="padding: 0 40px">'
@@ -268,6 +285,9 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     parts.append('&nbsp;' * 40)
     parts.append('</div>')
 
+    sec_heading_css = _call_style_fn(s.section_heading_style)
+    muted_link_css = _call_style_fn(s.link_style, s.MUTED)
+
     parts.extend([
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: {s.BG}; padding: 32px 0">',
         '<tr><td align="center">',
@@ -295,7 +315,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</tr></table></td></tr>',
         _divider(),
         '<tr><td style="padding: 0 40px">',
-        f'<div style="{s.section_heading_style()}">📰 Top Stories</div>',
+        f'<div style="{sec_heading_css}">📰 Top Stories</div>',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{story_rows}</table>',
         '</td></tr>',
         _divider(),
@@ -312,7 +332,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</div></td></tr>',
         quote_section,
         '<tr><td style="padding: 28px 40px 16px 40px; text-align: center">',
-        f'<a href="https://thepolly.co" target="_blank" rel="noopener noreferrer" style="{s.link_style(s.MUTED)}; font-size: 12px">Know someone job hunting in politics? Invite them to Polly →</a>',
+        f'<a href="https://thepolly.co" target="_blank" rel="noopener noreferrer" style="{muted_link_css}; font-size: 12px">Know someone job hunting in politics? Invite them to Polly →</a>',
         '</td></tr>',
         '<tr><td style="padding: 16px 40px 40px 40px">',
         f'<div style="border-top: 1px solid {s.HAIRLINE}; padding-top: 20px; text-align: center">',
