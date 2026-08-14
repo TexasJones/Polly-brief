@@ -20,6 +20,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Default TEST_MODE to the workflow_dispatch input when present,
+      # otherwise fall back to 'false' so scheduled runs will send by default.
+      TEST_MODE: ${{ github.event.inputs.test_mode || 'false' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -41,7 +45,7 @@ jobs:
           ls -la
 
       - name: Send via Brevo
-        if: ${{ github.event.inputs.test_mode == 'false' }}
+        if: ${{ env.TEST_MODE == 'false' }}
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
@@ -51,7 +55,7 @@ jobs:
         run: python3 polly_brief/send_brevo.py --html-file polly_brief.html
 
       - name: Upload preview (test mode)
-        if: ${{ github.event.inputs.test_mode == 'true' }}
+        if: ${{ env.TEST_MODE == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: brief-preview
