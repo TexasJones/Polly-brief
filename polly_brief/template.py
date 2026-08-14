@@ -9,15 +9,6 @@ import styles as s
 
 ELECTION_DAY = dt.date(2026, 11, 3)
 
-# High-resolution 64x64 parrot silhouette logo encoded directly as Data URI
-PARROT_LOGO_DATA_URI = (
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUA"
-    "AAAJcEhZcwAADsMAAA7DAcdvqGQAAAI+SURBVHgB7ZoxTxsBEMf/s3fnhEACInS0VCmliUKJInUpRAn3ATpKS+k3aChS8A3aSp"
-    "EilS8ASpE4ipA4CokG4ToCBEVCQoBA3p3vO2wcA4PB3m531+/3S7s3uzO7v32zvb333oIggoAIG4vFWm6324vL5fLzeDz+5PP5"
-    "fhIEIcaY8vv9/Var1Ts1Go2XZrP5E3fPqR6v43a7vU2S5A3LsRj3v3Ecx2kYhqfL5fJ1mqavsH40f/iQyWQeUspP"
-    "fE/0/v5+X7Isfy3L8iPWH7EeyIQQY2C4fX19fS2Xy8/v7++/1uv1/V6vt93pdN4j+m1C4j18hO8m6k6s1/e4f="
-)
-
 
 def _esc(text: str) -> str:
     """HTML-escape text for safe rendering."""
@@ -211,20 +202,22 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the official parrot logo + wordmark row."""
+    """Render the official parrot logo vector + wordmark row."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    logo_icon = (
-        f'<td style="padding-right: 12px; vertical-align: middle;">'
-        f'<img src="{PARROT_LOGO_DATA_URI}" alt="The Polly Logo" width="36" height="36" '
-        f'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
-        f'</td>'
+    # Bulletproof vector path matching the parrot silhouette logo
+    logo_svg = (
+        '<td style="padding-right: 12px; vertical-align: middle;">'
+        '<svg width="36" height="36" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
+        '<path d="M89.2 21.5C86.5 18.2 82.1 16 77.2 16C70.5 16 64.8 20.3 62.6 26.3L38.2 41.5L10 50.2L26.5 54.8L41.2 52.1L51.8 62.8C56.2 67.2 62.1 69.8 68.3 69.8C73.8 69.8 79.1 67.5 83 63.3C88.2 57.6 91.2 50.1 91.2 42C91.2 34.5 90.5 27.8 89.2 21.5Z" fill="#0F172A"/>'
+        '</svg>'
+        '</td>'
     )
 
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        f'{logo_icon}'
+        f'{logo_svg}'
         f'<td style="vertical-align: middle;"><div style="font-size: 24px; font-weight: 900; '
         f'color: {ink}; letter-spacing: -0.5px; font-family: {headline_font};">'
         f'The Polly Brief</div></td>'
