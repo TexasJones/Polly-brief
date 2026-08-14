@@ -206,9 +206,9 @@ def _brand_header() -> str:
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    # Vector path directly traced from Slide1.png / favicon_64x64.png
+    # Adjusted viewBox with breathing room so the full silhouette is uncropped
     parakeet_svg = (
-        '<svg width="36" height="28" viewBox="0 0 100 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
+        '<svg width="40" height="30" viewBox="-2 -2 102 78" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
         '<path d="M91.8 24.8C89.5 20.3 85.9 17.2 81.5 15.3C74.6 12.3 67.2 14.8 61.2 19.3C53.8 24.8 47.1 30.9 40 36.6C34.8 40.8 29.2 44.5 23.3 47.7C16.8 51.2 9.9 54.1 2.8 56.4C1.2 56.9 0 58.3 0 60C0 61.2 0.7 62.3 1.8 62.8C2.3 63 2.8 63.1 3.3 63.1C5.2 63.1 35.8 55.4 39.8 54.4C41 53 42.4 51.8 44 51C47.3 49.3 50.8 50.3 53.9 51.6C58.3 53.5 62.9 55 67.6 55.7C70 56.1 72.4 56.1 74.8 55.5C76 55.2 77.1 56.1 77.3 57.3C77.4 57.9 77.2 58.5 76.8 58.9C75.3 60.5 73.1 60.8 71.1 61.1C69.3 61.3 67.5 61.3 65.7 61.1C64.3 60.9 63 61.8 62.8 63.2C62.6 64.6 63.5 65.9 64.9 66.1C66.8 66.4 68.8 66.4 70.8 66.2C72.8 66 75.2 65.5 77.1 64.5C79.8 63 81.3 60.3 80.9 57.3C80.8 56.3 81.1 55.3 81.8 54.6C86.7 49.8 91.1 44.4 94.6 38.4C97.8 32.9 98.7 26.6 96.1 20.8C95.2 18.8 93.9 26.7 91.8 24.8Z" fill="#000000"/>'
         '</svg>'
     )
