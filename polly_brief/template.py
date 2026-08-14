@@ -175,7 +175,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         )
     
     # Base64 logo (unchanged from original)
-    logo_b64 = "iVBORw0KGgoAAAANSUhEUgAAAK0AAABaCAYAAADKONbiAAAbXklEQVR4nO19eVgUV7r375yqgoZmkc0dFFRkMSriAm6tIsRokkFCozG4TJKR+cbcGTRek1wz6SbJTBLR5PqMmuv1i0acJ04aNXEc830zGoVkoolj1IlLNEZRFFFQxw1Uurv"
+    logo_b64 = "iVBORw0KGgoAAAANSUhEUgAAAK0AAABaCAYAAADKONbiAAAbXklEQVR4nO19eVgUV7r375yqgoZmkc0dFFRkMSriAm6tIsRokkFCozG4TJKR+cbcGTRek1wz6SbJTBLR5PqMmuv1i0acJ04aNXEc830zGoVkoolj1IlLNEZRFFFQxw1Uurv[...]
     
     days_left = _days_until_election(today)
     
@@ -202,7 +202,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     parts.extend([
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: {s.BG}; padding: 32px 0;">',
         '<tr><td align="center">',
-        f'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: {s.CARD}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">',
+        f'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: {s.CARD}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08);[...]',
         
         # Top accent bar
         f'<tr><td style="background: linear-gradient(90deg, {s.ACCENT}, {_topic_color("Campaigns")}); height: 5px; line-height: 5px; font-size: 0;">&nbsp;</td></tr>',
@@ -279,6 +279,6 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</div></td></tr>',
         
         '</table></td></tr></table></body></html>',
-    ]
+    ])
     
     return ''.join(parts)
