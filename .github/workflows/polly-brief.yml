@@ -3,7 +3,16 @@ name: Generate Polly Brief
 on:
   schedule:
     - cron: '0 12 * * *'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Test mode (no sending)?'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
@@ -32,6 +41,7 @@ jobs:
           ls -la
 
       - name: Send via Brevo
+        if: github.event.inputs.test_mode == 'false'
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
@@ -39,6 +49,14 @@ jobs:
           BREVO_SENDER_NAME: "The Polly Brief"
           MAILING_ADDRESS: ${{ secrets.MAILING_ADDRESS }}
         run: python3 polly_brief/send_brevo.py --html-file polly_brief.html
+
+      - name: Upload preview (test mode)
+        if: github.event.inputs.test_mode == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: brief-preview
+          path: polly_brief.html
+          retention-days: 7
 
       - name: Commit and publish
         run: |
