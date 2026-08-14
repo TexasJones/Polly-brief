@@ -39,11 +39,18 @@ def _divider() -> str:
 
 
 def _section_heading(emoji: str, title: str, color: str = None) -> str:
-    """Render a section heading with emoji."""
+    """Render a plain (non-badge) section heading with emoji. Used for the
+    main section titles (Hiring Pulse, Jobs Worth Looking At, etc.) — topic
+    labels use _topic_badge instead so their color reads as a real block."""
     color = color or s.INK
     heading_style = s.section_heading_style(color)
     return (f'<div style="{heading_style}">'
             f'{emoji} {_esc(title)}</div>')
+
+
+def _topic_badge(emoji: str, title: str, color: str) -> str:
+    """Render a solid-color pill badge for a topic label."""
+    return f'<span style="{s.badge_style(color)}">{emoji} {_esc(title)}</span>'
 
 
 def _list_row(text: str) -> str:
@@ -52,15 +59,15 @@ def _list_row(text: str) -> str:
             f'{_esc(text)}</td></tr>')
 
 
-def _stat_block(number: str, label: str, url: str = None) -> str:
-    """Render an enhanced stat block (Active Jobs, New Today, etc.)."""
+def _stat_block(number: str, label: str, color: str, url: str = None) -> str:
+    """Render a bold, solid-color stat block (Active Jobs, New Today, etc.)."""
     open_tag = (f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
                 f'style="text-decoration:none;">') if url else '<div>'
     close_tag = '</a>' if url else '</div>'
 
     return (f'<td style="padding-right: 16px;">'
             f'{open_tag}'
-            f'<div style="{s.stat_block_style(s.ACCENT_LIGHT)}">'
+            f'<div style="{s.stat_block_style(color)}">'
             f'<div style="{s.stat_number_style()}">{_esc(number)}</div>'
             f'<div style="{s.stat_label_style()}">{_esc(label)}</div>'
             f'</div>'
@@ -68,12 +75,12 @@ def _stat_block(number: str, label: str, url: str = None) -> str:
 
 
 def _story_block(story: TopStory) -> str:
-    """Render a news story block with topic color."""
+    """Render a news story block with a topic-colored badge."""
     color = _topic_color(story.section)
-    heading = _section_heading(story.emoji, story.section, color=color)
+    badge_row = f'<div style="margin-bottom: 10px">{_topic_badge(story.emoji, story.section, color)}</div>'
 
     if not story.item:
-        return (f'<tr><td style="padding-bottom: 12px;">{heading}'
+        return (f'<tr><td style="padding-bottom: 12px;">{badge_row}'
                 f'<div style="{s.muted_text_style()}; font-style: italic;">'
                 f'No story matched this section today.</div></td></tr>')
 
@@ -84,7 +91,7 @@ def _story_block(story: TopStory) -> str:
 
     headline_style = s.headline_style()
 
-    return (f'<tr><td style="padding-bottom: 12px;">{heading}'
+    return (f'<tr><td style="padding-bottom: 12px;">{badge_row}'
             f'<div style="{headline_style}">{_esc(item.title)}</div>'
             f'{summary_html}'
             f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
@@ -93,11 +100,13 @@ def _story_block(story: TopStory) -> str:
 
 
 def _featured_job_block(job: JobPosting) -> str:
-    """Render an enhanced featured job card with colored left border."""
+    """Render a featured job card. Uses the job's category topic color when
+    available so 'Jobs Worth Looking At' picks up the same color palette as
+    the news sections, instead of every card being the same plain sage."""
     location = _esc(job.location) if job.location else ''
     company = _esc(job.company)
 
-    job_color = s.ACCENT
+    job_color = s.TOPIC_COLORS.get(job.category, s.ACCENT) if job.category else s.ACCENT
 
     meta_parts = [p for p in [company, location] if p]
     meta = ' &middot; '.join(meta_parts)
@@ -120,7 +129,7 @@ def _pick_top_highlight(top_stories: list[TopStory]) -> Optional[TopStory]:
 
 
 def _top_highlight_block(top_stories: list[TopStory]) -> str:
-    """Render a prominent featured story box."""
+    """Render a prominent featured story box with a colored topic badge."""
     story = _pick_top_highlight(top_stories)
     if not story:
         return ''
@@ -128,7 +137,6 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     color = _topic_color(story.section)
     item = story.item
 
-    heading_style = s.section_heading_style(color, size='12px')
     headline_style = s.headline_style(size='19px')
     highlight_style = s.highlight_block_style(color, color)
     link_style = s.link_style(color)
@@ -136,8 +144,11 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     return (
         f'<tr><td style="padding: 0 40px 32px 40px;">'
         f'<div style="{highlight_style}">'
-        f'<div style="{heading_style}; text-transform: uppercase; margin-bottom: 10px">'
-        f"Today's Top Story &middot; {story.emoji} {_esc(story.section)}</div>"
+        f'<div style="margin-bottom: 12px">'
+        f'{_topic_badge(story.emoji, story.section, color)} '
+        f'<span style="font-size: 11px; font-weight: 700; color: {s.MUTED}; '
+        f'text-transform: uppercase; letter-spacing: 0.6px;">&middot; Today&rsquo;s Top Story</span>'
+        f'</div>'
         f'<div style="{headline_style}">{_esc(item.title)}</div>'
         f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
         f'style="{link_style}; font-size: 13px; margin-top: 12px; display: inline-block">'
@@ -147,17 +158,17 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the header logo + wordmark row.
-
-    Falls back to text-only if LOGO_BASE64 isn't set, rather than emitting
-    an <img> with an empty data URI (which just renders as a broken-image
-    icon in every inbox).
-    """
+    """Render the header logo + wordmark row. The logo sits in a light
+    colored chip so the black silhouette has contrast, and falls back to
+    text-only if LOGO_BASE64 isn't set (rather than an <img> with an empty
+    data URI, which just renders as a broken-image icon)."""
     if LOGO_BASE64:
         logo_cell = (
             f'<td style="padding-right: 12px; vertical-align: middle">'
-            f'<img src="data:image/png;base64,{LOGO_BASE64}" width="32" height="32" '
-            f'alt="Polly" style="display: block"></td>'
+            f'<div style="background-color: {s.ACCENT_LIGHT}; border-radius: 10px; '
+            f'padding: 6px; display: inline-block; line-height: 0;">'
+            f'<img src="data:image/png;base64,{LOGO_BASE64}" width="28" height="28" '
+            f'alt="Polly" style="display: block"></div></td>'
         )
     else:
         logo_cell = ''
@@ -217,6 +228,11 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
 
     days_left = _days_until_election(today)
 
+    top_bar_gradient = (
+        f'{s.TOPIC_COLORS["Campaigns"]}, {s.TOPIC_COLORS["Media"]}, {s.TOPIC_COLORS["AI+Policy"]}, '
+        f'{s.TOPIC_COLORS["Energy"]}, {s.TOPIC_COLORS["Finance"]}, {s.TOPIC_COLORS["Legislative"]}'
+    )
+
     parts = [
         '<!DOCTYPE html><html><head>',
         '<meta charset="utf-8">',
@@ -237,7 +253,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: {s.BG}; padding: 32px 0">',
         '<tr><td align="center">',
         f'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: {s.CARD}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08)">',
-        f'<tr><td style="background-color: {s.ACCENT}; background: linear-gradient(90deg, {s.ACCENT}, {_topic_color("Campaigns")}); height: 5px; line-height: 5px; font-size: 0">&nbsp;</td></tr>',
+        f'<tr><td style="background-color: {s.TOPIC_COLORS["Campaigns"]}; background: linear-gradient(90deg, {top_bar_gradient}); height: 7px; line-height: 7px; font-size: 0">&nbsp;</td></tr>',
         '<tr><td style="padding: 36px 40px 24px 40px">',
         _brand_header(),
         f'<div style="font-size: 12px; color: {s.MUTED}; margin-top: 8px; letter-spacing: 0.3px">{_esc(date_label)}</div>',
@@ -247,8 +263,8 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '<tr><td style="padding: 0 40px">',
         f'{_section_heading("📊", "Polly Hiring Pulse")}',
         '<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 24px"><tr>',
-        _stat_block(f'{pulse.total_active:,}', 'Active Jobs', url='https://jobs.thepolly.co/jobs'),
-        _stat_block(str(pulse.new_today), 'New Today'),
+        _stat_block(f'{pulse.total_active:,}', 'Active Jobs', color=s.ACCENT, url='https://jobs.thepolly.co/jobs'),
+        _stat_block(str(pulse.new_today), 'New Today', color=s.TOPIC_COLORS['Campaigns']),
         '</tr></table>',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>',
         '<td width="50%" valign="top" style="padding-right: 20px">',
