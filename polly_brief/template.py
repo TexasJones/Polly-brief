@@ -1,9 +1,7 @@
 from __future__ import annotations
-import base64
 import datetime as dt
 import html
 import inspect
-import os
 from typing import Optional
 from jobs_snapshot import HiringPulse, JobPosting
 from news_snapshot import TopStory
@@ -203,37 +201,16 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     )
 
 
-def _get_logo_data_uri() -> str:
-    """Load local favicon_64x64.png file directly into a clean Base64 Data URI."""
-    file_path = os.path.join(os.path.dirname(__file__), "favicon_64x64.png")
-    if os.path.exists(file_path):
-        with open(file_path, "rb") as image_file:
-            encoded = base64.b64encode(image_file.read()).decode("utf-8")
-            return f"data:image/png;base64,{encoded}"
-    # Fallback to hosted URL if local file path differs
-    return "https://thepolly.co/assets/favicon_64x64.png"
-
-
 def _brand_header() -> str:
-    """Render the official logo image + wordmark row."""
-    ink = _c('INK', '#0F172A')
-    headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
-    logo_src = _get_logo_data_uri()
-
-    logo_icon = (
-        f'<td style="padding-right: 12px; vertical-align: middle;">'
-        f'<img src="{logo_src}" alt="The Polly Logo" width="36" height="36" '
-        f'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
-        f'</td>'
-    )
+    """Render the header using a single hosted image asset."""
+    # Point this to your single image containing the icon + the word "Polly"
+    logo_url = "https://thepolly.co/assets/polly-header.png"
 
     return (
-        '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        f'{logo_icon}'
-        f'<td style="vertical-align: middle;"><div style="font-size: 24px; font-weight: 900; '
-        f'color: {ink}; letter-spacing: -0.5px; font-family: {headline_font};">'
-        f'The Polly Brief</div></td>'
-        '</tr></table>'
+        f'<a href="https://thepolly.co" target="_blank" style="text-decoration: none; display: block;">'
+        f'<img src="{logo_url}" alt="Polly" height="36" '
+        f'style="display: block; border: 0; outline: none; height: 36px; width: auto;" />'
+        f'</a>'
     )
 
 
@@ -329,7 +306,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<tr><td style="background-color: {accent}; background: linear-gradient(90deg, {top_bar_gradient}); height: 6px; line-height: 6px; font-size: 0">&nbsp;</td></tr>',
         '<tr><td style="padding: 32px 40px 20px 40px">',
         _brand_header(),
-        f'<div style="font-size: 12px; color: {muted}; margin-top: 6px; letter-spacing: 0.3px; font-weight: 600;">{_esc(date_label)}</div>',
+        f'<div style="font-size: 12px; color: {muted}; margin-top: 10px; letter-spacing: 0.3px; font-weight: 600;">{_esc(date_label)}</div>',
         '</td></tr>',
         _top_highlight_block(top_stories),
         _divider(),
