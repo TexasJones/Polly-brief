@@ -1,7 +1,9 @@
 from __future__ import annotations
+import base64
 import datetime as dt
 import html
 import inspect
+import os
 from typing import Optional
 from jobs_snapshot import HiringPulse, JobPosting
 from news_snapshot import TopStory
@@ -201,23 +203,33 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     )
 
 
+def _get_logo_data_uri() -> str:
+    """Load local favicon_64x64.png file directly into a clean Base64 Data URI."""
+    file_path = os.path.join(os.path.dirname(__file__), "favicon_64x64.png")
+    if os.path.exists(file_path):
+        with open(file_path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode("utf-8")
+            return f"data:image/png;base64,{encoded}"
+    # Fallback to hosted URL if local file path differs
+    return "https://thepolly.co/assets/favicon_64x64.png"
+
+
 def _brand_header() -> str:
-    """Render the official parrot logo vector + wordmark row."""
+    """Render the official logo image + wordmark row."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
+    logo_src = _get_logo_data_uri()
 
-    # Bulletproof vector path matching the parrot silhouette logo
-    logo_svg = (
-        '<td style="padding-right: 12px; vertical-align: middle;">'
-        '<svg width="36" height="36" viewBox="0 0 100 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
-        '<path d="M89.2 21.5C86.5 18.2 82.1 16 77.2 16C70.5 16 64.8 20.3 62.6 26.3L38.2 41.5L10 50.2L26.5 54.8L41.2 52.1L51.8 62.8C56.2 67.2 62.1 69.8 68.3 69.8C73.8 69.8 79.1 67.5 83 63.3C88.2 57.6 91.2 50.1 91.2 42C91.2 34.5 90.5 27.8 89.2 21.5Z" fill="#0F172A"/>'
-        '</svg>'
-        '</td>'
+    logo_icon = (
+        f'<td style="padding-right: 12px; vertical-align: middle;">'
+        f'<img src="{logo_src}" alt="The Polly Logo" width="36" height="36" '
+        f'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
+        f'</td>'
     )
 
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        f'{logo_svg}'
+        f'{logo_icon}'
         f'<td style="vertical-align: middle;"><div style="font-size: 24px; font-weight: 900; '
         f'color: {ink}; letter-spacing: -0.5px; font-family: {headline_font};">'
         f'The Polly Brief</div></td>'
