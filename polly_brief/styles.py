@@ -40,6 +40,14 @@ def section_heading_style(color: str = INK, size: str = '15px') -> str:
             f'margin-bottom: 16px; font-family: {BODY_FONT}; letter-spacing: 0.4px;')
 
 
+def badge_style(bg_color: str, text_color: str = WHITE) -> str:
+    """Solid-color pill badge — used for topic tags so a section's color
+    shows up as an actual color block instead of just tinted text."""
+    return (f'display: inline-block; background-color: {bg_color}; color: {text_color}; '
+            f'padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; '
+            f'text-transform: uppercase; letter-spacing: 0.5px; font-family: {BODY_FONT};')
+
+
 def card_style(background: str = CARD, radius: str = '10px', padding: str = '14px 18px',
                border_left: str = None) -> str:
     """Reusable card/box styling with optional accent border."""
@@ -49,19 +57,21 @@ def card_style(background: str = CARD, radius: str = '10px', padding: str = '14p
     return style
 
 
-def stat_block_style(background: str, number_color: str = ACCENT, 
-                     font_size: str = '36px', label_size: str = '11px') -> str:
-    """Enhanced stat block with larger numbers and better contrast."""
-    return (f'background: linear-gradient(135deg, {background}, rgba(255,255,255,0.5)); '
-            f'border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);')
+def stat_block_style(background: str) -> str:
+    """Solid, saturated stat block — bold color block instead of a pale tint,
+    with a subtle gradient sheen for depth. background-color is set first as
+    a plain fallback for clients (Outlook) that don't render the gradient."""
+    return (f'background-color: {background}; '
+            f'background: linear-gradient(135deg, {background}, {background}CC); '
+            f'border-radius: 12px; padding: 20px 24px; box-shadow: 0 3px 10px rgba(0,0,0,0.14);')
 
 
-def stat_number_style(color: str = ACCENT, size: str = '40px') -> str:
+def stat_number_style(color: str = WHITE, size: str = '40px') -> str:
     """Large, impactful stat number styling."""
     return f'font-size: {size}; font-weight: 900; color: {color}; letter-spacing: -1px; font-family: {HEADLINE_FONT};'
 
 
-def stat_label_style(color: str = MUTED, size: str = '11px') -> str:
+def stat_label_style(color: str = 'rgba(255,255,255,0.85)', size: str = '11px') -> str:
     """Small, uppercase stat label."""
     return f'font-size: {size}; color: {color}; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px;'
 
@@ -78,9 +88,11 @@ def link_style(color: str, weight: str = '700', underline: bool = False) -> str:
 
 
 def highlight_block_style(bg_color: str, border_color: str) -> str:
-    """Featured/highlight box styling (top story, featured job, etc.)"""
-    return (f'background-color: {bg_color}15; border-left: 5px solid {border_color}; '
-            f'border-radius: 8px; padding: 20px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);')
+    """Featured/highlight box styling (top story, featured job, etc.) —
+    deeper tint and a colored glow so the top story reads as the most
+    important thing on the page, not just another card."""
+    return (f'background-color: {bg_color}22; border-left: 6px solid {border_color}; '
+            f'border-radius: 8px; padding: 20px 22px; box-shadow: 0 3px 10px {bg_color}33;')
 
 
 def button_style(bg_color: str, text_color: str = WHITE, padding: str = '12px 16px') -> str:
@@ -97,8 +109,10 @@ def list_row_style(text_color: str = INK, size: str = '14px',
 
 
 def featured_job_card_style(color: str) -> str:
-    """Enhanced job card with topic-colored left border."""
-    return (f'background-color: {CARD}; border-left: 5px solid {color}; '
+    """Job card with a soft tinted background and a thicker topic-colored
+    left border, so the 'Jobs Worth Looking At' section has some warmth
+    instead of sitting flat white."""
+    return (f'background-color: {ACCENT_LIGHT}; border-left: 6px solid {color}; '
             f'border-radius: 8px; padding: 16px 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);')
 
 
