@@ -202,22 +202,22 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the official hosted bird logo + 'Polly' wordmark."""
+    """Render the official hosted bird header logo + 'The Polly Brief' wordmark."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    # Live hosted bird icon URL
-    logo_url = "https://thepolly.co/assets/favicon_64x64.png"
+    # Primary hosted bird image asset
+    logo_url = "https://thepolly.co/assets/polly-header.png"
 
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
         '<td style="padding-right: 12px; vertical-align: middle;">'
-        f'<img src="{logo_url}" alt="" width="36" height="36" '
+        f'<img src="{logo_url}" alt="Polly Logo" width="36" height="36" '
         'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
         '</td>'
         '<td style="vertical-align: middle;">'
         f'<div style="font-size: 24px; font-weight: 900; color: {ink}; letter-spacing: -0.5px; font-family: {headline_font}; line-height: 1;">'
-        'Polly</div>'
+        'The Polly Brief</div>'
         '</td>'
         '</tr></table>'
     )
