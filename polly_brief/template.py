@@ -202,21 +202,23 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the official hosted bird header logo + 'The Polly Brief' wordmark."""
+    """Render the official black bird silhouette SVG + 'The Polly Brief' wordmark."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    # Primary hosted bird image asset
-    logo_url = "https://thepolly.co/assets/polly-header.png"
+    bird_svg = (
+        '<svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
+        '<path d="M31.2 3.1C29.6 4.2 27.8 4.9 25.9 5.3C24.4 2.1 20.8 0.2 17.2 0.8C14.2 1.3 11.7 3.6 11 6.6C7.5 6.1 4.2 4.4 1.8 1.6C0.8 3.3 1.2 5.5 2.6 6.8C1.8 6.7 1 6.5 0.3 6.1V6.3C0.3 8.8 2.1 10.9 4.5 11.5C3.7 11.7 2.9 11.7 2.1 11.5C2.8 13.7 4.8 15.2 7.2 15.3C5.2 16.9 2.7 17.8 0 17.8C2.8 19.6 6.1 20.6 9.5 20.6C21 20.6 27.3 11.1 27.3 2.8V2.1C28.8 1 29.9 -0.3 31.2 -1.8" fill="#000000"/>'
+        '</svg>'
+    )
 
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
         '<td style="padding-right: 12px; vertical-align: middle;">'
-        f'<img src="{logo_url}" alt="Polly Logo" width="36" height="36" '
-        'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
+        f'{bird_svg}'
         '</td>'
         '<td style="vertical-align: middle;">'
-        f'<div style="font-size: 24px; font-weight: 900; color: {ink}; letter-spacing: -0.5px; font-family: {headline_font}; line-height: 1;">'
+        f'<div style="font-size: 26px; font-weight: 900; color: {ink}; letter-spacing: -0.5px; font-family: {headline_font}; line-height: 1;">'
         'The Polly Brief</div>'
         '</td>'
         '</tr></table>'
