@@ -99,7 +99,7 @@ def _featured_job_block(job: JobPosting) -> str:
             f'<a href="{_esc(job.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="{s.link_style(job_color)}; font-size: 15px;">'
             f'{_esc(job.title)}</a>'
-            f'<div style="{s.muted_text_style(size="13px")}; margin-top: 6px;">{meta}</div>'
+            f'<div style="{s.muted_text_style(size=\'13px\')}; margin-top: 6px;">{meta}</div>'
             f'</div></td></tr>')
 
 
@@ -120,16 +120,23 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     color = _topic_color(story.section)
     item = story.item
 
-    return (f'<tr><td style="padding: 0 40px 32px 40px;">'
-            f'<div style="{s.highlight_block_style(color, color)}">'
-            f'<div style="{s.section_heading_style(color, size="12px")}; '
-            f'text-transform: uppercase; margin-bottom: 10px;">'
-            f"Today's Top Story &middot; {story.emoji} {_esc(story.section)}</div>"
-            f'<div style="{s.headline_style(size="19px")}">{_esc(item.title)}</div>'
-            f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
-            f'style="{s.link_style(color)}; font-size: 13px; margin-top: 12px; display: inline-block;">'
-            f'Read More &rarr;</a>'
-            f'</div></td></tr>')
+    # compute style fragments to avoid complex expressions inside f-strings
+    heading_style = s.section_heading_style(color, size='12px')
+    headline_style = s.headline_style(size='19px')
+    highlight_style = s.highlight_block_style(color, color)
+    link_style = s.link_style(color)
+
+    return (
+        f'<tr><td style="padding: 0 40px 32px 40px;">'
+        f'<div style="{highlight_style}">'
+        f'<div style="{heading_style}; text-transform: uppercase; margin-bottom: 10px;">'
+        f"Today's Top Story &middot; {story.emoji} {_esc(story.section)}</div>"
+        f'<div style="{headline_style}">{_esc(item.title)}</div>'
+        f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
+        f'style="{link_style}; font-size: 13px; margin-top: 12px; display: inline-block;">'
+        f'Read More &rarr;</a>'
+        f'</div></td></tr>'
+    )
 
 
 def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs: list[JobPosting],
@@ -175,7 +182,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
             _divider() +
             f'<tr><td style="padding: 0 40px;">'
             f'{_section_heading("💬", "Quote of the Day")}'
-            f'<div style="{s.headline_style(size="16px")}; font-style: italic;">'
+            f'<div style="{s.headline_style(size=\'16px\')}; font-style: italic;">'
             f'&ldquo;{_esc(quote_text)}&rdquo;</div>{attribution}</td></tr>'
         )
 
