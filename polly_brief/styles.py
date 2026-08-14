@@ -37,7 +37,12 @@ def divider_style() -> str:
 def section_heading_style(color: str = INK, size: str = '15px') -> str:
     """Reusable section heading styling."""
     return (f'font-size: {size}; font-weight: 700; color: {color}; '
-            f'margin-bottom: 16px; font-family: {BODY_FONT}; letter-spacing: 0.4px;')
+            f'font-family: {BODY_FONT}; letter-spacing: 0.4px;')
+
+
+def section_subtitle_style() -> str:
+    """Small muted subtitle next to a section heading."""
+    return f'font-size: 12px; color: {MUTED}; font-family: {BODY_FONT};'
 
 
 def badge_style(bg_color: str, text_color: str = WHITE) -> str:
@@ -46,6 +51,14 @@ def badge_style(bg_color: str, text_color: str = WHITE) -> str:
     return (f'display: inline-block; background-color: {bg_color}; color: {text_color}; '
             f'padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; '
             f'text-transform: uppercase; letter-spacing: 0.5px; font-family: {BODY_FONT};')
+
+
+def top_story_tag_style() -> str:
+    """Translucent white pill for the '★ TODAY'S TOP STORY ★' tag, meant
+    to sit on top of a solid dark background."""
+    return (f'display: inline-block; background-color: rgba(255,255,255,0.18); color: {WHITE}; '
+            f'padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; '
+            f'text-transform: uppercase; letter-spacing: 1px; font-family: {BODY_FONT};')
 
 
 def card_style(background: str = CARD, radius: str = '10px', padding: str = '14px 18px',
@@ -57,23 +70,20 @@ def card_style(background: str = CARD, radius: str = '10px', padding: str = '14p
     return style
 
 
-def stat_block_style(background: str) -> str:
-    """Solid, saturated stat block — bold color block instead of a pale tint,
-    with a subtle gradient sheen for depth. background-color is set first as
-    a plain fallback for clients (Outlook) that don't render the gradient."""
-    return (f'background-color: {background}; '
-            f'background: linear-gradient(135deg, {background}, {background}CC); '
-            f'border-radius: 12px; padding: 20px 24px; box-shadow: 0 3px 10px rgba(0,0,0,0.14);')
+def bordered_card_style(radius: str = '14px') -> str:
+    """Plain white card with a thin hairline border — used for the Hiring
+    Pulse panel and the newsroom grid cards."""
+    return f'background-color: {CARD}; border: 1px solid {HAIRLINE}; border-radius: {radius};'
 
 
-def stat_number_style(color: str = WHITE, size: str = '40px') -> str:
+def stat_number_style(color: str = ACCENT, size: str = '32px') -> str:
     """Large, impactful stat number styling."""
     return f'font-size: {size}; font-weight: 900; color: {color}; letter-spacing: -1px; font-family: {HEADLINE_FONT};'
 
 
-def stat_label_style(color: str = 'rgba(255,255,255,0.85)', size: str = '11px') -> str:
+def stat_label_style(color: str = MUTED, size: str = '11px') -> str:
     """Small, uppercase stat label."""
-    return f'font-size: {size}; color: {color}; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px;'
+    return f'font-size: {size}; color: {color}; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px;'
 
 
 def headline_style(color: str = INK, size: str = '18px', font: str = HEADLINE_FONT) -> str:
@@ -87,19 +97,43 @@ def link_style(color: str, weight: str = '700', underline: bool = False) -> str:
     return f'color: {color}; text-decoration: {decoration}; font-weight: {weight};'
 
 
-def highlight_block_style(bg_color: str, border_color: str) -> str:
-    """Featured/highlight box styling (top story, featured job, etc.) —
-    deeper tint and a colored glow so the top story reads as the most
-    important thing on the page, not just another card."""
-    return (f'background-color: {bg_color}22; border-left: 6px solid {border_color}; '
-            f'border-radius: 8px; padding: 20px 22px; box-shadow: 0 3px 10px {bg_color}33;')
-
-
-def button_style(bg_color: str, text_color: str = WHITE, padding: str = '12px 16px') -> str:
-    """Call-to-action button styling."""
+def solid_button_style(bg_color: str, text_color: str = WHITE, padding: str = '12px 22px') -> str:
+    """Solid call-to-action button styling."""
     return (f'background-color: {bg_color}; color: {text_color}; padding: {padding}; '
-            f'border-radius: 6px; font-weight: 600; text-decoration: none; '
-            f'display: inline-block; transition: opacity 0.2s;')
+            f'border-radius: 6px; font-weight: 700; font-size: 13px; text-decoration: none; '
+            f'display: inline-block; font-family: {BODY_FONT};')
+
+
+def outline_button_style(border_color: str, text_color: str = None, padding: str = '10px 20px') -> str:
+    """Outlined (transparent-fill) button — used for secondary CTAs like
+    'View Job' or 'Explore all jobs on ThePolly.co'."""
+    text_color = text_color or border_color
+    return (f'background-color: transparent; color: {text_color}; padding: {padding}; '
+            f'border: 1.5px solid {border_color}; border-radius: 6px; font-weight: 700; '
+            f'font-size: 13px; text-decoration: none; display: inline-block; font-family: {BODY_FONT};')
+
+
+def highlight_block_style(bg_color: str) -> str:
+    """Solid-color hero block for the top story."""
+    return f'background-color: {bg_color}; border-radius: 14px; padding: 28px 28px 24px 28px;'
+
+
+def newsroom_card_style() -> str:
+    """Card style for each story tile in the 3-column newsroom grid."""
+    return (f'background-color: {CARD}; border: 1px solid {HAIRLINE}; border-radius: 10px; '
+            f'padding: 16px;')
+
+
+def icon_circle_style(bg_color: str, size: str = '40px') -> str:
+    """Circular icon badge (e.g. the calendar icon on the countdown block)."""
+    return (f'display: inline-block; width: {size}; height: {size}; line-height: {size}; '
+            f'background-color: {bg_color}; border-radius: 50%; text-align: center; font-size: 18px;')
+
+
+def logo_box_style(size: str = '44px') -> str:
+    """Small square frame for a company logo on a job card."""
+    return (f'width: {size}; height: {size}; border: 1px solid {HAIRLINE}; border-radius: 8px; '
+            f'background-color: {WHITE};')
 
 
 def list_row_style(text_color: str = INK, size: str = '14px', 
@@ -108,12 +142,11 @@ def list_row_style(text_color: str = INK, size: str = '14px',
     return f'padding: {padding}; font-size: {size}; color: {text_color}; line-height: 1.5;'
 
 
-def featured_job_card_style(color: str) -> str:
-    """Job card with a soft tinted background and a thicker topic-colored
-    left border, so the 'Jobs Worth Looking At' section has some warmth
-    instead of sitting flat white."""
-    return (f'background-color: {ACCENT_LIGHT}; border-left: 6px solid {color}; '
-            f'border-radius: 8px; padding: 16px 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);')
+def featured_job_card_style() -> str:
+    """Job row card — light neutral background, no color-coded border
+    (color now lives on the logo/badge instead) to match the flatter,
+    grid-style job list look."""
+    return f'background-color: {BG}; border-radius: 8px; padding: 14px 16px;'
 
 
 def muted_text_style(size: str = '13px') -> str:
