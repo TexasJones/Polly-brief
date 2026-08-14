@@ -202,15 +202,21 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
 
 
 def _brand_header() -> str:
-    """Render the header using a single hosted image asset."""
-    # Point this to your single image containing the icon + the word "Polly"
-    logo_url = "https://thepolly.co/assets/polly-header.png"
+    """Render logo icon using an inline CID attachment + 'Polly' wordmark."""
+    ink = _c('INK', '#0F172A')
+    headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
     return (
-        f'<a href="https://thepolly.co" target="_blank" style="text-decoration: none; display: block;">'
-        f'<img src="{logo_url}" alt="Polly" height="36" '
-        f'style="display: block; border: 0; outline: none; height: 36px; width: auto;" />'
-        f'</a>'
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
+        '<td style="padding-right: 12px; vertical-align: middle;">'
+        '<img src="cid:polly_logo" alt="" width="36" height="36" '
+        'style="display: block; border: 0; outline: none; text-decoration: none; width: 36px; height: 36px;" />'
+        '</td>'
+        '<td style="vertical-align: middle;">'
+        f'<div style="font-size: 24px; font-weight: 900; color: {ink}; letter-spacing: -0.5px; font-family: {headline_font}; line-height: 1;">'
+        'Polly</div>'
+        '</td>'
+        '</tr></table>'
     )
 
 
