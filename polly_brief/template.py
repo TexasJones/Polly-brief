@@ -9,6 +9,12 @@ import styles as s
 
 ELECTION_DAY = dt.date(2026, 11, 3)
 
+# Hosted, transparent PNG of the Polly bird mark (exact artwork, not inline SVG —
+# Outlook desktop and Brevo campaigns don't reliably render inline/embedded SVG).
+# Swap this once the file is committed to your assets host.
+BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/political-jobs-feed/main/assets/polly-bird-header.png"
+BIRD_LOGO_RATIO = 596 / 315  # width/height of the source artwork, keep any resized img proportional
+
 
 def _esc(text: str) -> str:
     """HTML-escape text for safe rendering."""
@@ -201,22 +207,22 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     )
 
 
+def _bird_img(width: int, alt: str = "Polly") -> str:
+    """Render the Polly bird mark as an email-safe <img>, sized proportionally from BIRD_LOGO_RATIO."""
+    height = round(width / BIRD_LOGO_RATIO)
+    return (f'<img src="{BIRD_LOGO_URL}" width="{width}" height="{height}" alt="{_esc(alt)}" '
+            f'style="display:inline-block; vertical-align:middle; border:0; outline:none; max-width:{width}px;">')
+
+
 def _brand_header() -> str:
-    """Render the exact parakeet silhouette vector + 'The Polly Brief' wordmark."""
+    """Render the Polly wordmark with the bird mark as a hosted <img> (email-safe: no inline SVG)."""
     ink = _c('INK', '#0F172A')
     headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    # Correct viewBox (0 0 64 52) matching the natural proportions of the asset
-    parakeet_svg = (
-        '<svg width="34" height="28" viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">'
-        '<path d="M57.9 16.9C56.5 14 54.2 11.9 51.5 10.7C47.2 8.7 42.5 10.3 38.8 13.3C34.2 17 30 21.1 25.5 25C22.3 27.8 18.8 30.3 15.1 32.5C11 34.8 6.5 36.8 1.9 38.4C0.8 38.8 0 39.7 0 40.8C0 41.6 0.5 42.3 1.2 42.7C1.5 42.9 1.8 43 2.1 43C3.4 43 23 37.8 25.5 37.1C26.3 36.2 27.2 35.3 28.2 34.8C30.4 33.6 32.6 34.3 34.5 35.2C37.4 36.5 40.4 37.5 43.4 38C44.9 38.3 46.5 38.3 48 37.9C48.8 37.7 49.5 38.3 49.6 39.1C49.7 39.5 49.5 39.9 49.2 40.2C48.2 41.3 46.8 41.5 45.5 41.7C44.4 41.8 43.2 41.8 42 41.7C41.1 41.5 40.3 42.1 40.2 43C40 44 40.6 44.9 41.5 45.1C42.8 45.3 44.1 45.3 45.4 45.1C46.7 45 48.2 44.7 49.4 44C51.2 43 52.1 41.2 51.8 39.2C51.8 38.5 52 37.8 52.5 37.3C55.6 34 58.4 30.3 60.7 26.2C62.8 22.4 63.4 18.2 61.7 14.2C61.1 12.8 60.2 18.2 57.9 16.9Z" fill="#0F172A"/>'
-        '</svg>'
-    )
-
     return (
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
-        '<td style="padding-right: 12px; vertical-align: middle;">'
-        f'{parakeet_svg}'
+        '<td style="padding-right: 10px; vertical-align: middle;">'
+        f'{_bird_img(46, alt="Polly")}'
         '</td>'
         '<td style="vertical-align: middle;">'
         f'<div style="font-size: 26px; font-weight: 900; color: {ink}; letter-spacing: -0.5px; font-family: {headline_font}; line-height: 1;">'
@@ -359,7 +365,10 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</td></tr>',
         '<tr><td style="padding: 16px 40px 36px 40px">',
         f'<div style="border-top: 1px solid {hairline}; padding-top: 18px; text-align: center">',
-        f'<div style="font-size: 12px; font-weight: 700; color: {ink};">Powered by Pollyai</div>',
+        f'<div style="font-size: 12px; font-weight: 700; color: {ink};">'
+        f'{_bird_img(18, alt="")} '
+        f'<span style="vertical-align:middle;">Powered by Pollyai</span>'
+        f'</div>',
         f'<div style="font-size: 11px; color: {muted}; margin-top: 2px">The Talent Marketplace for Politics &amp; Public Affairs</div>',
         '</div></td></tr>',
         '</table></td></tr></table></body></html>',
