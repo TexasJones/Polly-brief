@@ -59,18 +59,26 @@ def _summary_from_description(raw_html, max_sentences=2):
     sentences = re.split(r'(?<=[.!?])\s+', text)
     return ' '.join(sentences[:max_sentences]).strip()
 def _fetch_topic_story(query, limit=5):
-    url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
-    parsed = feedparser.parse(url, request_headers=HEADERS)
-    for entry in parsed.entries[:limit]:
-        raw_title = getattr(entry, 'title', '').strip()
-        link = getattr(entry, 'link', '').strip()
-        if not raw_title or not link:
-            continue
-        headline, source = _split_title_source(raw_title)
-        # Google News RSS descriptions turned out to just repeat the
-        # title/source as boilerplate, not a real snippet -- so we skip
-        # trying to extract a summary at all rather than show duplicate text.
-        return NewsItem(outlet=source, title=headline, url=link, summary='')
+    # Plain relevance search with no freshness filter can surface a
+    # month-old "roundup" piece over anything from today, since Google
+    # ranks by topical match, not recency. The `when:` search operator
+    # restricts results to a rolling window; try the tightest window
+    # first and only widen if that comes up empty, so sections don't
+    # start going blank on quieter news days just to stay fresh.
+    for window in ('when:1d', 'when:3d', 'when:7d', None):
+        windowed_query = f'{query} {window}' if window else query
+        url = f'{GOOGLE_NEWS_BASE}?q={windowed_query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
+        parsed = feedparser.parse(url, request_headers=HEADERS)
+        for entry in parsed.entries[:limit]:
+            raw_title = getattr(entry, 'title', '').strip()
+            link = getattr(entry, 'link', '').strip()
+            if not raw_title or not link:
+                continue
+            headline, source = _split_title_source(raw_title)
+            # Google News RSS descriptions turned out to just repeat the
+            # title/source as boilerplate, not a real snippet -- so we skip
+            # trying to extract a summary at all rather than show duplicate text.
+            return NewsItem(outlet=source, title=headline, url=link, summary='')
     return None
 def get_top_stories(per_outlet=5):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
