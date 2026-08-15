@@ -12,7 +12,7 @@ ELECTION_DAY = dt.date(2026, 11, 3)
 # Hosted, transparent PNG of the Polly bird mark (exact artwork, not inline SVG —
 # Outlook desktop and Brevo campaigns don't reliably render inline/embedded SVG).
 # Swap this once the file is committed to your assets host.
-BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/political-jobs-feed/main/assets/polly-bird-header.png"
+BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/Polly-brief/main/polly_brief/polly-bird-header.png"
 BIRD_LOGO_RATIO = 596 / 315  # width/height of the source artwork, keep any resized img proportional
 
 
