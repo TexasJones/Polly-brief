@@ -12,7 +12,7 @@ ELECTION_DAY = dt.date(2026, 11, 3)
 # Hosted, transparent PNG of the Polly bird mark (exact artwork, not inline SVG —
 # Outlook desktop and Brevo campaigns don't reliably render inline/embedded SVG).
 # Swap this once the file is committed to your assets host.
-BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/Polly-brief/main/polly_brief/polly-bird-header.png"
+BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/political-jobs-feed/main/assets/polly-bird-header.png"
 BIRD_LOGO_RATIO = 596 / 315  # width/height of the source artwork, keep any resized img proportional
 
 
@@ -95,12 +95,23 @@ def _topic_badge(emoji: str, title: str, color: str) -> str:
     return f'<span style="{badge_css}">{emoji} {_esc(title)}</span>'
 
 
-def _list_row(text: str) -> str:
-    """Render a single list item row."""
+def _list_row(text: str, count: Optional[int] = None) -> str:
+    """Render a single list item row, with an optional right-aligned count
+    (e.g. how many jobs in that category/employer) so the number pulse.top_categories
+    and pulse.top_employers already compute doesn't go unused."""
     ink = _c('INK', '#1E293B')
     row_css = _style('list_row_style', fallback=f"padding: 5px 0; font-size: 14px; color: {ink}; font-weight: 500;")
-    return (f'<tr><td style="{row_css}">'
-            f'{_esc(text)}</td></tr>')
+
+    if count is None:
+        return (f'<tr><td style="{row_css}">'
+                f'{_esc(text)}</td></tr>')
+
+    muted = _c('MUTED', '#94A3B8')
+    count_css = f"padding: 5px 0; font-size: 12px; color: {muted}; font-weight: 700; text-align: right; white-space: nowrap;"
+    return (f'<tr>'
+            f'<td style="{row_css}">{_esc(text)}</td>'
+            f'<td style="{count_css}">{count:,}</td>'
+            f'</tr>')
 
 
 def _stat_block(number: str, label: str, bg_color: str = "#1E3A8A", url: str = None) -> str:
@@ -253,11 +264,11 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
 
     muted_default_css = f"font-size: 14px; color: {muted};"
 
-    category_rows = ''.join(_list_row(name) for name, _c_val in pulse.top_categories)
+    category_rows = ''.join(_list_row(name, count) for name, count in pulse.top_categories)
     if not category_rows:
         category_rows = f'<tr><td style="{muted_default_css}">No category data available.</td></tr>'
 
-    employer_rows = ''.join(_list_row(name) for name, _c_val in pulse.top_employers)
+    employer_rows = ''.join(_list_row(name, count) for name, count in pulse.top_employers)
     if not employer_rows:
         employer_rows = f'<tr><td style="{muted_default_css}">No employer data available.</td></tr>'
 
@@ -337,10 +348,10 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>',
         '<td width="50%" valign="top" style="padding-right: 20px">',
         f'<div style="font-size: 11px; font-weight: 800; color: {muted}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px">Top Hiring Categories</div>',
-        f'<table role="presentation" cellpadding="0" cellspacing="0">{category_rows}</table></td>',
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{category_rows}</table></td>',
         '<td width="50%" valign="top">',
         f'<div style="font-size: 11px; font-weight: 800; color: {muted}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px">Top Hiring Organizations</div>',
-        f'<table role="presentation" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
         '</tr></table></td></tr>',
         _divider(),
         '<tr><td style="padding: 0 40px">',
