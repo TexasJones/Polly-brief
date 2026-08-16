@@ -25,6 +25,29 @@ snapshot from the last time the brief ran. That snapshot is a small JSON
 file committed back to the repo after each run (see SNAPSHOT_PATH below).
 The GitHub Actions workflow needs a step to commit this file after
 generate_brief.py runs — see the note at the bottom of this file.
+
+Freshness logic
+----------------
+Earlier versions of this script treated "the job is still in feed.xml" as
+equivalent to "the job is still active," which isn't true — a company can
+leave a Greenhouse/Lever posting reachable for weeks after the role has
+effectively closed. Every job is now classified by age into fresh / active
+/ aging / stale / unknown (see `classify_freshness`), and:
+
+  - "Active" counts (total_active, top employers/categories) include
+    fresh + active + unknown jobs. Unknown-date jobs are kept rather than
+    silently dropped — a growing unknown count usually means the upstream
+    feed's date_posted parsing is breaking on some source site, and that's
+    worth being able to see, not something to hide by excluding them.
+  - "Featured" jobs (the ones shown first in the newsletter) are fresh only.
+  - Nothing is deleted from the feed itself — fetch_all_jobs() still returns
+    every job, so the full history/archive is preserved. Only what counts
+    as "active" and what's eligible for "featured" changes.
+
+FRESH_DAYS / ACTIVE_DAYS / AGING_DAYS are starting points, not gospel —
+tune them once we see real distribution data. FRESHNESS_OVERRIDES_DAYS
+exists because some categories (gov appointments, fellowships) genuinely
+stay open far longer than a typical entry-level or comms role.
 """
 
 from __future__ import annotations
@@ -51,6 +74,21 @@ FEED_URL = "https://raw.githubusercontent.com/TexasJones/political-jobs-feed/mai
 # `generate_brief.py` gets invoked, so this avoids that class of bug.
 SNAPSHOT_PATH = Path(__file__).resolve().parent / ".state" / "seen_jobs.json"
 
+# Freshness buckets, in days since date_posted. Defaults — some categories
+# (fellowships, gov appointments, senior/exec searches) genuinely stay open
+# far longer than a typical entry-level or comms role, so treat these as a
+# starting point to tune once we see real data, not gospel.
+FRESH_DAYS = 14
+ACTIVE_DAYS = 30
+AGING_DAYS = 45
+
+# Per-category overrides for how long a job can go before hitting "stale."
+# Add to this as we learn which categories legitimately run long.
+FRESHNESS_OVERRIDES_DAYS: dict[str, int] = {
+    "Government & Policy": 60,
+    "Fellowship": 90,
+}
+
 
 @dataclass
 class JobPosting:
@@ -61,6 +99,8 @@ class JobPosting:
     date_posted: Optional[dt.date]
     category: Optional[str] = None
     logo_url: Optional[str] = None
+    age_days: Optional[int] = None   # filled in at build time (needs "today"), not fetch time
+    status: str = "unknown"          # "fresh" / "active" / "aging" / "stale" / "unknown"
 
 
 @dataclass
@@ -151,31 +191,72 @@ def _save_seen_urls(urls: set[str], path: Path = SNAPSHOT_PATH) -> None:
     }, indent=2))
 
 
+def compute_age_days(date_posted: Optional[dt.date], today: dt.date) -> Optional[int]:
+    if date_posted is None:
+        return None
+    return (today - date_posted).days
+
+
+def classify_freshness(age_days: Optional[int], category: Optional[str] = None) -> str:
+    """Bucket a job by age. `age_days is None` means the feed didn't give us
+    a parseable date_posted — that's reported as 'unknown' rather than
+    silently defaulting to fresh OR silently getting dropped, so it stays
+    visible in the data instead of being hidden by a default assumption."""
+    if age_days is None:
+        return "unknown"
+
+    stale_cutoff = FRESHNESS_OVERRIDES_DAYS.get(category, AGING_DAYS)
+
+    if age_days <= FRESH_DAYS:
+        return "fresh"
+    if age_days <= ACTIVE_DAYS:
+        return "active"
+    if age_days <= stale_cutoff:
+        return "aging"
+    return "stale"
+
+
 def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employers: int = 5,
                         num_categories: int = 5, today: Optional[dt.date] = None,
                         snapshot_path: Path = SNAPSHOT_PATH) -> HiringPulse:
     today = today or dt.date.today()
-    total_active = len(jobs)
 
+    # Classify every job before doing anything else with the list.
+    for j in jobs:
+        j.age_days = compute_age_days(j.date_posted, today)
+        j.status = classify_freshness(j.age_days, j.category)
+
+    # "Active" for the Brief/board = fresh + active + unknown. Aging/stale
+    # jobs are excluded from counts and stats, but NOT deleted from `jobs`
+    # itself — fetch_all_jobs() still returns the full feed, so the archive
+    # is preserved even though live_jobs is the filtered view used here.
+    live_jobs = [j for j in jobs if j.status in ("fresh", "active", "unknown")]
+    total_active = len(live_jobs)
+
+    # Snapshot tracking is based on the FULL feed (not live_jobs), so a job
+    # that goes stale and later reappears (e.g. re-scraped, re-posted)
+    # doesn't get treated as brand new just because it dropped off the
+    # "seen" list while it was excluded from live_jobs.
     current_urls = {_job_key(j) for j in jobs}
     previously_seen = _load_seen_urls(snapshot_path)
 
     # First run ever (no snapshot file yet): don't claim every job is "new,"
     # that's noise, not signal. Treat it as a baseline instead.
     if previously_seen:
-        new_today = sum(1 for j in jobs if _job_key(j) not in previously_seen)
+        new_today = sum(1 for j in live_jobs if _job_key(j) not in previously_seen)
     else:
         new_today = 0
 
     _save_seen_urls(current_urls, snapshot_path)
 
-    top_employers = Counter(j.company for j in jobs).most_common(num_employers)
-    top_categories = Counter(j.category for j in jobs if j.category).most_common(num_categories)
+    top_employers = Counter(j.company for j in live_jobs).most_common(num_employers)
+    top_categories = Counter(j.category for j in live_jobs if j.category).most_common(num_categories)
 
-    # Featured = most recently posted, deduped by company so one employer
-    # doesn't hog the whole "Featured Jobs" block
+    # Featured = fresh only, deduped by company so one employer doesn't hog
+    # the whole "Featured Jobs" block. No point leading the newsletter with
+    # a 3-week-old posting just because it happened to sort first.
     sorted_jobs = sorted(
-        jobs,
+        (j for j in live_jobs if j.status == "fresh"),
         key=lambda j: j.date_posted or dt.date.min,
         reverse=True,
     )
