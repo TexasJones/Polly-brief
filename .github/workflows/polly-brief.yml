@@ -30,13 +30,13 @@ jobs:
         run: pip install requests beautifulsoup4 feedparser
       - name: Generate the Brief
         run: python3 polly_brief/generate_brief.py --out polly_brief.html
-      - name: Commit updated job snapshot
+      - name: Commit updated job snapshot and published brief
         if: ${{ env.TEST_MODE == 'false' }}
         run: |
           git config user.name "actions-user"
           git config user.email "actions@github.com"
-          git add polly_brief/.state/seen_jobs.json
-          git diff --quiet --cached || git commit -m "Update seen jobs snapshot"
+          git add polly_brief/.state/seen_jobs.json docs/briefs/
+          git diff --quiet --cached || git commit -m "Update seen jobs snapshot and publish brief"
           git push
       - name: List files (debug)
         run: |
