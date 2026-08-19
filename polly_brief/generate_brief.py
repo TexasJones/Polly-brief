@@ -2,9 +2,18 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import sys
+from pathlib import Path
 from jobs_snapshot import HiringPulse, JobPosting, get_hiring_pulse
 from news_snapshot import NewsItem, TopStory, get_top_stories
 from template import render_brief
+
+# GitHub Pages base for this repo (Settings -> Pages: main branch, /docs
+# folder). Dated copies of the brief get published to
+# docs/briefs/{YYYY-MM-DD}.html, which resolves under this base -- see
+# _publish_to_pages() below. If the repo, org, or Pages folder ever change,
+# only this constant needs updating.
+PAGES_BASE_URL = "https://texasjones.github.io/Polly-brief"
+
 
 def _sample_data():
     pulse = HiringPulse(total_active=1247, new_today=58,
@@ -19,6 +28,7 @@ def _sample_data():
         JobPosting('Deputy Political Director', 'Campaign', 'Arizona', 'https://www.thepolly.co/jobs/sample-2', dt.date.today()),
     ]
     return pulse, stories, jobs
+
 
 def _build_subject(pulse, stories, today):
     date_str = today.strftime('%B %-d')
@@ -38,6 +48,31 @@ def _build_subject(pulse, stories, today):
         return prefix + top_headline
     return f'The Polly Brief -- {date_str}'
 
+
+def _publish_to_pages(html_out: str, today: dt.date) -> str:
+    """
+    Writes a dated copy of the rendered brief into docs/briefs/, the folder
+    GitHub Pages is configured to serve (Settings -> Pages: main / /docs).
+    Returns the public URL for that copy, for use as the "View in browser"
+    link in the email header.
+
+    Path is resolved from this file's own location, not the current working
+    directory -- the same reasoning jobs_snapshot.py uses for
+    SNAPSHOT_PATH: cwd-relative paths silently break depending on whether
+    the workflow invokes this script from the repo root or from inside
+    polly_brief/, and this avoids that class of bug. This script lives at
+    polly_brief/generate_brief.py, so docs/ (a sibling of polly_brief/) is
+    one level up from this file's parent.
+    """
+    docs_dir = Path(__file__).resolve().parent.parent / "docs" / "briefs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{today.isoformat()}.html"
+    (docs_dir / filename).write_text(html_out, encoding="utf-8")
+
+    return f"{PAGES_BASE_URL}/briefs/{filename}"
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sample', action='store_true')
@@ -47,9 +82,7 @@ def main():
     parser.add_argument('--quote', default=None)
     parser.add_argument('--quote-source', default=None)
     args = parser.parse_args()
-
     today = dt.date.today()
-
     if args.sample:
         pulse, stories, jobs = _sample_data()
         quote = args.quote or 'Sample quote'
@@ -66,18 +99,35 @@ def main():
             print(' -', s.section, ':', status)
         quote, quote_source = args.quote, args.quote_source
 
-    html_out = render_brief(pulse, stories, jobs, quote_text=quote, quote_source=quote_source, today=today)
+    # The "View in browser" link needs the day's published URL before the
+    # HTML itself is rendered (the URL is embedded in the header), but the
+    # URL only depends on today's date -- not on the brief's content -- so
+    # it can be built up front. Skipped for --sample runs so local test
+    # output doesn't overwrite a real day's published copy and doesn't
+    # link to a URL that was never actually published.
+    view_url = None
+    if not args.sample:
+        filename = f"{today.isoformat()}.html"
+        view_url = f"{PAGES_BASE_URL}/briefs/{filename}"
+
+    html_out = render_brief(pulse, stories, jobs, quote_text=quote, quote_source=quote_source,
+                             today=today, view_url=view_url)
+
     with open(args.out, 'w', encoding='utf-8') as f:
         f.write(html_out)
     print('Wrote', args.out)
+
+    if not args.sample:
+        published_url = _publish_to_pages(html_out, today)
+        print('Published to', published_url)
 
     subject = _build_subject(pulse, stories, today)
     with open(args.subject_out, 'w', encoding='utf-8') as f:
         f.write(subject)
     print('Subject:', subject)
     print('Wrote', args.subject_out)
-
     return 0
+
 
 if __name__ == '__main__':
     sys.exit(main())
