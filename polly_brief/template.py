@@ -14,6 +14,13 @@ ELECTION_DAY = dt.date(2026, 11, 3)
 BIRD_LOGO_URL = "https://raw.githubusercontent.com/TexasJones/Polly-brief/main/polly_brief/polly-bird-header.png"
 BIRD_LOGO_RATIO = 596 / 315  # width/height of the source artwork, keep any resized img proportional
 
+# Order the Remote/Hybrid/Onsite bar renders in, left to right. Colors are
+# looked up from styles.py via _c('LOCATION_COLORS', ...) with this as the
+# fallback, so a palette tweak in styles.py doesn't require touching this
+# file — same pattern as TOPIC_COLORS below.
+LOCATION_MIX_ORDER = ("Remote", "Hybrid", "Onsite")
+DEFAULT_LOCATION_COLORS = {"Remote": "#1E3A8A", "Hybrid": "#D97706", "Onsite": "#CBD5E1"}
+
 
 def _esc(text: str) -> str:
     """HTML-escape text for safe rendering."""
@@ -88,6 +95,18 @@ def _section_heading(emoji: str, title: str, color: str = None) -> str:
             f'{emoji} {_esc(title)}</div>')
 
 
+def _subheading_label(text: str) -> str:
+    """Small uppercase label used above a mini-section within Hiring Pulse
+    (e.g. 'Top Hiring Categories', 'Remote / Hybrid / Onsite'). Pulled out
+    as its own helper since it was previously written inline twice with
+    identical styling — this keeps the two Hiring Pulse column labels and
+    the new location-mix label from drifting out of sync."""
+    muted = _c('MUTED', '#64748B')
+    return (f'<div style="font-size: 11px; font-weight: 800; color: {muted}; '
+            f'text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px">'
+            f'{_esc(text)}</div>')
+
+
 def _topic_badge(emoji: str, title: str, color: str) -> str:
     """Render a solid-color pill badge for a topic label."""
     badge_css = _style('badge_style', color, fallback=f"background-color: {color}; color: #ffffff; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; display: inline-block;")
@@ -115,6 +134,71 @@ def _stat_block(number: str, label: str, bg_color: str = "#1E3A8A", url: str = N
             f'<div style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-top: 8px; letter-spacing: 0.8px; color: #FFFFFF; opacity: 0.95;">{_esc(label)}</div>'
             f'</div>'
             f'{close_tag}</td>')
+
+
+def _location_mix_bar(mix: dict[str, int]) -> str:
+    """Render the Remote/Hybrid/Onsite split as a single-row stacked bar.
+
+    Built as a plain HTML table with percentage-width cells and solid
+    background colors -- the same table-based technique this template
+    already uses everywhere else (e.g. _stat_block's width:50% cells).
+    Deliberately NOT a generated chart image: that would mean hosting and
+    refreshing a PNG on every run (an extra moving part, and one more
+    thing that can go stale or get blocked by an email client's
+    image-loading default), whereas an inline table renders immediately
+    and consistently across Outlook, Gmail, and Apple Mail with zero
+    external requests.
+
+    `mix` is expected to have all three LOCATION_MIX_ORDER keys present
+    (HiringPulse.location_mix is zero-filled by jobs_snapshot.py), but
+    .get(..., 0) below is kept defensive in case this is ever called with
+    a partial dict from elsewhere.
+    """
+    muted = _c('MUTED', '#64748B')
+    total = sum(mix.get(label, 0) for label in LOCATION_MIX_ORDER)
+
+    if total == 0:
+        return f'<div style="font-size: 13px; color: {muted};">No location data available today.</div>'
+
+    colors = _c('LOCATION_COLORS', DEFAULT_LOCATION_COLORS)
+    if not isinstance(colors, dict):
+        colors = DEFAULT_LOCATION_COLORS
+
+    segment_cells = []
+    legend_items = []
+    for label in LOCATION_MIX_ORDER:
+        count = mix.get(label, 0)
+        if count == 0:
+            continue  # skip empty segments rather than render a 0%-wide <td>
+
+        pct = round(count / total * 100)
+        color = colors.get(label, '#94A3B8')
+        text_color = '#FFFFFF' if label != 'Onsite' else '#334155'
+        # Only print the percentage inside the segment itself if there's
+        # room for it to be legible -- a 4%-wide sliver showing "4%" just
+        # overflows illegibly in most email clients. The exact number is
+        # always still available in the legend below regardless.
+        cell_label = f'{pct}%' if pct >= 10 else ''
+
+        segment_cells.append(
+            f'<td width="{pct}%" style="background-color: {color}; height: 22px; '
+            f'font-size: 10px; font-weight: 800; color: {text_color}; text-align: center; '
+            f'line-height: 22px; font-family: Helvetica, Arial, sans-serif;">{cell_label}</td>'
+        )
+        legend_items.append(
+            f'<span style="display:inline-block; margin-right:16px; font-size:12px; color:{muted}; margin-top:6px;">'
+            f'<span style="display:inline-block; width:9px; height:9px; border-radius:2px; '
+            f'background-color:{color}; margin-right:5px; vertical-align:middle;"></span>'
+            f'<span style="vertical-align:middle;">{_esc(label)} &middot; {count}</span></span>'
+        )
+
+    bar = (
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        'style="border-radius: 6px; overflow: hidden;"><tr>'
+        f'{"".join(segment_cells)}'
+        '</tr></table>'
+    )
+    return bar + f'<div>{"".join(legend_items)}</div>'
 
 
 def _bold_lead_in(text: str, num_words: int = 8) -> str:
@@ -398,12 +482,17 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         _stat_block(f'{pulse.total_active:,}', 'Active Jobs', bg_color="#1E3A8A", url='https://jobs.thepolly.co/jobs'),
         _stat_block(str(pulse.new_today), 'New Today', bg_color="#2563EB"),
         '</tr></table>',
+        # Remote / Hybrid / Onsite stacked bar. Sits between the stat cards
+        # and the category/employer columns -- it's a Hiring Pulse metric
+        # like the others, not a separate section, so it shares the same
+        # heading and doesn't get its own emoji/divider.
+        f'<div style="margin-bottom: 20px;">{_subheading_label("Remote / Hybrid / Onsite")}{_location_mix_bar(pulse.location_mix)}</div>',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>',
         '<td width="50%" valign="top" style="padding-right: 20px">',
-        f'<div style="font-size: 11px; font-weight: 800; color: {muted}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px">Top Hiring Categories</div>',
+        _subheading_label("Top Hiring Categories"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{category_rows}</table></td>',
         '<td width="50%" valign="top">',
-        f'<div style="font-size: 11px; font-weight: 800; color: {muted}; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px">Top Hiring Organizations</div>',
+        _subheading_label("Top Hiring Organizations"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
         '</tr></table></td></tr>',
         _divider(),
