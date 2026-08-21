@@ -34,11 +34,12 @@ leave a Greenhouse/Lever posting reachable for weeks after the role has
 effectively closed. Every job is now classified by age into fresh / active
 / aging / stale / unknown (see `classify_freshness`), and:
 
-  - "Active" counts (total_active, top employers/categories) include
-    fresh + active + unknown jobs. Unknown-date jobs are kept rather than
-    silently dropped — a growing unknown count usually means the upstream
-    feed's date_posted parsing is breaking on some source site, and that's
-    worth being able to see, not something to hide by excluding them.
+  - "Active" counts (total_active, top employers/categories, location_mix)
+    include fresh + active + unknown jobs. Unknown-date jobs are kept
+    rather than silently dropped — a growing unknown count usually means
+    the upstream feed's date_posted parsing is breaking on some source
+    site, and that's worth being able to see, not something to hide by
+    excluding them.
   - "Featured" jobs (the ones shown first in the newsletter) are fresh only.
   - Nothing is deleted from the feed itself — fetch_all_jobs() still returns
     every job, so the full history/archive is preserved. Only what counts
@@ -48,6 +49,20 @@ FRESH_DAYS / ACTIVE_DAYS / AGING_DAYS are starting points, not gospel —
 tune them once we see real distribution data. FRESHNESS_OVERRIDES_DAYS
 exists because some categories (gov appointments, fellowships) genuinely
 stay open far longer than a typical entry-level or comms role.
+
+Location mix
+------------
+`location_mix` counts live jobs by Remote / Hybrid / Onsite for the
+"Hiring Pulse" stacked bar in the newsletter. This reads the feed's
+`location` field directly — the scraper (political-jobs-feed) already
+writes a clean categorical label there ("Remote" / "Hybrid" / "Onsite"),
+separate from the messy free-text office address, which lives in
+`office_location` instead. See political_jobs_feed.py's add_job(): the
+`location` tag is a compatibility alias carrying LOCATION_TYPE_LABELS,
+specifically so downstream consumers like this one don't have to
+re-parse free text to figure out work arrangement. That means no new
+scraping or state is needed here — just a count of a value already being
+read into JobPosting.location today.
 """
 
 from __future__ import annotations
@@ -89,6 +104,12 @@ FRESHNESS_OVERRIDES_DAYS: dict[str, int] = {
     "Fellowship": 90,
 }
 
+# Canonical order for the location-mix stacked bar. Anything in the feed
+# that isn't one of these three labels (shouldn't happen, given the
+# scraper's LOCATION_TYPE_LABELS, but feeds drift) is simply not counted
+# rather than crashing the run — see build_hiring_pulse().
+LOCATION_TYPES = ("Remote", "Hybrid", "Onsite")
+
 
 @dataclass
 class JobPosting:
@@ -110,6 +131,10 @@ class HiringPulse:
     top_employers: list[tuple[str, int]] = field(default_factory=list)
     top_categories: list[tuple[str, int]] = field(default_factory=list)
     featured: list[JobPosting] = field(default_factory=list)
+    # Counts of live jobs by work arrangement, e.g. {"Remote": 55, "Hybrid": 39, "Onsite": 37}.
+    # Always has all three LOCATION_TYPES keys present (zero-filled), so
+    # template.py can render a stacked bar without checking for missing keys.
+    location_mix: dict[str, int] = field(default_factory=dict)
 
 
 def _text(job_el, tag: str) -> Optional[str]:
@@ -216,6 +241,18 @@ def classify_freshness(age_days: Optional[int], category: Optional[str] = None) 
     return "stale"
 
 
+def _compute_location_mix(live_jobs: list[JobPosting]) -> dict[str, int]:
+    """Count live jobs by work arrangement. Zero-fills all three
+    LOCATION_TYPES keys (even if a category had no postings today) so
+    template.py never needs a `.get(label, 0)` fallback dance — it can just
+    index straight into the dict. Anything outside the three known labels
+    (an empty string, or a feed drifting from LOCATION_TYPE_LABELS) is
+    silently excluded from the mix rather than raising, same philosophy as
+    the rest of this file: a malformed field shouldn't crash a whole run."""
+    counts = Counter(j.location for j in live_jobs if j.location in LOCATION_TYPES)
+    return {label: counts.get(label, 0) for label in LOCATION_TYPES}
+
+
 def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employers: int = 5,
                         num_categories: int = 5, today: Optional[dt.date] = None,
                         snapshot_path: Path = SNAPSHOT_PATH) -> HiringPulse:
@@ -251,6 +288,7 @@ def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employ
 
     top_employers = Counter(j.company for j in live_jobs).most_common(num_employers)
     top_categories = Counter(j.category for j in live_jobs if j.category).most_common(num_categories)
+    location_mix = _compute_location_mix(live_jobs)
 
     # Featured = fresh only, deduped by company so one employer doesn't hog
     # the whole "Featured Jobs" block. No point leading the newsletter with
@@ -275,6 +313,7 @@ def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employ
         top_employers=top_employers,
         top_categories=top_categories,
         featured=featured,
+        location_mix=location_mix,
     )
 
 
@@ -288,6 +327,7 @@ if __name__ == "__main__":
     print(f"Active jobs: {pulse.total_active}")
     print(f"New today:   {pulse.new_today}")
     print("Top employers:", pulse.top_employers)
+    print("Location mix:", pulse.location_mix)
     print("Featured:")
     for j in pulse.featured:
         print(f"  - {j.title} @ {j.company} ({j.location}) -> {j.url}")
