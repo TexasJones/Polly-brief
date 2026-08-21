@@ -30,21 +30,27 @@ SECTION_QUERIES = [
     ('Legislative', chr(0x1F3DB), 'Congress legislation bill'),
 ]
 
-# Freshness ceiling for a "top story." Search windows below widen up to
-# this same number and then stop -- previously the last resort was an
-# unrestricted search (no `when:` operator at all), which let Google's
-# plain relevance ranking hand back a months-old piece on any topic having
-# a quiet news day. Every entry's own published date is now also checked
-# against this same cutoff (see _entry_published_date), independent of
-# which search window it came from -- Google's `when:` operator biases the
-# search, but it isn't a hard guarantee, so a stale entry can still slip
-# into an otherwise-recent window and needs to be caught here too.
+# Freshness ceiling for a "top story." This is now the ONLY freshness
+# mechanism -- see _fetch_topic_story below. We used to also lean on
+# Google's `when:` search-time operator (when:1d/3d/7d/14d, widening in
+# stages) to bias results toward recent articles before this per-entry
+# check even ran. That turned out to be the actual bug: `when:` is
+# undocumented at the RSS level and behaves unreliably -- windowed queries
+# were silently returning zero results far more often than expected. In
+# the old code (before `when:` existed) there was a single unrestricted
+# search with no freshness filter at all, which is why stale roundup
+# articles could win on quiet days. In the newer code, ALL FOUR windowed
+# searches could come up empty, and with no unrestricted fallback left,
+# every section went blank -- a total seven-section blackout, which is a
+# fetch failure, not seven simultaneous quiet news days.
+#
+# Fix: stop depending on `when:` entirely. Go back to one plain,
+# unrestricted search (the thing that was reliably working the whole
+# time), and keep freshness enforcement entirely in _entry_published_date
+# below, which checks each candidate's own real publish date against this
+# cutoff. That's a mechanism we've actually verified works, instead of
+# one we now have evidence is unreliable.
 MAX_STORY_AGE_DAYS = 14
-
-# Widens in stages so a quiet-news-day topic still gets *something* recent
-# rather than immediately falling back to a looser match, but never
-# reaches further than MAX_STORY_AGE_DAYS.
-SEARCH_WINDOWS = ('when:1d', 'when:3d', 'when:7d', 'when:14d')
 
 
 @dataclass
@@ -80,13 +86,14 @@ def _summary_from_description(raw_html, max_sentences=2):
 
 
 def _entry_published_date(entry) -> Optional[dt.date]:
-    """Pull the entry's own publish date out of feedparser's parsed struct,
-    independent of whatever `when:` window the search itself used. Checks
-    `published_parsed` first, falling back to `updated_parsed` since not
-    every feed populates both. Returns None if neither is present or
+    """Pull the entry's own publish date out of feedparser's parsed struct.
+    Checks `published_parsed` first, falling back to `updated_parsed` since
+    not every feed populates both. Returns None if neither is present or
     parseable -- that's treated as "can't verify this is fresh" by the
     caller, not as "assume it's fine," since the whole point here is not
-    trusting an unverified date."""
+    trusting an unverified date. This is now the sole freshness gate (see
+    MAX_STORY_AGE_DAYS above) -- the search itself is unrestricted, so
+    every candidate has to clear this check on its own merits."""
     struct = getattr(entry, 'published_parsed', None) or getattr(entry, 'updated_parsed', None)
     if not struct:
         return None
@@ -97,44 +104,38 @@ def _entry_published_date(entry) -> Optional[dt.date]:
 
 
 def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
-    # Plain relevance search with no freshness filter can surface a
-    # month-old "roundup" piece over anything from today, since Google
-    # ranks by topical match, not recency. The `when:` search operator
-    # restricts results to a rolling window; try the tightest window
-    # first and only widen if that comes up empty, so sections don't
-    # start going blank on quieter news days just to stay fresh.
-    #
-    # Widening now stops at SEARCH_WINDOWS' last entry (14 days) rather
-    # than ever dropping the `when:` operator entirely -- see
-    # MAX_STORY_AGE_DAYS above for why an unbounded fallback was the
-    # actual source of multi-week-old stories getting through.
+    # Plain, unrestricted relevance search -- no `when:` operator. We
+    # previously tried to bias this toward recent results by layering
+    # `when:1d/3d/7d/14d` windowed searches on top, widening until one
+    # returned something. In practice those windowed queries were
+    # unreliable at the RSS level and would frequently return nothing at
+    # all, and with no fallback left after the last window, topics went
+    # silently empty. The plain search is the one query we know actually
+    # returns results consistently; freshness is enforced afterward by
+    # checking each entry's own published date (see _entry_published_date
+    # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
     today = today or dt.date.today()
 
-    for window in SEARCH_WINDOWS:
-        windowed_query = f'{query} {window}'
-        url = f'{GOOGLE_NEWS_BASE}?q={windowed_query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
-        parsed = feedparser.parse(url, request_headers=HEADERS)
-        for entry in parsed.entries[:limit]:
-            raw_title = getattr(entry, 'title', '').strip()
-            link = getattr(entry, 'link', '').strip()
-            if not raw_title or not link:
-                continue
+    url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
+    parsed = feedparser.parse(url, request_headers=HEADERS)
+    for entry in parsed.entries[:limit]:
+        raw_title = getattr(entry, 'title', '').strip()
+        link = getattr(entry, 'link', '').strip()
+        if not raw_title or not link:
+            continue
 
-            # Verify the entry's own date rather than trusting the `when:`
-            # window alone -- Google's search-time freshness filter isn't
-            # a hard guarantee, so a stale entry can still show up inside
-            # a nominally "recent" window. An entry with no parseable date
-            # at all is skipped too, same reasoning: we can't call
-            # something "today's news" if we can't confirm when it ran.
-            pub_date = _entry_published_date(entry)
-            if pub_date is None or (today - pub_date).days > MAX_STORY_AGE_DAYS:
-                continue
+        # Reject anything we can't confirm is recent. An entry with no
+        # parseable date at all is skipped too, same reasoning: we can't
+        # call something "today's news" if we can't confirm when it ran.
+        pub_date = _entry_published_date(entry)
+        if pub_date is None or (today - pub_date).days > MAX_STORY_AGE_DAYS:
+            continue
 
-            headline, source = _split_title_source(raw_title)
-            # Google News RSS descriptions turned out to just repeat the
-            # title/source as boilerplate, not a real snippet -- so we skip
-            # trying to extract a summary at all rather than show duplicate text.
-            return NewsItem(outlet=source, title=headline, url=link, summary='')
+        headline, source = _split_title_source(raw_title)
+        # Google News RSS descriptions turned out to just repeat the
+        # title/source as boilerplate, not a real snippet -- so we skip
+        # trying to extract a summary at all rather than show duplicate text.
+        return NewsItem(outlet=source, title=headline, url=link, summary='')
     return None
 def get_top_stories(per_outlet=5, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
