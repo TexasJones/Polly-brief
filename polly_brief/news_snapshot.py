@@ -30,26 +30,26 @@ SECTION_QUERIES = [
     ('Legislative', chr(0x1F3DB), 'Congress legislation bill'),
 ]
 
-# Freshness ceiling for a "top story." This is now the ONLY freshness
-# mechanism -- see _fetch_topic_story below. We used to also lean on
-# Google's `when:` search-time operator (when:1d/3d/7d/14d, widening in
-# stages) to bias results toward recent articles before this per-entry
-# check even ran. That turned out to be the actual bug: `when:` is
-# undocumented at the RSS level and behaves unreliably -- windowed queries
-# were silently returning zero results far more often than expected. In
-# the old code (before `when:` existed) there was a single unrestricted
-# search with no freshness filter at all, which is why stale roundup
-# articles could win on quiet days. In the newer code, ALL FOUR windowed
-# searches could come up empty, and with no unrestricted fallback left,
-# every section went blank -- a total seven-section blackout, which is a
-# fetch failure, not seven simultaneous quiet news days.
+# Preferred freshness window for a "top story." This is a PREFERENCE, not
+# a hard reject -- see the tiered fallback in _fetch_topic_story below.
+# We used to also lean on Google's `when:` search-time operator
+# (when:1d/3d/7d/14d, widening in stages) to bias results toward recent
+# articles before any per-entry date check even ran. That turned out to
+# be the actual bug: `when:` is undocumented at the RSS level and behaves
+# unreliably -- windowed queries were silently returning zero results far
+# more often than expected. With no unrestricted fallback left after the
+# last window, every section went blank at once -- a fetch failure, not
+# seven simultaneous quiet news days.
 #
-# Fix: stop depending on `when:` entirely. Go back to one plain,
-# unrestricted search (the thing that was reliably working the whole
-# time), and keep freshness enforcement entirely in _entry_published_date
-# below, which checks each candidate's own real publish date against this
-# cutoff. That's a mechanism we've actually verified works, instead of
-# one we now have evidence is unreliable.
+# Fix, in two parts:
+#   1. Stop depending on `when:` entirely -- one plain, unrestricted
+#      search per topic, which is what was reliably working the whole
+#      time under the old code's fallback.
+#   2. Prefer articles within this many days, but never let "nothing
+#      fresh enough" collapse into "show nothing" -- an older article,
+#      or even an unverified-date one, is still more useful to a reader
+#      than a blank section. A section only comes back empty if Google
+#      genuinely returned zero usable entries for that query.
 MAX_STORY_AGE_DAYS = 14
 
 
@@ -91,9 +91,10 @@ def _entry_published_date(entry) -> Optional[dt.date]:
     not every feed populates both. Returns None if neither is present or
     parseable -- that's treated as "can't verify this is fresh" by the
     caller, not as "assume it's fine," since the whole point here is not
-    trusting an unverified date. This is now the sole freshness gate (see
-    MAX_STORY_AGE_DAYS above) -- the search itself is unrestricted, so
-    every candidate has to clear this check on its own merits."""
+    trusting an unverified date. Used by _fetch_topic_story to rank
+    candidates by actual freshness rather than search-result order; an
+    entry with no parseable date can still be used as a last-resort
+    fallback there, but only after every dated entry has been tried."""
     struct = getattr(entry, 'published_parsed', None) or getattr(entry, 'updated_parsed', None)
     if not struct:
         return None
@@ -116,27 +117,63 @@ def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
     # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
     today = today or dt.date.today()
 
+    # NOTE on selection strategy: we used to return the FIRST entry (in
+    # Google's relevance-ranked order) that passed the freshness check.
+    # But relevance ranking has no concept of recency -- Google can easily
+    # rank a 12-day-old deep-dive above a 2-day-old news item for the same
+    # query. Taking "first in list order" meant we could pick a stale
+    # story over a fresher one sitting a few slots lower, even though both
+    # were within the 14-day window. So instead we collect every entry we
+    # can extract a date from and pick by date, not by search-result order.
     url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
     parsed = feedparser.parse(url, request_headers=HEADERS)
+
+    # dated: (pub_date, raw_title, link) for every entry with a parseable
+    # date, regardless of how old. undated: (raw_title, link) for entries
+    # we couldn't get a date from at all, kept only as a last-resort
+    # fallback -- see below.
+    dated = []
+    undated = []
     for entry in parsed.entries[:limit]:
         raw_title = getattr(entry, 'title', '').strip()
         link = getattr(entry, 'link', '').strip()
         if not raw_title or not link:
             continue
 
-        # Reject anything we can't confirm is recent. An entry with no
-        # parseable date at all is skipped too, same reasoning: we can't
-        # call something "today's news" if we can't confirm when it ran.
         pub_date = _entry_published_date(entry)
-        if pub_date is None or (today - pub_date).days > MAX_STORY_AGE_DAYS:
-            continue
+        if pub_date is None:
+            undated.append((raw_title, link))
+        else:
+            dated.append((pub_date, raw_title, link))
 
-        headline, source = _split_title_source(raw_title)
-        # Google News RSS descriptions turned out to just repeat the
-        # title/source as boilerplate, not a real snippet -- so we skip
-        # trying to extract a summary at all rather than show duplicate text.
-        return NewsItem(outlet=source, title=headline, url=link, summary='')
-    return None
+    # Tier 1: newest entry within MAX_STORY_AGE_DAYS. This is the normal,
+    # expected case -- fresh news exists and we picked the freshest of it.
+    fresh = [c for c in dated if (today - c[0]).days <= MAX_STORY_AGE_DAYS]
+    if fresh:
+        pub_date, raw_title, link = max(fresh, key=lambda c: c[0])
+    # Tier 2: nothing within 14 days, but Google did return dated articles
+    # on this topic -- take the single newest one anyway rather than
+    # showing nothing. An older-than-ideal story is still more useful to
+    # a reader than a blank section, and a genuinely quiet-news-day topic
+    # (rather than a broken fetch) is exactly the case this is for.
+    elif dated:
+        pub_date, raw_title, link = max(dated, key=lambda c: c[0])
+    # Tier 3: nothing had a parseable date at all -- fall back to
+    # whatever Google ranked first by relevance. We can't verify how old
+    # it is, but returning it is still better than an empty section when
+    # the feed clearly returned real results.
+    elif undated:
+        raw_title, link = undated[0]
+    # Tier 4: the feed itself returned nothing usable for this query --
+    # this is the only case that should still produce an empty section.
+    else:
+        return None
+
+    headline, source = _split_title_source(raw_title)
+    # Google News RSS descriptions turned out to just repeat the
+    # title/source as boilerplate, not a real snippet -- so we skip
+    # trying to extract a summary at all rather than show duplicate text.
+    return NewsItem(outlet=source, title=headline, url=link, summary='')
 def get_top_stories(per_outlet=5, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
     # existing --headlines-per-outlet flag; here it controls how many results
