@@ -22,7 +22,7 @@ GOOGLE_NEWS_BASE = 'https://news.google.com/rss/search'
 # but isn't itself campaign finance.
 SECTION_QUERIES = [
     ('Campaigns', chr(0x1F5F3), 'political campaign primary election'),
-    ('Media', chr(0x1F4FA), 'media industry journalism press freedom'),
+    ('Media', chr(0x1F4FA), 'U.S. media television cable news Hollywood press freedom -"journalists association"'),
     ('AI+Policy', chr(0x1F916), 'artificial intelligence policy regulation Congress'),
     ('Energy', chr(0x26A1), 'energy policy EPA regulation'),
     ('Finance', chr(0x1F4B0), 'campaign finance PAC fundraising dark money'),
