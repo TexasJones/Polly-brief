@@ -27,7 +27,7 @@ SECTION_QUERIES = [
     ('Energy', chr(0x26A1), 'energy policy EPA regulation'),
     ('Finance', chr(0x1F4B0), 'campaign finance dark money super PAC spending disclosure -"top donors"'),
     ('Economy', chr(0x1F4C8), 'jobs report unemployment stock market inflation economy'),
-    ('Legislative', chr(0x1F3DB), 'Congress legislation bill'),
+    ('Legislative', chr(0x1F3DB), 'Congress committee vote markup bill passed signed law'),
 ]
 
 # Preferred freshness window for a "top story." This is a PREFERENCE, not
@@ -51,6 +51,18 @@ SECTION_QUERIES = [
 #      than a blank section. A section only comes back empty if Google
 #      genuinely returned zero usable entries for that query.
 MAX_STORY_AGE_DAYS = 14
+
+# Applied to every SECTION_QUERIES search below. Rather than trying to
+# detect opinion "tone" in headline text (unreliable -- an op-ed title
+# doesn't have to say "opinion" anywhere, e.g. "Congress Should Rein in
+# EPA Overreach"), this excludes by URL PATH instead: nearly every major
+# outlet organizes opinion/editorial content under a predictable URL
+# segment (nytimes.com/opinion/..., washingtonpost.com/opinions/...,
+# etc.), and Google's `-inurl:` operator can filter on that structurally.
+# Matters here specifically because Polly's audience spans both parties --
+# a directionally-framed op-ed showing up as "today's news" reads as the
+# brief taking a side, which straight reporting doesn't.
+OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -inurl:commentary'
 
 
 @dataclass
@@ -125,7 +137,7 @@ def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
     # story over a fresher one sitting a few slots lower, even though both
     # were within the 14-day window. So instead we collect every entry we
     # can extract a date from and pick by date, not by search-result order.
-    url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
+    url = f'{GOOGLE_NEWS_BASE}?q={(query + " " + OPINION_EXCLUSION).replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
     parsed = feedparser.parse(url, request_headers=HEADERS)
 
     # dated: (pub_date, raw_title, link) for every entry with a parseable
