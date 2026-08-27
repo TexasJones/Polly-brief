@@ -25,7 +25,7 @@ SECTION_QUERIES = [
     ('Media', chr(0x1F4FA), 'U.S. media television cable news Hollywood press freedom -"journalists association"'),
     ('AI+Policy', chr(0x1F916), 'artificial intelligence policy regulation Congress'),
     ('Energy', chr(0x26A1), 'energy policy EPA regulation'),
-    ('Finance', chr(0x1F4B0), 'campaign finance PAC fundraising dark money'),
+    ('Finance', chr(0x1F4B0), 'campaign finance dark money super PAC spending disclosure -"top donors"'),
     ('Economy', chr(0x1F4C8), 'jobs report unemployment stock market inflation economy'),
     ('Legislative', chr(0x1F3DB), 'Congress legislation bill'),
 ]
