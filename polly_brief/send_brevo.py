@@ -16,6 +16,12 @@ Optional:
 Usage:
   python3 polly_brief/send_brevo.py --html-file polly_brief.html
 
+  # A second, distinct send on the same day (e.g. a monthly special
+  # edition) needs its own --campaign-name -- see note below.
+  python3 polly_brief/send_brevo.py --html-file polly_pulse.html \\
+      --campaign-name "Polly Pulse - 2026-09" \\
+      --subject "The Polly Pulse: DC hiring in September"
+
 The script:
   1. Reads the generated HTML.
   2. Checks Brevo for an existing campaign for today's date.
@@ -23,6 +29,31 @@ The script:
      or is currently being processed.
   4. Creates a Brevo email campaign.
   5. Sends the campaign immediately.
+
+Campaign naming and --campaign-name
+------------------------------------
+build_campaign_name() defaults to "Polly Brief - {date}", and the
+duplicate-prevention check in find_existing_campaign() keys off that
+exact name -- it's what stops a re-run from double-sending the same
+day's brief.
+
+That's correct for the daily brief, but it becomes a problem the moment
+a SECOND, different kind of send needs to go out on the same calendar
+day -- e.g. a monthly "Polly Pulse" special edition running on the 1st,
+same day as that day's regular daily brief. Without an override, both
+sends would generate the identical campaign name ("Polly Brief -
+2026-09-01"), and whichever one ran second would see the first one
+already marked "sent" and silently skip itself -- not because it was
+actually a duplicate, but because the duplicate check has no way to
+tell two different kinds of sends apart.
+
+--campaign-name fixes this without touching the daily brief's existing
+behavior at all: when supplied, it overrides build_campaign_name()
+entirely; when omitted, everything works exactly as it did before this
+change. The daily workflow doesn't need to pass it. Anything with its
+own send cadence (e.g. a monthly script) should pass something that
+can't collide with "Polly Brief - {date}", such as "Polly Pulse -
+{year}-{month}".
 """
 
 from __future__ import annotations
@@ -241,7 +272,12 @@ def add_mailing_address(
 
 
 def build_campaign_name(today: dt.date) -> str:
-    """Create the internal campaign name used for idempotency."""
+    """Create the internal campaign name used for idempotency.
+
+    This is the DEFAULT used when --campaign-name isn't supplied on the
+    command line -- see the module docstring above for why a second,
+    distinct send on the same day needs to override this rather than
+    share it."""
 
     return f"Polly Brief - {today.isoformat()}"
 
@@ -279,6 +315,22 @@ def parse_args() -> argparse.Namespace:
         "--subject",
         default=None,
         help="Optional custom email subject.",
+    )
+
+    parser.add_argument(
+        "--campaign-name",
+        default=None,
+        help=(
+            "Optional override for the internal Brevo campaign name "
+            "used for duplicate-prevention. Defaults to "
+            "'Polly Brief - {date}' when omitted, which is correct for "
+            "the daily brief. Anything sending a SECOND, different "
+            "email on the same calendar day (e.g. a monthly special "
+            "edition) must pass a distinct name here, or it will "
+            "collide with the daily brief's campaign name and be "
+            "silently skipped as a false duplicate -- see the module "
+            "docstring for the full explanation."
+        ),
     )
 
     return parser.parse_args()
@@ -356,7 +408,13 @@ def main() -> int:
 
     today = dt.date.today()
 
-    campaign_name = build_campaign_name(today)
+    # --campaign-name overrides the default when supplied (e.g. a
+    # monthly special edition passing its own distinct name). Omitted
+    # entirely, this is identical to the original behavior.
+    campaign_name = (
+        args.campaign_name
+        or build_campaign_name(today)
+    )
 
     subject = (
         args.subject
