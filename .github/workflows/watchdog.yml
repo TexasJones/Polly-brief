@@ -1,0 +1,46 @@
+name: Watchdog - Polly Brief Ran Today
+on:
+  schedule:
+    # Runs at 18:00 UTC (~1 PM CDT) -- well after the Generate Polly
+    # Brief workflow's own noon UTC schedule, so there's been a full
+    # buffer window for it to have fired (or for a manual run to have
+    # caught a miss) before this checks.
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+permissions:
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check whether Generate Polly Brief ran today
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "Checking for a Generate Polly Brief run on $TODAY (UTC)..."
+
+          # Pull the last 20 runs of that specific workflow and count how
+          # many were created today. 20 is comfortably more than one day's
+          # worth even counting manual re-runs, so no pagination needed.
+          RUN_COUNT=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20" \
+            --jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+
+          echo "Runs found for today: $RUN_COUNT"
+          echo "run_count=$RUN_COUNT" >> "$GITHUB_OUTPUT"
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+
+      - name: Open an issue if nothing ran today
+        if: steps.check.outputs.run_count == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --title "Polly Brief did not run today (${{ steps.check.outputs.today }})" \
+            --body "No 'Generate Polly Brief' run was found for today as of 18:00 UTC.
+
+          This usually means the scheduled trigger didn't fire -- a known, recurring GitHub Actions reliability issue, not a bug in the workflow itself (confirmed clean when checked previously).
+
+          **What to do:** go to Actions -> Generate Polly Brief -> Run workflow, and trigger it manually with test_mode=false, publish_only=false."
