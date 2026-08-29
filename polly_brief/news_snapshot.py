@@ -64,6 +64,22 @@ MAX_STORY_AGE_DAYS = 14
 # brief taking a side, which straight reporting doesn't.
 OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -inurl:commentary'
 
+# The "core 15" trusted political news sources -- outlets that publish on
+# DC politics/policy multiple times a day, which is what actually fixes
+# staleness: a tightened topic query narrows WHAT matches, but doesn't by
+# itself guarantee the matches are recent. Restricting to outlets that
+# cover this beat constantly means there's almost always something fresh
+# to find, and it also raises source credibility across the board --
+# Polly's own audience already reads these outlets, so citing them is a
+# trust signal, not just a freshness fix.
+TRUSTED_SOURCES = (
+    '(site:axios.com OR site:politico.com OR site:punchbowl.news '
+    'OR site:semafor.com OR site:reuters.com OR site:apnews.com '
+    'OR site:washingtonpost.com OR site:thehill.com OR site:npr.org '
+    'OR site:rollcall.com OR site:notus.org OR site:bloomberg.com '
+    'OR site:nbcnews.com OR site:nationaljournal.com OR site:cnn.com)'
+)
+
 
 @dataclass
 class NewsItem:
@@ -116,34 +132,18 @@ def _entry_published_date(entry) -> Optional[dt.date]:
         return None
 
 
-def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
-    # Plain, unrestricted relevance search -- no `when:` operator. We
-    # previously tried to bias this toward recent results by layering
-    # `when:1d/3d/7d/14d` windowed searches on top, widening until one
-    # returned something. In practice those windowed queries were
-    # unreliable at the RSS level and would frequently return nothing at
-    # all, and with no fallback left after the last window, topics went
-    # silently empty. The plain search is the one query we know actually
-    # returns results consistently; freshness is enforced afterward by
-    # checking each entry's own published date (see _entry_published_date
-    # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
-    today = today or dt.date.today()
-
-    # NOTE on selection strategy: we used to return the FIRST entry (in
-    # Google's relevance-ranked order) that passed the freshness check.
-    # But relevance ranking has no concept of recency -- Google can easily
-    # rank a 12-day-old deep-dive above a 2-day-old news item for the same
-    # query. Taking "first in list order" meant we could pick a stale
-    # story over a fresher one sitting a few slots lower, even though both
-    # were within the 14-day window. So instead we collect every entry we
-    # can extract a date from and pick by date, not by search-result order.
-    url = f'{GOOGLE_NEWS_BASE}?q={(query + " " + OPINION_EXCLUSION).replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
+def _fetch_candidates(query, limit):
+    """Fetch and parse one Google News search into (dated, undated) candidate
+    lists. Pulled out as its own function so the two-stage search in
+    _fetch_topic_story (trusted-15 first, then a widened fallback) can
+    run identical parsing logic on both stages rather than duplicating it."""
+    url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
     parsed = feedparser.parse(url, request_headers=HEADERS)
 
     # dated: (pub_date, raw_title, link) for every entry with a parseable
     # date, regardless of how old. undated: (raw_title, link) for entries
     # we couldn't get a date from at all, kept only as a last-resort
-    # fallback -- see below.
+    # fallback -- see the tier selection in _fetch_topic_story.
     dated = []
     undated = []
     for entry in parsed.entries[:limit]:
@@ -157,6 +157,49 @@ def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
             undated.append((raw_title, link))
         else:
             dated.append((pub_date, raw_title, link))
+
+    return dated, undated
+
+
+def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
+    # Plain, unrestricted relevance search -- no `when:` operator. We
+    # previously tried to bias this toward recent results by layering
+    # `when:1d/3d/7d/14d` windowed searches on top, widening until one
+    # returned something. In practice those windowed queries were
+    # unreliable at the RSS level and would frequently return nothing at
+    # all, and with no fallback left after the last window, topics went
+    # silently empty. The plain search is the one query we know actually
+    # returns results consistently; freshness is enforced afterward by
+    # checking each entry's own published date (see _entry_published_date
+    # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
+    today = today or dt.date.today()
+
+    # Stage 1: restricted to TRUSTED_SOURCES. Tried first because these
+    # outlets both publish on DC politics constantly (fixing staleness)
+    # and are sources Polly's own audience already trusts (fixing
+    # sourcing quality) -- see TRUSTED_SOURCES above.
+    restricted_query = f'{query} {TRUSTED_SOURCES} {OPINION_EXCLUSION}'
+    dated, undated = _fetch_candidates(restricted_query, limit)
+
+    # Stage 2: only if the trusted-15 search came back with literally
+    # nothing usable at all -- not "nothing fresh enough" (Tier 1/2 below
+    # already handle that gracefully), but zero results, full stop -- do
+    # we widen to the unrestricted web. This preserves the Stage 1
+    # quality/freshness win for the normal case, while still honoring
+    # the "never show a blank section over a stale one" policy for
+    # whatever topic the trusted 15 genuinely didn't cover that day.
+    if not dated and not undated:
+        unrestricted_query = f'{query} {OPINION_EXCLUSION}'
+        dated, undated = _fetch_candidates(unrestricted_query, limit)
+
+    # NOTE on selection strategy: we used to return the FIRST entry (in
+    # Google's relevance-ranked order) that passed the freshness check.
+    # But relevance ranking has no concept of recency -- Google can easily
+    # rank a 12-day-old deep-dive above a 2-day-old news item for the same
+    # query. Taking "first in list order" meant we could pick a stale
+    # story over a fresher one sitting a few slots lower, even though both
+    # were within the 14-day window. So instead we collect every entry we
+    # can extract a date from and pick by date, not by search-result order.
 
     # Tier 1: newest entry within MAX_STORY_AGE_DAYS. This is the normal,
     # expected case -- fresh news exists and we picked the freshest of it.
@@ -176,7 +219,7 @@ def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
     # the feed clearly returned real results.
     elif undated:
         raw_title, link = undated[0]
-    # Tier 4: the feed itself returned nothing usable for this query --
+    # Tier 4: even the widened Stage 2 search returned nothing usable --
     # this is the only case that should still produce an empty section.
     else:
         return None
@@ -186,7 +229,7 @@ def _fetch_topic_story(query, limit=5, today: Optional[dt.date] = None):
     # title/source as boilerplate, not a real snippet -- so we skip
     # trying to extract a summary at all rather than show duplicate text.
     return NewsItem(outlet=source, title=headline, url=link, summary='')
-def get_top_stories(per_outlet=5, today: Optional[dt.date] = None):
+def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
     # existing --headlines-per-outlet flag; here it controls how many results
     # deep we look per topic before giving up on that section.
