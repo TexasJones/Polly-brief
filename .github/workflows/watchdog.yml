@@ -22,25 +22,50 @@ jobs:
           TODAY=$(date -u +%Y-%m-%d)
           echo "Checking for a Generate Polly Brief run on $TODAY (UTC)..."
 
-          # Pull the last 20 runs of that specific workflow and count how
-          # many were created today. 20 is comfortably more than one day's
-          # worth even counting manual re-runs, so no pagination needed.
-          RUN_COUNT=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20" \
-            --jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+          # Pull the last 20 runs of that specific workflow. 20 is
+          # comfortably more than one day's worth even counting manual
+          # re-runs, so no pagination needed.
+          RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
 
-          echo "Runs found for today: $RUN_COUNT"
-          echo "run_count=$RUN_COUNT" >> "$GITHUB_OUTPUT"
+          # SCHEDULED_COUNT checks the run's actual trigger event, not just
+          # whether *a* run exists today. This distinction matters: earlier
+          # versions of this check counted any run at all, which meant a
+          # manually-triggered catch-up run (event: "workflow_dispatch")
+          # looked identical to a real automatic success (event:
+          # "schedule") -- silently hiding exactly the pattern this
+          # watchdog exists to catch, since the person manually saving the
+          # day every morning never saw an alert telling them the
+          # automatic trigger itself kept failing.
+          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")))] | length")
+
+          # ANY_COUNT is kept only to make the alert message more useful --
+          # e.g. "you already caught this manually" vs "nothing ran at
+          # all today" -- it does NOT suppress the alert either way.
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+
+          echo "Scheduled runs found for today: $SCHEDULED_COUNT"
+          echo "Any runs (including manual) found for today: $ANY_COUNT"
+          echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
-      - name: Open an issue if nothing ran today
-        if: steps.check.outputs.run_count == '0'
+      - name: Open an issue if the scheduled trigger didn't fire
+        if: steps.check.outputs.scheduled_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ "${{ steps.check.outputs.any_count }}" != "0" ]; then
+            MANUAL_NOTE="A manual run did happen today, so the brief still went out -- but the automatic 12:00 UTC trigger itself did not fire on its own."
+          else
+            MANUAL_NOTE="No run of any kind happened today -- the brief has not gone out yet."
+          fi
+
           gh issue create \
-            --title "Polly Brief did not run today (${{ steps.check.outputs.today }})" \
-            --body "No 'Generate Polly Brief' run was found for today as of 18:00 UTC.
+            --title "Polly Brief's scheduled trigger did not fire (${{ steps.check.outputs.today }})" \
+            --body "The automatic 12:00 UTC schedule for 'Generate Polly Brief' did not fire today, as of this 18:00 UTC check.
 
-          This usually means the scheduled trigger didn't fire -- a known, recurring GitHub Actions reliability issue, not a bug in the workflow itself (confirmed clean when checked previously).
+          $MANUAL_NOTE
 
-          **What to do:** go to Actions -> Generate Polly Brief -> Run workflow, and trigger it manually with test_mode=false, publish_only=false."
+          This is a known, recurring GitHub Actions reliability issue (confirmed against GitHub's own status page previously) -- not a bug in the workflow itself.
+
+          **What to do:** go to Actions -> Generate Polly Brief -> Run workflow, and trigger it manually with test_mode=false, publish_only=false, if it hasn't already gone out."
