@@ -443,7 +443,6 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f"{topic_colors.get('Media', '#059669')}, "
         f"{topic_colors.get('AI+Policy', '#7C3AED')}, "
         f"{topic_colors.get('Energy', '#D97706')}, "
-        f"{topic_colors.get('Finance', '#DC2626')}, "
         f"{topic_colors.get('Legislative', '#4F46E5')}"
     )
 
