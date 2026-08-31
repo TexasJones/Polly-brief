@@ -405,10 +405,21 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         employer_rows = f'<tr><td style="{muted_default_css}">No employer data available.</td></tr>'
 
     story_rows = ''
-    for i, st in enumerate(top_stories):
-        if i > 0:
-            story_rows += _divider()
-        story_rows += _story_block(st)
+    # Exclude whichever story is already shown in the "Today's Top Story"
+    # callout above (_top_highlight_block) -- without this, that same
+    # story was also being repeated as the first entry in the Top Stories
+    # list right below it, wasting space on a duplicate rather than
+    # showing a sixth distinct story.
+    highlighted_story = _pick_top_highlight(top_stories)
+    remaining_stories = [st for st in top_stories if st is not highlighted_story]
+
+    if remaining_stories:
+        for i, st in enumerate(remaining_stories):
+            if i > 0:
+                story_rows += _divider()
+            story_rows += _story_block(st)
+    else:
+        story_rows = f'<tr><td style="{muted_default_css}">No other stories today.</td></tr>'
 
     job_rows = ''
     for job in featured_jobs:
@@ -443,6 +454,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f"{topic_colors.get('Media', '#059669')}, "
         f"{topic_colors.get('AI+Policy', '#7C3AED')}, "
         f"{topic_colors.get('Energy', '#D97706')}, "
+        f"{topic_colors.get('Economy', '#DC2626')}, "
         f"{topic_colors.get('Legislative', '#4F46E5')}"
     )
 
