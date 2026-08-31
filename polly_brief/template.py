@@ -265,7 +265,7 @@ def _story_block(story: TopStory) -> str:
             f'{summary_html}'
             f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="{link_css}; font-size: 13px;">'
-            f'Read More &rarr;</a></td></tr>')
+            f'Read More ({_esc(item.outlet)}) &rarr;</a></td></tr>')
 
 
 def _featured_job_block(job: JobPosting) -> str:
@@ -322,7 +322,7 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
         f'<div style="font-size: 18px; font-weight: 800; color: {ink}; line-height: 1.35;">{_esc(item.title)}</div>'
         f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
         f'style="color: {color}; text-decoration: none; font-weight: 700; font-size: 13px; margin-top: 14px; display: inline-block">'
-        f'Read More &rarr;</a>'
+        f'Read More ({_esc(item.outlet)}) &rarr;</a>'
         f'</div></td></tr>'
     )
 
