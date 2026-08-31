@@ -13,18 +13,20 @@ GOOGLE_NEWS_BASE = 'https://news.google.com/rss/search'
 # guarantees on-topic results, since we're searching for the topic directly
 # rather than filtering a general political-news pool after the fact.
 #
-# Finance vs Economy: these used to be blended into one "Finance" query
-# (campaign finance + Federal Reserve policy), which meant only one of the
-# two ever won the single daily slot. Split into two distinct, non-
-# overlapping queries so both get real coverage: Finance is money IN
-# politics (fundraising, PACs, dark money); Economy is the macro picture
-# (jobs, markets, inflation, the Fed) that affects the political landscape
-# but isn't itself campaign finance.
+# Finance and Economy were originally split into two separate categories,
+# then both removed entirely (neither mapped to a job category Polly
+# actually tracks). Economy came back as a single category afterward,
+# deliberately scoped to broader business/economic news (markets, jobs
+# reports, macro trends) rather than the narrower "money in politics"
+# angle Finance used to cover -- readers wanted general business context
+# for a political-professional audience, not a second campaign-finance
+# section.
 SECTION_QUERIES = [
     ('Campaigns', chr(0x1F5F3), 'political campaign primary election'),
     ('Media', chr(0x1F4FA), 'U.S. media television cable news Hollywood press freedom -"journalists association"'),
     ('AI+Policy', chr(0x1F916), 'artificial intelligence policy regulation Congress'),
     ('Energy', chr(0x26A1), 'energy policy EPA regulation'),
+    ('Economy', chr(0x1F4C8), 'U.S. economy jobs report inflation stock market Federal Reserve'),
     ('Legislative', chr(0x1F3DB), 'Congress committee vote markup bill passed signed law'),
 ]
 
