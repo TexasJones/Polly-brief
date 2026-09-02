@@ -80,6 +80,44 @@ TRUSTED_SOURCES = (
     'OR site:nbcnews.com OR site:nationaljournal.com OR site:cnn.com)'
 )
 
+# Google News sometimes labels a story's source by its proper name
+# ("Reuters") and sometimes by its bare domain ("reuters.com"), depending
+# on how the individual publisher's own RSS feed happens to be formatted
+# upstream -- not something under our control. This maps the domain-style
+# form back to a proper display name, for the same 15 trusted outlets
+# listed in TRUSTED_SOURCES above (kept in sync with that same list).
+# Anything outside these 15 (e.g. a Stage 2 widened-search result) is left
+# exactly as Google reports it, since there's no way to enumerate every
+# possible outlet's preferred display name.
+SOURCE_NAME_MAP = {
+    'axios.com': 'Axios',
+    'politico.com': 'Politico',
+    'punchbowl.news': 'Punchbowl News',
+    'semafor.com': 'Semafor',
+    'reuters.com': 'Reuters',
+    'apnews.com': 'AP',
+    'washingtonpost.com': 'The Washington Post',
+    'thehill.com': 'The Hill',
+    'npr.org': 'NPR',
+    'rollcall.com': 'Roll Call',
+    'notus.org': 'NOTUS',
+    'bloomberg.com': 'Bloomberg',
+    'nbcnews.com': 'NBC News',
+    'nationaljournal.com': 'National Journal',
+    'cnn.com': 'CNN',
+}
+
+
+def _normalize_source_name(source: str) -> str:
+    """Map a bare-domain source name (e.g. 'reuters.com') back to its
+    proper display name (e.g. 'Reuters') for the 15 trusted outlets --
+    see SOURCE_NAME_MAP above. A source already in proper-name form, or
+    from outside the trusted 15, passes through unchanged."""
+    key = source.strip().lower()
+    if key.startswith('www.'):
+        key = key[4:]
+    return SOURCE_NAME_MAP.get(key, source)
+
 
 @dataclass
 class NewsItem:
@@ -103,7 +141,7 @@ def _split_title_source(raw_title):
     # cut in the wrong place.
     if ' - ' in raw_title:
         headline, source = raw_title.rsplit(' - ', 1)
-        return headline.strip(), source.strip()
+        return headline.strip(), _normalize_source_name(source.strip())
     return raw_title.strip(), 'Google News'
 def _summary_from_description(raw_html, max_sentences=2):
     text = _clean_html(raw_html)
