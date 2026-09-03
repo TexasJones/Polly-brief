@@ -1,10 +1,10 @@
 name: Watchdog - Polly Brief Ran Today
 on:
   schedule:
-    # Runs at 13:00 UTC (~8 AM CDT) -- one hour after the Generate Polly
-    # Brief workflow's own 12:00 UTC noon schedule, giving it a full hour
+    # Runs at 12:00 UTC (~7 AM CDT) -- one hour after the Generate Polly
+    # Brief workflow's own 11:00 UTC schedule, giving it a full hour
     # to complete before the watchdog checks and auto-triggers if needed.
-    - cron: '0 13 * * *'
+    - cron: '0 12 * * *'
   workflow_dispatch:
 permissions:
   actions: write
