@@ -3,6 +3,7 @@ import argparse
 import datetime as dt
 import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from jobs_snapshot import HiringPulse, JobPosting, get_hiring_pulse
 from news_snapshot import NewsItem, TopStory, get_top_stories
 from template import render_brief
@@ -82,7 +83,11 @@ def main():
     parser.add_argument('--quote', default=None)
     parser.add_argument('--quote-source', default=None)
     args = parser.parse_args()
-    today = dt.date.today()
+    
+    # Get today's date in America/New_York timezone, not UTC
+    tz_eastern = ZoneInfo('America/New_York')
+    today = dt.datetime.now(tz_eastern).date()
+    
     if args.sample:
         pulse, stories, jobs = _sample_data()
         quote = args.quote or 'Sample quote'
@@ -93,7 +98,7 @@ def main():
         print('Active jobs:', pulse.total_active, 'New today:', pulse.new_today)
         jobs = pulse.featured
         print('Fetching news...')
-        stories = get_top_stories(per_outlet=args.headlines_per_outlet)
+        stories = get_top_stories(per_outlet=args.headlines_per_outlet, today=today)
         for s in stories:
             status = s.item.title if s.item else '(none found)'
             print(' -', s.section, ':', status)
