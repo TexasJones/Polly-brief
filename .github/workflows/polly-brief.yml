@@ -1,7 +1,14 @@
 name: Generate Polly Brief
 on:
   schedule:
-    - cron: '0 12 * * *'
+    # 7:00 UTC = 3:00 AM Eastern / 2:00 AM Central. Moved here from noon
+    # UTC (which landed around 7-8 AM Eastern) specifically to sidestep
+    # GitHub Actions' documented high-load window around US morning /
+    # Europe afternoon hours, where scheduled (cron) triggers get
+    # deprioritized behind push/PR-triggered runs. Confirmed via GitHub's
+    # own incident history that the prior noon-UTC schedule repeatedly
+    # missed its trigger during this period.
+    - cron: '0 7 * * *'
   workflow_dispatch:
     inputs:
       test_mode:
