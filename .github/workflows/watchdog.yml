@@ -8,7 +8,7 @@ on:
     - cron: '0 18 * * *'
   workflow_dispatch:
 permissions:
-  issues: write
+  actions: write
 
 jobs:
   check:
@@ -49,23 +49,11 @@ jobs:
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
-      - name: Open an issue if the scheduled trigger didn't fire
+      - name: Auto-trigger Polly Brief if scheduled trigger didn't fire
         if: steps.check.outputs.scheduled_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ "${{ steps.check.outputs.any_count }}" != "0" ]; then
-            MANUAL_NOTE="A manual run did happen today, so the brief still went out -- but the automatic 12:00 UTC trigger itself did not fire on its own."
-          else
-            MANUAL_NOTE="No run of any kind happened today -- the brief has not gone out yet."
-          fi
-
-          gh issue create \
-            --title "Polly Brief's scheduled trigger did not fire (${{ steps.check.outputs.today }})" \
-            --body "The automatic 12:00 UTC schedule for 'Generate Polly Brief' did not fire today, as of this 18:00 UTC check.
-
-          $MANUAL_NOTE
-
-          This is a known, recurring GitHub Actions reliability issue (confirmed against GitHub's own status page previously) -- not a bug in the workflow itself.
-
-          **What to do:** go to Actions -> Generate Polly Brief -> Run workflow, and trigger it manually with test_mode=false, publish_only=false, if it hasn't already gone out."
+          echo "Scheduled trigger did not fire. Auto-triggering Generate Polly Brief workflow..."
+          gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
+          echo "Workflow triggered successfully!"
