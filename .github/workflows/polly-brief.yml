@@ -1,14 +1,8 @@
 name: Generate Polly Brief
 on:
   schedule:
-    # 7:00 UTC = 3:00 AM Eastern / 2:00 AM Central. Moved here from noon
-    # UTC (which landed around 7-8 AM Eastern) specifically to sidestep
-    # GitHub Actions' documented high-load window around US morning /
-    # Europe afternoon hours, where scheduled (cron) triggers get
-    # deprioritized behind push/PR-triggered runs. Confirmed via GitHub's
-    # own incident history that the prior noon-UTC schedule repeatedly
-    # missed its trigger during this period.
-    - cron: '0 7 * * *'
+    # Run a lightweight check every 15 minutes and proceed only at 07:30 America/New_York.
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       test_mode:
@@ -33,18 +27,25 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Default TEST_MODE to the workflow_dispatch input when present,
-      # otherwise fall back to 'false' so scheduled runs will send by default.
       TEST_MODE: ${{ github.event.inputs.test_mode || 'false' }}
-      # PUBLISH_ONLY lets a manual run commit + publish docs/briefs/ (so the
-      # "View in browser" link can be verified end-to-end) WITHOUT sending
-      # the email to the real list. Only meaningful when TEST_MODE is
-      # 'false' -- if TEST_MODE is 'true', nothing is committed or sent
-      # regardless of this value. Defaults to 'false' so scheduled runs are
-      # unaffected: they always commit AND send, same as before.
       PUBLISH_ONLY: ${{ github.event.inputs.publish_only || 'false' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Ensure the job runs at 07:30 America/New_York (unless manual)
+        run: |
+          # Allow manual (workflow_dispatch) runs to bypass the time check.
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Manual run detected; skipping scheduled-time check."
+          else
+            NY_TIME=$(TZ="America/New_York" date +'%H:%M')
+            echo "NY time: $NY_TIME"
+            if [ "$NY_TIME" != "07:30" ]; then
+              echo "Not target time, exiting job."
+              exit 0
+            fi
+          fi
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -67,11 +68,6 @@ jobs:
           echo "Files here:"
           ls -la
       - name: Send via Brevo
-        # Sends only on a real run where publish_only was NOT requested --
-        # this is the one change from before: a manual run with
-        # test_mode=false and publish_only=true will still commit
-        # docs/briefs/ (so you can check the "View in browser" link works)
-        # but will skip this step, so no email goes out.
         if: ${{ env.TEST_MODE == 'false' && env.PUBLISH_ONLY == 'false' }}
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
