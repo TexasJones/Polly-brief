@@ -35,14 +35,17 @@ jobs:
           # watchdog exists to catch, since the person manually saving the
           # day every morning never saw an alert telling them the
           # automatic trigger itself kept failing.
-          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")))] | length")
+          # We also now check .conclusion == "success" to ensure the run
+          # actually succeeded and produced fresh content, not just that
+          # it ran and failed.
+          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
 
           # ANY_COUNT is kept only to make the alert message more useful --
           # e.g. "you already caught this manually" vs "nothing ran at
           # all today" -- it does NOT suppress the alert either way.
           ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          echo "Scheduled runs found for today: $SCHEDULED_COUNT"
+          echo "Successful scheduled runs found for today: $SCHEDULED_COUNT"
           echo "Any runs (including manual) found for today: $ANY_COUNT"
           echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
@@ -53,7 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Scheduled trigger did not fire. Auto-triggering Generate Polly Brief workflow..."
+          echo "Scheduled trigger did not fire or run failed. Auto-triggering Generate Polly Brief workflow..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
           echo "Workflow triggered successfully!"
 
@@ -75,10 +78,10 @@ jobs:
           echo "Rechecking for a Generate Polly Brief run on $TODAY (UTC)..."
 
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
-          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")))] | length")
+          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
           ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          echo "Scheduled runs found for today: $SCHEDULED_COUNT"
+          echo "Successful scheduled runs found for today: $SCHEDULED_COUNT"
           echo "Any runs (including manual) found for today: $ANY_COUNT"
           echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
@@ -88,6 +91,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Still no scheduled run detected. Final auto-trigger..."
+          echo "Still no successful scheduled run detected. Final auto-trigger..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
           echo "Final workflow trigger sent!"
