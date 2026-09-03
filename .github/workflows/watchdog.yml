@@ -1,11 +1,10 @@
 name: Watchdog - Polly Brief Ran Today
 on:
   schedule:
-    # Runs at 18:00 UTC (~1 PM CDT) -- well after the Generate Polly
-    # Brief workflow's own noon UTC schedule, so there's been a full
-    # buffer window for it to have fired (or for a manual run to have
-    # caught a miss) before this checks.
-    - cron: '0 18 * * *'
+    # Runs at 13:00 UTC (~8 AM CDT) -- one hour after the Generate Polly
+    # Brief workflow's own 12:00 UTC noon schedule, giving it a full hour
+    # to complete before the watchdog checks and auto-triggers if needed.
+    - cron: '0 13 * * *'
   workflow_dispatch:
 permissions:
   actions: write
@@ -57,3 +56,38 @@ jobs:
           echo "Scheduled trigger did not fire. Auto-triggering Generate Polly Brief workflow..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
           echo "Workflow triggered successfully!"
+
+  # Second check one hour later if the first attempt to trigger failed
+  check_again:
+    needs: check
+    runs-on: ubuntu-latest
+    if: always()  # Run regardless of previous job status
+    steps:
+      - name: Wait 1 hour and re-check if brief ran
+        run: sleep 3600
+
+      - name: Check whether Generate Polly Brief ran by now
+        id: recheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TODAY=$(date -u +%Y-%m-%d)
+          echo "Rechecking for a Generate Polly Brief run on $TODAY (UTC)..."
+
+          RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
+          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")))] | length")
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+
+          echo "Scheduled runs found for today: $SCHEDULED_COUNT"
+          echo "Any runs (including manual) found for today: $ANY_COUNT"
+          echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Final auto-trigger if still no run detected
+        if: steps.recheck.outputs.scheduled_count == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Still no scheduled run detected. Final auto-trigger..."
+          gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
+          echo "Final workflow trigger sent!"
