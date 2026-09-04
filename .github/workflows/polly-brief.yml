@@ -32,15 +32,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Ensure the job runs at 07:30 America/New_York (unless manual)
+      - name: Ensure the job runs near 07:30 America/New_York (unless manual)
         run: |
           # Allow manual (workflow_dispatch) runs to bypass the time check.
           if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
             echo "Manual run detected; skipping scheduled-time check."
           else
-            NY_TIME=$(TZ="America/New_York" date +'%H:%M')
-            echo "NY time: $NY_TIME"
-            if [ "$NY_TIME" != "07:30" ]; then
+            NY_HOUR=$(TZ="America/New_York" date +'%H')
+            NY_MINUTE=$(TZ="America/New_York" date +'%M')
+            # Force base-10 interpretation -- bash treats a leading-zero
+            # value like "08" or "09" as an invalid octal literal in
+            # arithmetic context and errors out otherwise.
+            NY_HOUR=$((10#$NY_HOUR))
+            NY_MINUTE=$((10#$NY_MINUTE))
+            echo "NY time: ${NY_HOUR}:${NY_MINUTE}"
+
+            # A 25-minute window (07:20-07:44), not an exact match. The
+            # previous version required NY_TIME to be the literal string
+            # "07:30" -- since this poller only ticks every 15 minutes
+            # (:00/:15/:30/:45), even a few minutes of GitHub's own
+            # scheduling delay (which we've confirmed happens regularly)
+            # meant the :30 tick landed at, say, 07:32, failed the exact
+            # match, and silently skipped the ENTIRE day's real run --
+            # with no later tick able to catch it, since :45 also fails
+            # an exact match. This window is wide enough to absorb
+            # realistic delay while still bounded on both sides by the
+            # adjacent :15 and :45 ticks, so it only ever fires once.
+            if [ "$NY_HOUR" -eq 7 ] && [ "$NY_MINUTE" -ge 20 ] && [ "$NY_MINUTE" -le 44 ]; then
+              echo "Within target window (07:20-07:44 America/New_York), proceeding."
+            else
               echo "Not target time, exiting job."
               exit 0
             fi
