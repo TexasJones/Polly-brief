@@ -1,9 +1,12 @@
 name: Watchdog - Polly Brief Ran Today
 on:
   schedule:
-    # Runs at 12:00 UTC (~7 AM CDT) -- one hour after the Generate Polly
-    # Brief workflow's own 11:00 UTC schedule, giving it a full hour
-    # to complete before the watchdog checks and auto-triggers if needed.
+    # Runs at 12:00 UTC. Generate Polly Brief itself no longer has a
+    # single fixed schedule -- it self-polls every 15 minutes and only
+    # actually proceeds inside a ~07:20-07:44 America/New_York window
+    # (see polly-brief.yml). This check runs a comfortable margin after
+    # that window closes, and auto-triggers a catch-up run if nothing
+    # succeeded by then.
     - cron: '0 12 * * *'
   workflow_dispatch:
 permissions:
@@ -26,33 +29,43 @@ jobs:
           # re-runs, so no pagination needed.
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
 
-          # SCHEDULED_COUNT checks the run's actual trigger event, not just
-          # whether *a* run exists today. This distinction matters: earlier
-          # versions of this check counted any run at all, which meant a
-          # manually-triggered catch-up run (event: "workflow_dispatch")
-          # looked identical to a real automatic success (event:
-          # "schedule") -- silently hiding exactly the pattern this
-          # watchdog exists to catch, since the person manually saving the
-          # day every morning never saw an alert telling them the
-          # automatic trigger itself kept failing.
-          # We also now check .conclusion == "success" to ensure the run
-          # actually succeeded and produced fresh content, not just that
-          # it ran and failed.
+          # SCHEDULED_COUNT checks specifically for a successful run
+          # triggered by the natural cron schedule (event: "schedule"),
+          # as distinct from a manual or auto-triggered catch-up (event:
+          # "workflow_dispatch"). This is kept purely as a diagnostic
+          # signal now -- see SUCCESS_COUNT below for what actually
+          # decides whether to re-trigger.
           SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+
+          # SUCCESS_COUNT counts ANY successful run today, regardless of
+          # trigger type. This is what actually decides whether to
+          # auto-trigger below -- using SCHEDULED_COUNT for that decision
+          # was a real bug: this workflow's own auto-trigger step fires
+          # via workflow_dispatch, which SCHEDULED_COUNT can never count.
+          # That meant a successful rescue run was invisible to this same
+          # check, so a re-run one hour later (see check_again below)
+          # would see "0 scheduled successes" again and fire a second,
+          # unnecessary auto-trigger -- even though the brief had already
+          # gone out. send_brevo.py's own campaign-name duplicate check
+          # should still stop a second real email, but this was still
+          # wasted API calls and confusing noise.
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
 
           # ANY_COUNT is kept only to make the alert message more useful --
           # e.g. "you already caught this manually" vs "nothing ran at
           # all today" -- it does NOT suppress the alert either way.
           ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          echo "Successful scheduled runs found for today: $SCHEDULED_COUNT"
-          echo "Any runs (including manual) found for today: $ANY_COUNT"
+          echo "Successful SCHEDULED runs found for today (diagnostic only): $SCHEDULED_COUNT"
+          echo "Successful runs of ANY kind found for today (used for the trigger decision): $SUCCESS_COUNT"
+          echo "Any runs (including failed/in-progress) found for today: $ANY_COUNT"
           echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
-      - name: Auto-trigger Polly Brief if scheduled trigger didn't fire
-        if: steps.check.outputs.scheduled_count == '0'
+      - name: Auto-trigger Polly Brief if nothing succeeded yet today
+        if: steps.check.outputs.success_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -79,18 +92,26 @@ jobs:
 
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
           SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+          # Same fix as the first check above: decide on ANY successful
+          # run today, not just ones triggered by the natural schedule --
+          # otherwise this recheck can never see its own sibling job's
+          # earlier auto-trigger as a success, and fires a redundant
+          # second one.
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
           ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          echo "Successful scheduled runs found for today: $SCHEDULED_COUNT"
-          echo "Any runs (including manual) found for today: $ANY_COUNT"
+          echo "Successful SCHEDULED runs found for today (diagnostic only): $SCHEDULED_COUNT"
+          echo "Successful runs of ANY kind found for today (used for the trigger decision): $SUCCESS_COUNT"
+          echo "Any runs (including failed/in-progress) found for today: $ANY_COUNT"
           echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
 
-      - name: Final auto-trigger if still no run detected
-        if: steps.recheck.outputs.scheduled_count == '0'
+      - name: Final auto-trigger if nothing succeeded yet today
+        if: steps.recheck.outputs.success_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Still no successful scheduled run detected. Final auto-trigger..."
+          echo "Still nothing successful today. Final auto-trigger..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
           echo "Final workflow trigger sent!"
