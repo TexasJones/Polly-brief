@@ -238,7 +238,29 @@ def _estimate_read_time(top_stories: list[TopStory], quote_text: str = None, wpm
     return word_count, minutes
 
 
-def _story_block(story: TopStory) -> str:
+def _time_ago_label(published_date, today: dt.date) -> str:
+    """Human-readable relative freshness label ('Today', 'Yesterday',
+    '3 days ago') for a story's own verified publish date. Returns '' if
+    published_date is None (the Tier 3 undated fallback in
+    news_snapshot.py) -- an unverified date shouldn't display a
+    fabricated-looking label, so the caller simply omits this line rather
+    than show something misleading. Day-level granularity only, matching
+    what the underlying data actually supports: feedparser can return
+    finer timestamps, but _entry_published_date deliberately truncates to
+    a date, and the whole freshness-tier system already operates in whole
+    days (see MAX_STORY_AGE_DAYS in news_snapshot.py) -- so "2 hours ago"
+    isn't a real distinction this data can honestly make."""
+    if published_date is None:
+        return ''
+    days = (today - published_date).days
+    if days <= 0:
+        return 'Today'
+    if days == 1:
+        return 'Yesterday'
+    return f'{days} days ago'
+
+
+def _story_block(story: TopStory, today: dt.date) -> str:
     """Render a news story block with a topic-colored badge."""
     color = _topic_color(story.section)
     badge_row = f'<div style="margin-bottom: 10px">{_topic_badge(story.emoji, story.section, color)}</div>'
@@ -256,6 +278,13 @@ def _story_block(story: TopStory) -> str:
         summary_css = _style('summary_text_style', fallback=f"font-size: 14px; color: {muted}; margin: 6px 0 10px 0; line-height: 1.4;")
         summary_html = f'<div style="{summary_css}">{_bold_lead_in(item.summary)}</div>'
 
+    time_ago = _time_ago_label(item.published_date, today)
+    time_ago_html = ''
+    if time_ago:
+        time_ago_html = (f'<div style="font-size: 12px; color: {muted}; font-weight: 600; '
+                          f'text-transform: uppercase; letter-spacing: 0.4px; margin: 4px 0 8px;">'
+                          f'{_esc(time_ago)}</div>')
+
     ink = _c('INK', '#0F172A')
     headline_css = _style('headline_style', fallback=f"font-size: 16px; font-weight: 700; color: {ink}; line-height: 1.3;")
     link_css = _style('link_style', color, fallback=f"color: {color}; text-decoration: none; font-weight: 700;")
@@ -263,6 +292,7 @@ def _story_block(story: TopStory) -> str:
     return (f'<tr><td style="padding-bottom: 16px;">{badge_row}'
             f'<div style="{headline_css}">{_esc(item.title)}</div>'
             f'{summary_html}'
+            f'{time_ago_html}'
             f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="{link_css}; font-size: 13px;">'
             f'Read More ({_esc(item.outlet)}) &rarr;</a></td></tr>')
@@ -299,7 +329,7 @@ def _pick_top_highlight(top_stories: list[TopStory]) -> Optional[TopStory]:
     return None
 
 
-def _top_highlight_block(top_stories: list[TopStory]) -> str:
+def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
     """Render a clean, high-contrast top story box."""
     story = _pick_top_highlight(top_stories)
     if not story:
@@ -311,6 +341,13 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
     ink = _c('INK', '#0F172A')
     muted = _c('MUTED', '#64748B')
 
+    time_ago = _time_ago_label(item.published_date, today)
+    time_ago_html = ''
+    if time_ago:
+        time_ago_html = (f'<div style="font-size: 12px; color: {muted}; font-weight: 600; '
+                          f'text-transform: uppercase; letter-spacing: 0.4px; margin: 4px 0 0;">'
+                          f'{_esc(time_ago)}</div>')
+
     return (
         f'<tr><td style="padding: 0 40px 24px 40px;">'
         f'<div style="border: 1px solid #E2E8F0; border-top: 4px solid {color}; padding: 20px; border-radius: 12px; background-color: #F8FAFC;">'
@@ -320,6 +357,7 @@ def _top_highlight_block(top_stories: list[TopStory]) -> str:
         f'text-transform: uppercase; letter-spacing: 0.6px; margin-left: 6px;">&middot; Today&rsquo;s Top Story</span>'
         f'</div>'
         f'<div style="font-size: 18px; font-weight: 800; color: {ink}; line-height: 1.35;">{_esc(item.title)}</div>'
+        f'{time_ago_html}'
         f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
         f'style="color: {color}; text-decoration: none; font-weight: 700; font-size: 13px; margin-top: 14px; display: inline-block">'
         f'Read More ({_esc(item.outlet)}) &rarr;</a>'
@@ -417,7 +455,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         for i, st in enumerate(remaining_stories):
             if i > 0:
                 story_rows += _divider()
-            story_rows += _story_block(st)
+            story_rows += _story_block(st, today)
     else:
         story_rows = f'<tr><td style="{muted_default_css}">No other stories today.</td></tr>'
 
@@ -485,7 +523,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<div style="font-size: 12px; color: {muted}; margin-top: 4px;">{_esc(read_time_label)}</div>',
         (_view_in_browser_link(view_url) if view_url else ''),
         '</td></tr>',
-        _top_highlight_block(top_stories),
+        _top_highlight_block(top_stories, today),
         _divider(),
         '<tr><td style="padding: 0 40px">',
         f'{_section_heading("📊", "Polly Hiring Pulse")}',
