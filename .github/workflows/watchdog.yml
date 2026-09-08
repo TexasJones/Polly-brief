@@ -1,13 +1,15 @@
 name: Watchdog - Polly Brief Ran Today
 on:
   schedule:
-    # Runs at 12:00 UTC. Generate Polly Brief itself no longer has a
-    # single fixed schedule -- it self-polls every 15 minutes and only
-    # actually proceeds inside a ~07:20-07:44 America/New_York window
-    # (see polly-brief.yml). This check runs a comfortable margin after
-    # that window closes, and auto-triggers a catch-up run if nothing
-    # succeeded by then.
-    - cron: '0 12 * * *'
+    # 18:00 UTC -- a full 6 hours after Generate Polly Brief's own
+    # 12:00 UTC schedule, giving ample buffer for that run (and, if
+    # needed, GitHub's own scheduling delay) to complete before this
+    # checks. Deliberately NOT the same time as polly-brief.yml's own
+    # schedule -- they used to collide at 12:00 UTC after
+    # polly-brief.yml reverted back to its original single daily
+    # trigger, which would have meant checking for today's success
+    # before the actual run had necessarily even started.
+    - cron: '0 18 * * *'
   workflow_dispatch:
 permissions:
   actions: write
@@ -16,7 +18,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check whether Generate Polly Brief actually ran today
+      - name: Check whether Generate Polly Brief ran today
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,40 +26,36 @@ jobs:
           TODAY=$(date -u +%Y-%m-%d)
           echo "Checking for a Generate Polly Brief run on $TODAY (UTC)..."
 
+          # Pull the last 20 runs of that specific workflow. 20 is
+          # comfortably more than one day's worth even counting manual
+          # re-runs, so no pagination needed.
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
 
-          # IMPORTANT: polly-brief.yml now correctly SKIPS its real steps
-          # (via `if:` conditions) on every 15-minute tick outside the
-          # 07:20-07:44 window -- but a job with skipped (not failed)
-          # steps still reports overall conclusion "success". That means
-          # job-level conclusion alone can no longer tell a genuine
-          # 7:30 AM send apart from a trivial 3 AM no-op tick. So instead
-          # of trusting .conclusion on the run itself, we check each
-          # today's run's actual STEPS for whether "Generate the Brief"
-          # specifically executed (conclusion "success", not "skipped").
-          TODAY_RUNS=$(echo "$RUNS_JSON" | jq -c "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\")) | {id, event}]")
-          ANY_COUNT=$(echo "$TODAY_RUNS" | jq "length")
+          # SUCCESS_COUNT counts any successful run today, regardless of
+          # trigger type (schedule vs. workflow_dispatch). This matters
+          # because this workflow's OWN auto-trigger step below fires via
+          # workflow_dispatch -- if we only counted "schedule" events as
+          # success, a genuine rescue run would be invisible to this same
+          # check, and a re-run one hour later (see check_again) would
+          # see "0 successes" again and fire a redundant second rescue.
+          #
+          # Simpler than an earlier version of this check: that version
+          # additionally verified each run's individual STEPS (not just
+          # job-level conclusion), because polly-brief.yml used to poll
+          # every 15 minutes and SKIP its real steps outside a narrow
+          # time window -- a skipped-but-not-failed run still reports
+          # job-level "success", which could have looked like a genuine
+          # send. Now that polly-brief.yml is back to a single daily
+          # trigger with no skip logic at all, every triggered run
+          # genuinely executes the real pipeline, so job-level
+          # .conclusion == "success" is trustworthy again on its own --
+          # no need for the extra per-run API calls that added.
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          REAL_SUCCESS_COUNT=0
-          REAL_SCHEDULED_COUNT=0
-          for row in $(echo "$TODAY_RUNS" | jq -c '.[]'); do
-            RUN_ID=$(echo "$row" | jq -r '.id')
-            EVENT=$(echo "$row" | jq -r '.event')
-            JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
-            GENERATED=$(echo "$JOBS_JSON" | jq "[.jobs[].steps[]? | select(.name == \"Generate the Brief\" and .conclusion == \"success\")] | length")
-            if [ "$GENERATED" -gt 0 ]; then
-              REAL_SUCCESS_COUNT=$((REAL_SUCCESS_COUNT + 1))
-              if [ "$EVENT" = "schedule" ]; then
-                REAL_SCHEDULED_COUNT=$((REAL_SCHEDULED_COUNT + 1))
-              fi
-            fi
-          done
-
-          echo "Real (non-skipped) SCHEDULED runs today (diagnostic only): $REAL_SCHEDULED_COUNT"
-          echo "Real (non-skipped) runs of ANY kind today (used for the trigger decision): $REAL_SUCCESS_COUNT"
-          echo "Total workflow runs today, including no-op skips: $ANY_COUNT"
-          echo "scheduled_count=$REAL_SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
-          echo "success_count=$REAL_SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Successful runs found for today: $SUCCESS_COUNT"
+          echo "Any runs (including failed) found for today: $ANY_COUNT"
+          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
@@ -66,20 +64,19 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Scheduled trigger did not fire or run failed. Auto-triggering Generate Polly Brief workflow..."
+          echo "Nothing succeeded today. Auto-triggering Generate Polly Brief workflow..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
           echo "Workflow triggered successfully!"
 
-  # Second check one hour later if the first attempt to trigger failed
   check_again:
     needs: check
     runs-on: ubuntu-latest
-    if: always()  # Run regardless of previous job status
+    if: always()
     steps:
       - name: Wait 1 hour and re-check if brief ran
         run: sleep 3600
 
-      - name: Check whether Generate Polly Brief actually ran by now
+      - name: Check whether Generate Polly Brief ran by now
         id: recheck
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,35 +85,12 @@ jobs:
           echo "Rechecking for a Generate Polly Brief run on $TODAY (UTC)..."
 
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          # Same fix as the first check above: check each today's run's
-          # actual STEPS for whether "Generate the Brief" specifically
-          # executed, rather than trusting job-level conclusion -- a run
-          # correctly skipped outside the 07:20-07:44 window still
-          # reports overall "success" even though nothing real happened.
-          TODAY_RUNS=$(echo "$RUNS_JSON" | jq -c "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\")) | {id, event}]")
-          ANY_COUNT=$(echo "$TODAY_RUNS" | jq "length")
-
-          REAL_SUCCESS_COUNT=0
-          REAL_SCHEDULED_COUNT=0
-          for row in $(echo "$TODAY_RUNS" | jq -c '.[]'); do
-            RUN_ID=$(echo "$row" | jq -r '.id')
-            EVENT=$(echo "$row" | jq -r '.event')
-            JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
-            GENERATED=$(echo "$JOBS_JSON" | jq "[.jobs[].steps[]? | select(.name == \"Generate the Brief\" and .conclusion == \"success\")] | length")
-            if [ "$GENERATED" -gt 0 ]; then
-              REAL_SUCCESS_COUNT=$((REAL_SUCCESS_COUNT + 1))
-              if [ "$EVENT" = "schedule" ]; then
-                REAL_SCHEDULED_COUNT=$((REAL_SCHEDULED_COUNT + 1))
-              fi
-            fi
-          done
-
-          echo "Real (non-skipped) SCHEDULED runs today (diagnostic only): $REAL_SCHEDULED_COUNT"
-          echo "Real (non-skipped) runs of ANY kind today (used for the trigger decision): $REAL_SUCCESS_COUNT"
-          echo "Total workflow runs today, including no-op skips: $ANY_COUNT"
-          echo "scheduled_count=$REAL_SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
-          echo "success_count=$REAL_SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Successful runs found for today: $SUCCESS_COUNT"
+          echo "Any runs (including failed) found for today: $ANY_COUNT"
+          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Final auto-trigger if nothing succeeded yet today
@@ -126,4 +100,3 @@ jobs:
         run: |
           echo "Still nothing successful today. Final auto-trigger..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
-          echo "Final workflow trigger sent!"
