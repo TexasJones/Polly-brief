@@ -125,6 +125,14 @@ class NewsItem:
     title: str
     url: str
     summary: str
+    # The story's own verified publish date, as determined during
+    # selection in _fetch_topic_story (see _entry_published_date). None
+    # specifically means "Google gave us no parseable date for this one"
+    # (the Tier 3 undated fallback) -- kept as None rather than guessing
+    # a date, since template.py uses this to decide whether to show a
+    # "time ago" label at all: an unverified date shouldn't display a
+    # fabricated-looking one.
+    published_date: Optional[dt.date] = None
 @dataclass
 class TopStory:
     section: str
@@ -256,6 +264,7 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     # it is, but returning it is still better than an empty section when
     # the feed clearly returned real results.
     elif undated:
+        pub_date = None
         raw_title, link = undated[0]
     # Tier 4: even the widened Stage 2 search returned nothing usable --
     # this is the only case that should still produce an empty section.
@@ -266,7 +275,7 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     # Google News RSS descriptions turned out to just repeat the
     # title/source as boilerplate, not a real snippet -- so we skip
     # trying to extract a summary at all rather than show duplicate text.
-    return NewsItem(outlet=source, title=headline, url=link, summary='')
+    return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
 def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
     # existing --headlines-per-outlet flag; here it controls how many results
