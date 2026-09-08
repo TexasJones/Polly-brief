@@ -16,7 +16,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - name: Check whether Generate Polly Brief ran today
+      - name: Check whether Generate Polly Brief actually ran today
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -24,43 +24,40 @@ jobs:
           TODAY=$(date -u +%Y-%m-%d)
           echo "Checking for a Generate Polly Brief run on $TODAY (UTC)..."
 
-          # Pull the last 20 runs of that specific workflow. 20 is
-          # comfortably more than one day's worth even counting manual
-          # re-runs, so no pagination needed.
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
 
-          # SCHEDULED_COUNT checks specifically for a successful run
-          # triggered by the natural cron schedule (event: "schedule"),
-          # as distinct from a manual or auto-triggered catch-up (event:
-          # "workflow_dispatch"). This is kept purely as a diagnostic
-          # signal now -- see SUCCESS_COUNT below for what actually
-          # decides whether to re-trigger.
-          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+          # IMPORTANT: polly-brief.yml now correctly SKIPS its real steps
+          # (via `if:` conditions) on every 15-minute tick outside the
+          # 07:20-07:44 window -- but a job with skipped (not failed)
+          # steps still reports overall conclusion "success". That means
+          # job-level conclusion alone can no longer tell a genuine
+          # 7:30 AM send apart from a trivial 3 AM no-op tick. So instead
+          # of trusting .conclusion on the run itself, we check each
+          # today's run's actual STEPS for whether "Generate the Brief"
+          # specifically executed (conclusion "success", not "skipped").
+          TODAY_RUNS=$(echo "$RUNS_JSON" | jq -c "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\")) | {id, event}]")
+          ANY_COUNT=$(echo "$TODAY_RUNS" | jq "length")
 
-          # SUCCESS_COUNT counts ANY successful run today, regardless of
-          # trigger type. This is what actually decides whether to
-          # auto-trigger below -- using SCHEDULED_COUNT for that decision
-          # was a real bug: this workflow's own auto-trigger step fires
-          # via workflow_dispatch, which SCHEDULED_COUNT can never count.
-          # That meant a successful rescue run was invisible to this same
-          # check, so a re-run one hour later (see check_again below)
-          # would see "0 scheduled successes" again and fire a second,
-          # unnecessary auto-trigger -- even though the brief had already
-          # gone out. send_brevo.py's own campaign-name duplicate check
-          # should still stop a second real email, but this was still
-          # wasted API calls and confusing noise.
-          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
+          REAL_SUCCESS_COUNT=0
+          REAL_SCHEDULED_COUNT=0
+          for row in $(echo "$TODAY_RUNS" | jq -c '.[]'); do
+            RUN_ID=$(echo "$row" | jq -r '.id')
+            EVENT=$(echo "$row" | jq -r '.event')
+            JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
+            GENERATED=$(echo "$JOBS_JSON" | jq "[.jobs[].steps[]? | select(.name == \"Generate the Brief\" and .conclusion == \"success\")] | length")
+            if [ "$GENERATED" -gt 0 ]; then
+              REAL_SUCCESS_COUNT=$((REAL_SUCCESS_COUNT + 1))
+              if [ "$EVENT" = "schedule" ]; then
+                REAL_SCHEDULED_COUNT=$((REAL_SCHEDULED_COUNT + 1))
+              fi
+            fi
+          done
 
-          # ANY_COUNT is kept only to make the alert message more useful --
-          # e.g. "you already caught this manually" vs "nothing ran at
-          # all today" -- it does NOT suppress the alert either way.
-          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
-
-          echo "Successful SCHEDULED runs found for today (diagnostic only): $SCHEDULED_COUNT"
-          echo "Successful runs of ANY kind found for today (used for the trigger decision): $SUCCESS_COUNT"
-          echo "Any runs (including failed/in-progress) found for today: $ANY_COUNT"
-          echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
-          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          echo "Real (non-skipped) SCHEDULED runs today (diagnostic only): $REAL_SCHEDULED_COUNT"
+          echo "Real (non-skipped) runs of ANY kind today (used for the trigger decision): $REAL_SUCCESS_COUNT"
+          echo "Total workflow runs today, including no-op skips: $ANY_COUNT"
+          echo "scheduled_count=$REAL_SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_count=$REAL_SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
           echo "today=$TODAY" >> "$GITHUB_OUTPUT"
 
@@ -82,7 +79,7 @@ jobs:
       - name: Wait 1 hour and re-check if brief ran
         run: sleep 3600
 
-      - name: Check whether Generate Polly Brief ran by now
+      - name: Check whether Generate Polly Brief actually ran by now
         id: recheck
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -91,20 +88,35 @@ jobs:
           echo "Rechecking for a Generate Polly Brief run on $TODAY (UTC)..."
 
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
-          SCHEDULED_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.event == \"schedule\" and (.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
-          # Same fix as the first check above: decide on ANY successful
-          # run today, not just ones triggered by the natural schedule --
-          # otherwise this recheck can never see its own sibling job's
-          # earlier auto-trigger as a success, and fires a redundant
-          # second one.
-          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
-          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
 
-          echo "Successful SCHEDULED runs found for today (diagnostic only): $SCHEDULED_COUNT"
-          echo "Successful runs of ANY kind found for today (used for the trigger decision): $SUCCESS_COUNT"
-          echo "Any runs (including failed/in-progress) found for today: $ANY_COUNT"
-          echo "scheduled_count=$SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
-          echo "success_count=$SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
+          # Same fix as the first check above: check each today's run's
+          # actual STEPS for whether "Generate the Brief" specifically
+          # executed, rather than trusting job-level conclusion -- a run
+          # correctly skipped outside the 07:20-07:44 window still
+          # reports overall "success" even though nothing real happened.
+          TODAY_RUNS=$(echo "$RUNS_JSON" | jq -c "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\")) | {id, event}]")
+          ANY_COUNT=$(echo "$TODAY_RUNS" | jq "length")
+
+          REAL_SUCCESS_COUNT=0
+          REAL_SCHEDULED_COUNT=0
+          for row in $(echo "$TODAY_RUNS" | jq -c '.[]'); do
+            RUN_ID=$(echo "$row" | jq -r '.id')
+            EVENT=$(echo "$row" | jq -r '.event')
+            JOBS_JSON=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/jobs")
+            GENERATED=$(echo "$JOBS_JSON" | jq "[.jobs[].steps[]? | select(.name == \"Generate the Brief\" and .conclusion == \"success\")] | length")
+            if [ "$GENERATED" -gt 0 ]; then
+              REAL_SUCCESS_COUNT=$((REAL_SUCCESS_COUNT + 1))
+              if [ "$EVENT" = "schedule" ]; then
+                REAL_SCHEDULED_COUNT=$((REAL_SCHEDULED_COUNT + 1))
+              fi
+            fi
+          done
+
+          echo "Real (non-skipped) SCHEDULED runs today (diagnostic only): $REAL_SCHEDULED_COUNT"
+          echo "Real (non-skipped) runs of ANY kind today (used for the trigger decision): $REAL_SUCCESS_COUNT"
+          echo "Total workflow runs today, including no-op skips: $ANY_COUNT"
+          echo "scheduled_count=$REAL_SCHEDULED_COUNT" >> "$GITHUB_OUTPUT"
+          echo "success_count=$REAL_SUCCESS_COUNT" >> "$GITHUB_OUTPUT"
           echo "any_count=$ANY_COUNT" >> "$GITHUB_OUTPUT"
 
       - name: Final auto-trigger if nothing succeeded yet today
