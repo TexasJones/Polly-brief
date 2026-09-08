@@ -1,8 +1,25 @@
 name: Generate Polly Brief
 on:
   schedule:
-    # Run a lightweight check every 15 minutes and proceed only at 07:30 America/New_York.
-    - cron: '*/15 * * * *'
+    # Single daily trigger, matching the original design that ran
+    # reliably for weeks before this file was changed to a 15-minute
+    # polling pattern. That polling redesign -- checking every 15
+    # minutes, 96 times a day, and only actually proceeding inside a
+    # narrow internal time window -- is almost certainly what
+    # INTRODUCED the instability it was meant to fix: GitHub is
+    # documented to deprioritize high-frequency scheduled triggers,
+    # especially on public/free-tier repos, and the timing of this
+    # repo's scheduling problems lines up with when that redesign
+    # shipped, not before it. A single trigger a day creates far less
+    # scheduling pressure, and it's the one configuration with actual
+    # proven reliability behind it.
+    #
+    # Known limitation: this fixed UTC time does NOT auto-adjust for US
+    # Daylight Saving Time, so the real-world Eastern-time delivery hour
+    # will drift by an hour twice a year unless this line is manually
+    # adjusted. Accepted tradeoff for going back to the simpler, proven
+    # design rather than adding DST-handling complexity back in.
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       test_mode:
@@ -31,60 +48,15 @@ jobs:
       PUBLISH_ONLY: ${{ github.event.inputs.publish_only || 'false' }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Determine whether this run should proceed
-        id: timecheck
-        run: |
-          # CRITICAL: this step's job is to decide whether the REST of
-          # this job should run at all -- it does NOT do that by itself.
-          # `exit 0` only marks THIS step successful and moves on to the
-          # next one; it does not skip anything downstream. The only way
-          # to actually make later steps conditional in GitHub Actions is
-          # to set an output here and give every subsequent step its own
-          # `if: steps.timecheck.outputs.should_run == 'true'` condition
-          # -- see every step below. Without that, this check was pure
-          # theater: the workflow ran its full pipeline (including a real
-          # Brevo send attempt) on every 15-minute tick GitHub let
-          # through, all day, every day, regardless of what this step
-          # printed or exited with.
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "Manual run detected; proceeding regardless of time."
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          else
-            NY_HOUR=$(TZ="America/New_York" date +'%H')
-            NY_MINUTE=$(TZ="America/New_York" date +'%M')
-            # Force base-10 interpretation -- bash treats a leading-zero
-            # value like "08" or "09" as an invalid octal literal in
-            # arithmetic context and errors out otherwise.
-            NY_HOUR=$((10#$NY_HOUR))
-            NY_MINUTE=$((10#$NY_MINUTE))
-            echo "NY time: ${NY_HOUR}:${NY_MINUTE}"
-
-            # A 25-minute window (07:20-07:44), not an exact match --
-            # wide enough to absorb realistic GitHub scheduling delay
-            # while still bounded by the adjacent :15 and :45 ticks, so
-            # it only ever matches once per day.
-            if [ "$NY_HOUR" -eq 7 ] && [ "$NY_MINUTE" -ge 20 ] && [ "$NY_MINUTE" -le 44 ]; then
-              echo "Within target window (07:20-07:44 America/New_York), proceeding."
-              echo "should_run=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "Not target time, skipping the rest of this run."
-              echo "should_run=false" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
       - uses: actions/setup-python@v5
-        if: steps.timecheck.outputs.should_run == 'true'
         with:
           python-version: '3.11'
       - name: Install dependencies
-        if: steps.timecheck.outputs.should_run == 'true'
         run: pip install requests beautifulsoup4 feedparser
       - name: Generate the Brief
-        if: steps.timecheck.outputs.should_run == 'true'
         run: python3 polly_brief/generate_brief.py --out polly_brief.html
       - name: Commit updated job snapshot and published brief
-        if: steps.timecheck.outputs.should_run == 'true' && env.TEST_MODE == 'false'
+        if: ${{ env.TEST_MODE == 'false' }}
         run: |
           git config user.name "actions-user"
           git config user.email "actions@github.com"
@@ -92,14 +64,13 @@ jobs:
           git diff --quiet --cached || git commit -m "Update seen jobs snapshot and publish brief"
           git push
       - name: List files (debug)
-        if: steps.timecheck.outputs.should_run == 'true'
         run: |
           echo "Current directory:"
           pwd
           echo "Files here:"
           ls -la
       - name: Send via Brevo
-        if: steps.timecheck.outputs.should_run == 'true' && env.TEST_MODE == 'false' && env.PUBLISH_ONLY == 'false'
+        if: ${{ env.TEST_MODE == 'false' && env.PUBLISH_ONLY == 'false' }}
         env:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           BREVO_LIST_ID: ${{ secrets.BREVO_LIST_ID }}
@@ -108,7 +79,7 @@ jobs:
           MAILING_ADDRESS: ${{ secrets.MAILING_ADDRESS }}
         run: python3 polly_brief/send_brevo.py --html-file polly_brief.html
       - name: Upload preview (test mode)
-        if: steps.timecheck.outputs.should_run == 'true' && env.TEST_MODE == 'true'
+        if: ${{ env.TEST_MODE == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: brief-preview
