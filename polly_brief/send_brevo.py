@@ -62,6 +62,7 @@ import argparse
 import datetime as dt
 import os
 import sys
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -406,7 +407,17 @@ def main() -> int:
     # 4. Establish today's campaign name
     # ---------------------------------------------------------
 
-    today = dt.date.today()
+    # Eastern-time-aware, matching generate_brief.py exactly -- NOT plain
+    # dt.date.today(), which reads the runner's system clock (UTC). Those
+    # two disagree for roughly a third of every day (whenever it's already
+    # past midnight UTC but still the same calendar day in US Eastern
+    # time -- e.g. 9 PM-midnight Eastern). A run in that window used to
+    # compute a DIFFERENT date here than generate_brief.py did, which
+    # broke this script's own duplicate-send check: it would look for a
+    # campaign name under the wrong date, fail to find the real same-day
+    # campaign, and send a second, mismatched-name email instead of
+    # correctly recognizing today's brief already went out.
+    today = dt.datetime.now(ZoneInfo('America/New_York')).date()
 
     # --campaign-name overrides the default when supplied (e.g. a
     # monthly special edition passing its own distinct name). Omitted
