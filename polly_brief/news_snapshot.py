@@ -72,12 +72,23 @@ OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -i
 # to find, and it also raises source credibility across the board --
 # Polly's own audience already reads these outlets, so citing them is a
 # trust signal, not just a freshness fix.
-TRUSTED_SOURCES = (
+FREE_SOURCES = (
     '(site:axios.com OR site:politico.com OR site:punchbowl.news '
-    'OR site:semafor.com OR site:reuters.com OR site:apnews.com '
-    'OR site:washingtonpost.com OR site:thehill.com OR site:npr.org '
-    'OR site:rollcall.com OR site:notus.org OR site:bloomberg.com '
-    'OR site:nbcnews.com OR site:nationaljournal.com OR site:cnn.com)'
+    'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
+    'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com)'
+)
+
+# Genuinely useful, authoritative sources -- but each has a real paywall
+# (Reuters is metered, the rest are hard paywalls or subscription-gated).
+# Kept as a SECOND-CHOICE tier rather than removed outright: still better
+# to occasionally show a paywalled story than nothing at all on a
+# genuinely quiet-news topic, but a reader shouldn't hit "Read More" and
+# get blocked more often than not. See _fetch_topic_story's 3-stage
+# cascade -- this tier is only tried if FREE_SOURCES comes up completely
+# empty for that topic.
+PAYWALLED_SOURCES = (
+    '(site:reuters.com OR site:washingtonpost.com OR site:bloomberg.com '
+    'OR site:nationaljournal.com OR site:rollcall.com)'
 )
 
 # Google News sometimes labels a story's source by its proper name
@@ -220,20 +231,33 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
     today = today or dt.date.today()
 
-    # Stage 1: restricted to TRUSTED_SOURCES. Tried first because these
+    # Stage 1: free/lightly-gated sources. Tried first because these
     # outlets both publish on DC politics constantly (fixing staleness)
     # and are sources Polly's own audience already trusts (fixing
-    # sourcing quality) -- see TRUSTED_SOURCES above.
-    restricted_query = f'{query} {TRUSTED_SOURCES} {OPINION_EXCLUSION}'
-    dated, undated = _fetch_candidates(restricted_query, limit)
+    # sourcing quality) -- see FREE_SOURCES above. A reader who clicks
+    # "Read More" here should almost always be able to actually read
+    # the story, not hit a paywall.
+    free_query = f'{query} {FREE_SOURCES} {OPINION_EXCLUSION}'
+    dated, undated = _fetch_candidates(free_query, limit)
 
-    # Stage 2: only if the trusted-15 search came back with literally
+    # Stage 2: only if Stage 1 came back with literally nothing usable
+    # at all, try the paywalled-but-authoritative tier (Reuters, WaPo,
+    # Bloomberg, etc.) before giving up on quality sourcing entirely.
+    # These are genuinely good sources -- the issue isn't that they're
+    # bad, it's that they shouldn't be a story's ONLY chance to be
+    # featured when a free alternative exists. Only reached when the
+    # free tier genuinely has nothing for this topic today.
+    if not dated and not undated:
+        paywalled_query = f'{query} {PAYWALLED_SOURCES} {OPINION_EXCLUSION}'
+        dated, undated = _fetch_candidates(paywalled_query, limit)
+
+    # Stage 3: only if BOTH trusted tiers came back with literally
     # nothing usable at all -- not "nothing fresh enough" (Tier 1/2 below
     # already handle that gracefully), but zero results, full stop -- do
-    # we widen to the unrestricted web. This preserves the Stage 1
+    # we widen to the unrestricted web. This preserves the Stage 1/2
     # quality/freshness win for the normal case, while still honoring
     # the "never show a blank section over a stale one" policy for
-    # whatever topic the trusted 15 genuinely didn't cover that day.
+    # whatever topic neither trusted tier covered that day.
     if not dated and not undated:
         unrestricted_query = f'{query} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(unrestricted_query, limit)
