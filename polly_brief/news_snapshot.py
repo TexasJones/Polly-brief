@@ -98,7 +98,9 @@ OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -i
 FREE_SOURCES = (
     '(site:axios.com OR site:politico.com OR site:punchbowl.news '
     'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
-    'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com)'
+    'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com '
+    'OR site:pbs.org OR site:bbc.com OR site:csmonitor.com '
+    'OR site:govexec.com OR site:stateline.org)'
 )
 
 # Genuinely useful, authoritative sources -- but each has a real paywall
