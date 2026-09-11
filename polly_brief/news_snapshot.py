@@ -52,6 +52,29 @@ SECTION_QUERIES = [
 #      genuinely returned zero usable entries for that query.
 MAX_STORY_AGE_DAYS = 14
 
+# Outer cap on how old a story can be even in the "graceful fallback"
+# tier below -- added after a 139-day-old story slipped through under
+# the previous uncapped version. An old story still beats a blank
+# section up to a point, but 139 days is well past that point; beyond
+# this cap, an empty section is the more honest outcome.
+MAX_FALLBACK_AGE_DAYS = 30
+
+# Titles that indicate Google matched a section/category INDEX page
+# (e.g. a publisher's generic "Headlines" landing page) rather than an
+# actual individual news article -- these can occasionally get indexed
+# and outrank real articles for a broad query. Checked as an exact match
+# against the full trimmed headline, not a substring, so a real headline
+# that happens to CONTAIN one of these words (e.g. "Latest jobs report
+# shows...") isn't wrongly excluded.
+GENERIC_TITLE_BLOCKLIST = {
+    'headlines', 'headline', 'news', 'latest', 'latest news',
+    'top stories', 'home', 'homepage',
+}
+
+
+def _is_generic_title(title: str) -> bool:
+    return title.strip().lower() in GENERIC_TITLE_BLOCKLIST
+
 # Applied to every SECTION_QUERIES search below. Rather than trying to
 # detect opinion "tone" in headline text (unreliable -- an op-ed title
 # doesn't have to say "opinion" anywhere, e.g. "Congress Should Rein in
@@ -209,6 +232,14 @@ def _fetch_candidates(query, limit):
         if not raw_title or not link:
             continue
 
+        # Check the actual headline portion (before " - Source") against
+        # the generic-title blocklist -- checking the full raw_title
+        # would let a real headline from a source whose own NAME happens
+        # to match (unlikely, but the split keeps this precise either way).
+        headline_only = raw_title.rsplit(' - ', 1)[0].strip() if ' - ' in raw_title else raw_title
+        if _is_generic_title(headline_only):
+            continue
+
         pub_date = _entry_published_date(entry)
         if pub_date is None:
             undated.append((raw_title, link))
@@ -218,7 +249,7 @@ def _fetch_candidates(query, limit):
     return dated, undated
 
 
-def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
+def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None, used_urls: Optional[set] = None):
     # Plain, unrestricted relevance search -- no `when:` operator. We
     # previously tried to bias this toward recent results by layering
     # `when:1d/3d/7d/14d` windowed searches on top, widening until one
@@ -230,6 +261,17 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     # checking each entry's own published date (see _entry_published_date
     # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
     today = today or dt.date.today()
+    used_urls = used_urls or set()
+
+    def _exclude_used(dated_list, undated_list):
+        # Drop any candidate whose URL was already picked for an earlier
+        # section in this same day's brief -- without this, two topic
+        # queries that both genuinely match the same real story (e.g. an
+        # AI-regulation story hitting both "AI+Policy" and "Legislative")
+        # would show the identical headline twice in one email.
+        d = [c for c in dated_list if c[2] not in used_urls]
+        u = [c for c in undated_list if c[1] not in used_urls]
+        return d, u
 
     # Stage 1: free/lightly-gated sources. Tried first because these
     # outlets both publish on DC politics constantly (fixing staleness)
@@ -239,6 +281,7 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     # the story, not hit a paywall.
     free_query = f'{query} {FREE_SOURCES} {OPINION_EXCLUSION}'
     dated, undated = _fetch_candidates(free_query, limit)
+    dated, undated = _exclude_used(dated, undated)
 
     # Stage 2: only if Stage 1 came back with literally nothing usable
     # at all, try the paywalled-but-authoritative tier (Reuters, WaPo,
@@ -250,6 +293,7 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     if not dated and not undated:
         paywalled_query = f'{query} {PAYWALLED_SOURCES} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(paywalled_query, limit)
+        dated, undated = _exclude_used(dated, undated)
 
     # Stage 3: only if BOTH trusted tiers came back with literally
     # nothing usable at all -- not "nothing fresh enough" (Tier 1/2 below
@@ -261,6 +305,7 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     if not dated and not undated:
         unrestricted_query = f'{query} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(unrestricted_query, limit)
+        dated, undated = _exclude_used(dated, undated)
 
     # NOTE on selection strategy: we used to return the FIRST entry (in
     # Google's relevance-ranked order) that passed the freshness check.
@@ -276,40 +321,52 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None):
     fresh = [c for c in dated if (today - c[0]).days <= MAX_STORY_AGE_DAYS]
     if fresh:
         pub_date, raw_title, link = max(fresh, key=lambda c: c[0])
-    # Tier 2: nothing within 14 days, but Google did return dated articles
-    # on this topic -- take the single newest one anyway rather than
-    # showing nothing. An older-than-ideal story is still more useful to
-    # a reader than a blank section, and a genuinely quiet-news-day topic
-    # (rather than a broken fetch) is exactly the case this is for.
-    elif dated:
-        pub_date, raw_title, link = max(dated, key=lambda c: c[0])
-    # Tier 3: nothing had a parseable date at all -- fall back to
-    # whatever Google ranked first by relevance. We can't verify how old
-    # it is, but returning it is still better than an empty section when
-    # the feed clearly returned real results.
-    elif undated:
-        pub_date = None
-        raw_title, link = undated[0]
-    # Tier 4: even the widened Stage 2 search returned nothing usable --
-    # this is the only case that should still produce an empty section.
-    else:
-        return None
+        headline, source = _split_title_source(raw_title)
+        return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
 
-    headline, source = _split_title_source(raw_title)
-    # Google News RSS descriptions turned out to just repeat the
-    # title/source as boilerplate, not a real snippet -- so we skip
-    # trying to extract a summary at all rather than show duplicate text.
-    return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
+    # Tier 2: nothing within MAX_STORY_AGE_DAYS, but Google did return
+    # dated articles on this topic -- take the single newest one anyway,
+    # UNLESS it's older than MAX_FALLBACK_AGE_DAYS too. An older-than-
+    # ideal story is still more useful to a reader than a blank section,
+    # but only up to a real outer limit -- this cap exists specifically
+    # because a 139-day-old story once made it through here uncapped.
+    if dated:
+        newest_date, newest_title, newest_link = max(dated, key=lambda c: c[0])
+        if (today - newest_date).days <= MAX_FALLBACK_AGE_DAYS:
+            headline, source = _split_title_source(newest_title)
+            return NewsItem(outlet=source, title=headline, url=newest_link, summary='', published_date=newest_date)
+
+    # Tier 3: nothing had a parseable date at all (or the only dated
+    # candidate exceeded MAX_FALLBACK_AGE_DAYS) -- fall back to whatever
+    # Google ranked first by relevance among the undated entries. We
+    # can't verify how old it is, but returning it is still better than
+    # an empty section when the feed clearly returned real results.
+    if undated:
+        raw_title, link = undated[0]
+        headline, source = _split_title_source(raw_title)
+        return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=None)
+
+    # Tier 4: nothing usable at all, from any source tier -- this is the
+    # only case that should still produce an empty section.
+    return None
+
+
 def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
     # existing --headlines-per-outlet flag; here it controls how many results
     # deep we look per topic before giving up on that section.
     today = today or dt.date.today()
     stories = []
+    # Tracks every story URL already picked for an earlier section this
+    # run, so a later section can't pick the same story again -- see the
+    # _exclude_used check inside _fetch_topic_story.
+    used_urls = set()
     for name, emoji, query in SECTION_QUERIES:
         try:
-            item = _fetch_topic_story(query, limit=per_outlet, today=today)
+            item = _fetch_topic_story(query, limit=per_outlet, today=today, used_urls=used_urls)
         except Exception:
             item = None
+        if item:
+            used_urls.add(item.url)
         stories.append(TopStory(section=name, emoji=emoji, item=item))
     return stories
