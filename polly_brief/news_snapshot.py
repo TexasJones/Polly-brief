@@ -1,8 +1,10 @@
 from __future__ import annotations
 import datetime as dt
+import json
 import re
 from dataclasses import dataclass
 from html import unescape
+from pathlib import Path
 from typing import Optional
 import feedparser
 from bs4 import BeautifulSoup
@@ -58,6 +60,67 @@ MAX_STORY_AGE_DAYS = 14
 # section up to a point, but 139 days is well past that point; beyond
 # this cap, an empty section is the more honest outcome.
 MAX_FALLBACK_AGE_DAYS = 30
+
+# Persisted across runs (committed to the repo by the workflow, same
+# pattern as jobs_snapshot.py's seen_jobs.json) so the same story URL
+# doesn't get re-picked day after day just because a quiet topic's
+# "freshest available" article happens to still be the best match --
+# without this, freshness checks alone can't tell "genuinely new" apart
+# from "same story we already showed, still technically within the
+# freshness window." Retention is shorter than jobs_snapshot's since
+# news moves faster than job postings, and old entries are pruned past
+# this window so the file doesn't grow forever and a story CAN
+# eventually be shown again if it's still relevant weeks later.
+RECENT_STORIES_PATH = Path(__file__).resolve().parent / ".state" / "recent_stories.json"
+RECENT_STORIES_RETENTION_DAYS = 21
+
+
+def _safe_parse_date(date_str: str) -> Optional[dt.date]:
+    try:
+        return dt.date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return None
+
+
+def _load_recent_stories(path: Path = RECENT_STORIES_PATH) -> dict:
+    """Returns the full url -> date-last-shown mapping, unfiltered by
+    retention window -- filtering happens separately in
+    _recent_urls_within_window, so a load always returns the raw stored
+    truth. Corrupt or missing files are treated as "nothing on record"
+    rather than crashing the run -- worst case a recently-shown story
+    gets a chance to repeat once, which is recoverable; a crashed daily
+    brief is not."""
+    if not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+        return data.get("url_to_date", {})
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def _recent_urls_within_window(url_to_date: dict, today: dt.date) -> set:
+    cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
+    result = set()
+    for url, date_str in url_to_date.items():
+        parsed = _safe_parse_date(date_str)
+        if parsed is not None and parsed >= cutoff:
+            result.add(url)
+    return result
+
+
+def _save_recent_stories(url_to_date: dict, today: dt.date, path: Path = RECENT_STORIES_PATH) -> None:
+    """Prunes entries older than RECENT_STORIES_RETENTION_DAYS before
+    saving, so this file doesn't grow forever and a story becomes
+    eligible to be shown again once it's genuinely old news."""
+    cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
+    pruned = {}
+    for url, date_str in url_to_date.items():
+        parsed = _safe_parse_date(date_str)
+        if parsed is not None and parsed >= cutoff:
+            pruned[url] = date_str
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"url_to_date": pruned}, indent=2))
 
 # Titles that indicate Google matched a section/category INDEX page
 # (e.g. a publisher's generic "Headlines" landing page) rather than an
@@ -359,10 +422,16 @@ def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
     # deep we look per topic before giving up on that section.
     today = today or dt.date.today()
     stories = []
-    # Tracks every story URL already picked for an earlier section this
-    # run, so a later section can't pick the same story again -- see the
-    # _exclude_used check inside _fetch_topic_story.
-    used_urls = set()
+
+    # Load cross-day story memory and seed used_urls with it, so a story
+    # shown in a recent brief can't be picked again today just because
+    # it's still the "freshest available" match for a quiet topic. The
+    # same used_urls set is then extended below with THIS run's own
+    # picks too, so it still does its original job of preventing a
+    # repeat across sections within one email.
+    url_to_date = _load_recent_stories()
+    used_urls = _recent_urls_within_window(url_to_date, today)
+
     for name, emoji, query in SECTION_QUERIES:
         try:
             item = _fetch_topic_story(query, limit=per_outlet, today=today, used_urls=used_urls)
@@ -370,5 +439,12 @@ def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
             item = None
         if item:
             used_urls.add(item.url)
+            url_to_date[item.url] = today.isoformat()
         stories.append(TopStory(section=name, emoji=emoji, item=item))
+
+    # Persist today's picks (plus everything carried over from the load
+    # above) for tomorrow's run to see. Pruning of anything past
+    # RECENT_STORIES_RETENTION_DAYS happens inside _save_recent_stories.
+    _save_recent_stories(url_to_date, today)
+
     return stories
