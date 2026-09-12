@@ -2,7 +2,6 @@
   "seen_urls": [
     "http://boards.greenhouse.io/voxmedia/jobs/1301262?gh_jid=1301262",
     "http://boards.greenhouse.io/voxmedia/jobs/7405691?gh_jid=7405691",
-    "http://boards.greenhouse.io/voxmedia/jobs/8064549?gh_jid=8064549",
     "http://boards.greenhouse.io/voxmedia/jobs/8083546?gh_jid=8083546",
     "http://boards.greenhouse.io/voxmedia/jobs/8095035?gh_jid=8095035",
     "http://boards.greenhouse.io/voxmedia/jobs/8095172?gh_jid=8095172",
@@ -18,7 +17,6 @@
     "http://boards.greenhouse.io/voxmedia/jobs/8174076?gh_jid=8174076",
     "http://boards.greenhouse.io/voxmedia/jobs/8188296?gh_jid=8188296",
     "https://apply.workable.com/j/0562502663/apply",
-    "https://apply.workable.com/j/11E0BC0581/apply",
     "https://apply.workable.com/j/1332F770B8/apply",
     "https://apply.workable.com/j/233D227621/apply",
     "https://apply.workable.com/j/25A6865540/apply",
@@ -39,7 +37,6 @@
     "https://apply.workable.com/j/B248E2EB5F/apply",
     "https://apply.workable.com/j/BB6A1B7041/apply",
     "https://apply.workable.com/j/BE2FEF78DF/apply",
-    "https://apply.workable.com/j/C2D2B9562F/apply",
     "https://apply.workable.com/j/CB3A9C2545/apply",
     "https://apply.workable.com/j/CD960CC282/apply",
     "https://apply.workable.com/j/EA6011285A/apply",
@@ -110,6 +107,7 @@
     "https://job-boards.greenhouse.io/humanrightswatch/jobs/8784299002",
     "https://job-boards.greenhouse.io/humanrightswatch/jobs/8784417002",
     "https://job-boards.greenhouse.io/humanrightswatch/jobs/8787226002",
+    "https://job-boards.greenhouse.io/humanrightswatch/jobs/8802793002",
     "https://job-boards.greenhouse.io/orchestra/jobs/8300213002",
     "https://job-boards.greenhouse.io/orchestra/jobs/8310812002",
     "https://job-boards.greenhouse.io/orchestra/jobs/8407783002",
@@ -175,9 +173,8 @@
     "https://jobs.ashbyhq.com/bantamcommunications/96c49bda-1da8-4322-acb4-bb84fb4aebba/application",
     "https://jobs.ashbyhq.com/bantamcommunications/cdb596d0-17b7-41bb-8fdc-862f077ddfdc/application",
     "https://jobs.ashbyhq.com/bantamcommunications/dcf52fda-ddb9-40f3-a614-95c6de43b6c1/application",
-    "https://jobs.ashbyhq.com/morningconsult/391addbb-77bd-409a-85b1-4914bbce4fb6/application",
+    "https://jobs.ashbyhq.com/morningconsult/25fe2191-46c9-495b-bc22-8a8c179cfbdc/application",
     "https://jobs.ashbyhq.com/morningconsult/3d3d6e48-9bf8-46b6-ae9f-1d46df745ce0/application",
-    "https://jobs.ashbyhq.com/morningconsult/47b47efd-82df-4cbd-aee8-7858c1596852/application",
     "https://jobs.ashbyhq.com/morningconsult/9a457f68-a232-48bb-b8d1-ff9c4635e12f/application",
     "https://jobs.ashbyhq.com/morningconsult/a9e0e6fe-01fe-4acb-8137-f7da24a36b11/application",
     "https://jobs.ashbyhq.com/morningconsult/f6a1d302-d006-4bfd-8d3c-49c095a601e2/application",
@@ -246,6 +243,7 @@
     "https://jobs.lever.co/standtogether/814774c2-7079-4a2a-bfb2-97d18f0c08b5",
     "https://jobs.lever.co/standtogether/86a44848-12a3-48bc-9e3b-5dbfa608f420",
     "https://jobs.lever.co/standtogether/8e380bd7-93bd-491a-a9bd-0d55b41c1c96",
+    "https://jobs.lever.co/standtogether/8f415a5a-f825-46ff-8633-8eb3c522afef",
     "https://jobs.lever.co/standtogether/92a3b574-462a-4dae-bcfc-abf519d5ce4c",
     "https://jobs.lever.co/standtogether/931ed587-e835-42a2-bd51-4481c2f49d5c",
     "https://jobs.lever.co/standtogether/93ad4fe9-0eeb-4252-a0ad-023430b58791",
@@ -285,7 +283,6 @@
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Account-Manager--Client-Management_JR100472",
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Associate-Director--Research---European-Pharmaceuticals-and-Biotechnology-Regulation_JR100351",
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Associate-Producer--POLITICO-Live_JR100525",
-    "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Associate-Video-Producer--Podcast-Video_JR100470",
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Booking-Producer_JR100523",
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Customer-Engagement-Specialist_JR100518",
     "https://politico.wd108.myworkdayjobs.com/POLITICO/job/Arlington-VA/Editor--Central-Desk_JR100521",
@@ -312,5 +309,5 @@
     "https://www.webershandwick.com/work-at-weber/careers/?gh_jid=8333072002",
     "https://www.webershandwick.com/work-at-weber/careers/?gh_jid=8344432002"
   ],
-  "updated_at": "2026-09-11"
+  "updated_at": "2026-09-12"
 }
