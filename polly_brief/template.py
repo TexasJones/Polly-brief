@@ -77,11 +77,35 @@ def _style(name: str, *args, fallback: str = "", **kwargs) -> str:
             return fallback
 
 
+def _mobile_style_block() -> str:
+    """Media query that reflows the fixed-width 600px layout for narrow
+    (phone) browser viewports. Email clients that ignore <style>/@media
+    (older Outlook desktop chief among them) simply keep the existing
+    fixed-width table -- this only changes rendering in modern mail apps
+    (Gmail, Apple Mail, most mobile clients) and in the GitHub Pages
+    "View in browser" copy, both of which do support @media queries.
+
+    The !important flags are necessary because every element in this
+    template is styled with inline styles (the standard email-safe
+    pattern), which otherwise always win over stylesheet rules.
+    """
+    return (
+        '<style>'
+        '@media only screen and (max-width: 620px) {'
+        '  .polly-card { width: 100% !important; }'
+        '  .polly-pad { padding-left: 20px !important; padding-right: 20px !important; }'
+        '  .polly-col { display: block !important; width: 100% !important; '
+        'padding-right: 0 !important; padding-bottom: 16px !important; }'
+        '}'
+        '</style>'
+    )
+
+
 def _divider() -> str:
     """Render a horizontal divider row."""
     hairline = _c('HAIRLINE', '#E2E8F0')
     divider_css = _style('divider_style', fallback=f"border-bottom: 1px solid {hairline}; margin: 24px 0;")
-    return (f'<tr><td style="padding:0 40px;">'
+    return (f'<tr><td class="polly-pad" style="padding:0 40px;">'
             f'<div style="{divider_css}"></div>'
             f'</td></tr>')
 
@@ -127,7 +151,7 @@ def _stat_block(number: str, label: str, bg_color: str = "#1E3A8A", url: str = N
                 f'style="text-decoration:none; display:block;">') if url else '<div style="display:block;">'
     close_tag = '</a>' if url else '</div>'
 
-    return (f'<td width="50%" style="padding-right: 12px; vertical-align: top;">'
+    return (f'<td width="50%" class="polly-col" style="padding-right: 12px; vertical-align: top;">'
             f'{open_tag}'
             f'<div style="background-color: {bg_color}; border-radius: 10px; padding: 18px 16px; text-align: center; color: #FFFFFF;">'
             f'<div style="font-size: 32px; font-weight: 900; line-height: 1; color: #FFFFFF; font-family: Helvetica, Arial, sans-serif;">{_esc(number)}</div>'
@@ -349,7 +373,7 @@ def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
                           f'{_esc(time_ago)}</div>')
 
     return (
-        f'<tr><td style="padding: 0 40px 24px 40px;">'
+        f'<tr><td class="polly-pad" style="padding: 0 40px 24px 40px;">'
         f'<div style="border: 1px solid #E2E8F0; border-top: 4px solid {color}; padding: 20px; border-radius: 12px; background-color: #F8FAFC;">'
         f'<div style="margin-bottom: 12px">'
         f'{_topic_badge(story.emoji, story.section, color)} '
@@ -472,7 +496,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
             attribution = f'<div style="{muted_default_css}; margin-top: 10px">&mdash; {_esc(quote_source)}</div>'
         quote_section = (
             _divider() +
-            f'<tr><td style="padding: 0 40px">'
+            f'<tr><td class="polly-pad" style="padding: 0 40px">'
             f'{_section_heading("💬", "Quote of the Day")}'
             f'<div style="font-size: 16px; font-weight: 600; color: {ink}; font-style: italic; line-height: 1.4">'
             f'&ldquo;{_esc(quote_text)}&rdquo;</div>{attribution}</td></tr>'
@@ -500,7 +524,9 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '<!DOCTYPE html><html><head>',
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
-        '<title>The Polly Brief</title></head>',
+        '<title>The Polly Brief</title>',
+        _mobile_style_block(),
+        '</head>',
         f'<body style="margin: 0; padding: 0; background-color: {bg}; font-family: {body_font};">',
         '<div style="display: none; max-height: 0; overflow: hidden; mso-hide: all">',
     ]
@@ -515,9 +541,9 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     parts.extend([
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: {bg}; padding: 32px 0">',
         '<tr><td align="center">',
-        f'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color: {card}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06)">',
+        f'<table role="presentation" width="600" class="polly-card" cellpadding="0" cellspacing="0" style="background-color: {card}; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06)">',
         f'<tr><td style="background-color: {accent}; background: linear-gradient(90deg, {top_bar_gradient}); height: 6px; line-height: 6px; font-size: 0">&nbsp;</td></tr>',
-        '<tr><td style="padding: 32px 40px 20px 40px">',
+        '<tr><td class="polly-pad" style="padding: 32px 40px 20px 40px">',
         _brand_header(),
         f'<div style="font-size: 12px; color: {muted}; margin-top: 10px; letter-spacing: 0.3px; font-weight: 600;">{_esc(date_label)}</div>',
         f'<div style="font-size: 12px; color: {muted}; margin-top: 4px;">{_esc(read_time_label)}</div>',
@@ -525,7 +551,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</td></tr>',
         _top_highlight_block(top_stories, today),
         _divider(),
-        '<tr><td style="padding: 0 40px">',
+        '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("📊", "Polly Hiring Pulse")}',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;"><tr>',
         _stat_block(f'{pulse.total_active:,}', 'Active Jobs', bg_color="#1E3A8A", url='https://jobs.thepolly.co/jobs'),
@@ -537,35 +563,35 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         # heading and doesn't get its own emoji/divider.
         f'<div style="margin-bottom: 20px;">{_subheading_label("Remote / Hybrid / Onsite")}{_location_mix_bar(pulse.location_mix)}</div>',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>',
-        '<td width="50%" valign="top" style="padding-right: 20px">',
+        '<td width="50%" valign="top" class="polly-col" style="padding-right: 20px">',
         _subheading_label("Top Hiring Categories"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{category_rows}</table></td>',
-        '<td width="50%" valign="top">',
+        '<td width="50%" valign="top" class="polly-col">',
         _subheading_label("Top Hiring Organizations"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
         '</tr></table></td></tr>',
         _divider(),
-        '<tr><td style="padding: 0 40px">',
+        '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("📰", "Top Stories")}',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{story_rows}</table>',
         '</td></tr>',
         _divider(),
-        '<tr><td style="padding: 0 40px">',
+        '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("🔥", "Jobs Worth Looking At")}',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}</table>',
         '</td></tr>',
         _divider(),
-        '<tr><td style="padding: 0 40px">',
+        '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'<div style="background-color: #0F172A; border-radius: 12px; padding: 24px; text-align: center">',
         f'{_section_heading("📅", "Election Countdown", color=white)}',
         f'<div style="font-size: 44px; font-weight: 900; color: {white}; font-family: {headline_font}; letter-spacing: -1px; line-height: 1;">{days_left}</div>',
         f'<div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px; font-weight: 700;">Days Until Election Day</div>',
         '</div></td></tr>',
         quote_section,
-        '<tr><td style="padding: 24px 40px 16px 40px; text-align: center">',
+        '<tr><td class="polly-pad" style="padding: 24px 40px 16px 40px; text-align: center">',
         f'<a href="https://thepolly.co" target="_blank" rel="noopener noreferrer" style="color: {muted}; text-decoration: none; font-size: 12px; font-weight: 600;">Know someone job hunting in politics? Invite them to Polly →</a>',
         '</td></tr>',
-        '<tr><td style="padding: 16px 40px 36px 40px">',
+        '<tr><td class="polly-pad" style="padding: 16px 40px 36px 40px">',
         f'<div style="border-top: 1px solid {hairline}; padding-top: 18px; text-align: center">',
         f'<div style="font-size: 12px; font-weight: 700; color: {ink};">'
         f'{_bird_img(18, alt="")} '
