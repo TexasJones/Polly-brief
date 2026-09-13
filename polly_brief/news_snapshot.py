@@ -197,13 +197,18 @@ OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -i
 # trade press list. See MEDIA_TRADE_FREE_SOURCES / SECTION_SOURCE_OVERRIDES
 # below for why Media needs its own addition to this list rather than
 # using it alone.
-FREE_SOURCES = (
-    '(site:axios.com OR site:politico.com OR site:punchbowl.news '
+# Kept as bare "site:a OR site:b OR ..." text, WITHOUT wrapping parens --
+# see _FREE_SOURCES_INNER's docstring-style comment below for why. The
+# public FREE_SOURCES constant (wrapped in one set of parens) is what
+# every section other than Media actually queries with.
+_FREE_SOURCES_INNER = (
+    'site:axios.com OR site:politico.com OR site:punchbowl.news '
     'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
     'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com '
     'OR site:pbs.org OR site:bbc.com OR site:csmonitor.com '
-    'OR site:govexec.com OR site:stateline.org)'
+    'OR site:govexec.com OR site:stateline.org'
 )
+FREE_SOURCES = f'({_FREE_SOURCES_INNER})'
 
 # Genuinely useful, authoritative sources -- but each has a real paywall
 # (Reuters is metered, the rest are hard paywalls or subscription-gated).
@@ -213,10 +218,11 @@ FREE_SOURCES = (
 # get blocked more often than not. See _fetch_topic_story's 3-stage
 # cascade -- this tier is only tried if FREE_SOURCES comes up completely
 # empty for that topic.
-PAYWALLED_SOURCES = (
-    '(site:reuters.com OR site:washingtonpost.com OR site:bloomberg.com '
-    'OR site:nationaljournal.com OR site:rollcall.com)'
+_PAYWALLED_SOURCES_INNER = (
+    'site:reuters.com OR site:washingtonpost.com OR site:bloomberg.com '
+    'OR site:nationaljournal.com OR site:rollcall.com'
 )
+PAYWALLED_SOURCES = f'({_PAYWALLED_SOURCES_INNER})'
 
 # Media-industry trade press -- added because FREE_SOURCES/PAYWALLED_SOURCES
 # above are a DC-politics beat list (Axios, Politico, The Hill, etc.) and
@@ -228,24 +234,40 @@ PAYWALLED_SOURCES = (
 # couple of paywalled-but-authoritative ones gives it a real daily supply
 # instead of depending on political outlets occasionally covering media
 # news as a crossover story.
-MEDIA_TRADE_FREE_SOURCES = (
-    '(site:variety.com OR site:hollywoodreporter.com OR site:deadline.com '
+_MEDIA_TRADE_FREE_INNER = (
+    'site:variety.com OR site:hollywoodreporter.com OR site:deadline.com '
     'OR site:adweek.com OR site:pressgazette.co.uk OR site:niemanlab.org '
-    'OR site:cjr.org OR site:thewrap.com OR site:poynter.org)'
+    'OR site:cjr.org OR site:thewrap.com OR site:poynter.org'
 )
-MEDIA_TRADE_PAYWALLED_SOURCES = (
-    '(site:puck.news OR site:theinformation.com OR site:status.news)'
-)
+MEDIA_TRADE_FREE_SOURCES = f'({_MEDIA_TRADE_FREE_INNER})'
+
+_MEDIA_TRADE_PAYWALLED_INNER = 'site:puck.news OR site:theinformation.com OR site:status.news'
+MEDIA_TRADE_PAYWALLED_SOURCES = f'({_MEDIA_TRADE_PAYWALLED_INNER})'
 
 # Per-section overrides of the source tiers a topic searches. Only Media
 # is listed -- the other five sections are core DC-policy beats the
 # general FREE_SOURCES/PAYWALLED_SOURCES lists were built for, so they use
 # those as-is (see _fetch_topic_story's defaults). A section not present
 # here just gets (FREE_SOURCES, PAYWALLED_SOURCES).
+#
+# Built from the bare _INNER strings above into ONE flat parenthesized
+# OR-group each, not by wrapping two already-parenthesized constants
+# together (e.g. f'({FREE_SOURCES} OR {MEDIA_TRADE_FREE_SOURCES})', which
+# produces "((a OR b) OR (c OR d))"). That double-nested form is what this
+# override originally shipped with, and it's the leading suspect for why
+# Media still came back completely empty after the trade-press sources
+# were added -- this file's own history already has a precedent for
+# Google's News search silently returning zero results for a query it
+# doesn't like, rather than erroring (see the `when:` operator postmortem
+# above MAX_STORY_AGE_DAYS). A single flat OR-group of 24 site: clauses is
+# unusual in scale but structurally identical to what every other section
+# already sends successfully; nesting two nine-and-fifteen-site groups
+# inside each other is a different, untested shape. Flattening removes
+# that variable entirely rather than leaving it as an open question.
 SECTION_SOURCE_OVERRIDES = {
     'Media': (
-        f'({FREE_SOURCES} OR {MEDIA_TRADE_FREE_SOURCES})',
-        f'({PAYWALLED_SOURCES} OR {MEDIA_TRADE_PAYWALLED_SOURCES})',
+        f'({_FREE_SOURCES_INNER} OR {_MEDIA_TRADE_FREE_INNER})',
+        f'({_PAYWALLED_SOURCES_INNER} OR {_MEDIA_TRADE_PAYWALLED_INNER})',
     ),
 }
 
@@ -552,7 +574,20 @@ def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
                 free_sources=free_src,
                 paywalled_sources=paywalled_src,
             )
-        except Exception:
+        except Exception as exc:
+            # A failed fetch and a genuinely empty topic both need to
+            # produce "(none found)" in the printed summary below and an
+            # empty section in the brief -- crashing the whole run over
+            # one bad topic query is worse than showing five sections
+            # instead of six. But swallowing the exception silently made
+            # this exact bug hard to diagnose: an empty Media section
+            # looked identical whether Google genuinely had nothing or
+            # something in the fetch itself broke. Printing here costs
+            # nothing (stdout, already captured in the workflow's own
+            # logs) and means the next time a section comes up empty,
+            # the log says which case it was instead of leaving it a
+            # mystery.
+            print(f'  [news_snapshot] {name} query raised {type(exc).__name__}: {exc}')
             item = None
         if item:
             same_day_used.add(item.url)
