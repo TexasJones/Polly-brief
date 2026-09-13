@@ -392,13 +392,29 @@ def _entry_published_date(entry) -> Optional[dt.date]:
         return None
 
 
-def _fetch_candidates(query, limit):
+def _fetch_candidates(query, limit, debug_label=None):
     """Fetch and parse one Google News search into (dated, undated) candidate
     lists. Pulled out as its own function so the two-stage search in
     _fetch_topic_story (trusted-15 first, then a widened fallback) can
     run identical parsing logic on both stages rather than duplicating it."""
     url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
     parsed = feedparser.parse(url, request_headers=HEADERS)
+
+    # Diagnostic only (debug_label is passed by _fetch_topic_story, tagged
+    # with which section/stage this call is): a truthy `bozo` with a
+    # `bozo_exception` means feedparser choked on what it got back --
+    # different from Google cleanly returning zero <item> entries. Both
+    # currently collapse into "(none found)" in the final brief with no
+    # way to tell them apart from the outside, which is exactly what made
+    # Media's empty section hard to diagnose. Cheap to print (stdout,
+    # already captured in the workflow's own logs) and directly answers
+    # "is this a broken fetch or a genuinely quiet topic."
+    if debug_label:
+        print(
+            f'    [news_snapshot] {debug_label}: {len(parsed.entries)} raw entries'
+            f', status={parsed.get("status")}, bozo={parsed.get("bozo")}'
+            f', bozo_exception={parsed.get("bozo_exception")}'
+        )
 
     # dated: (pub_date, raw_title, link) for every entry with a parseable
     # date, regardless of how old. undated: (raw_title, link) for entries
@@ -436,6 +452,7 @@ def _fetch_topic_story(
     used_urls: Optional[set] = None,
     free_sources: str = FREE_SOURCES,
     paywalled_sources: str = PAYWALLED_SOURCES,
+    section_name: Optional[str] = None,
 ):
     # Plain, unrestricted relevance search -- no `when:` operator. We
     # previously tried to bias this toward recent results by layering
@@ -467,8 +484,9 @@ def _fetch_topic_story(
     # an override in SECTION_SOURCE_OVERRIDES, that section's own free
     # tier). A reader who clicks "Read More" here should almost always be
     # able to actually read the story, not hit a paywall.
+    label = section_name or query[:20]
     free_query = f'{query} {free_sources} {OPINION_EXCLUSION}'
-    dated, undated = _fetch_candidates(free_query, limit)
+    dated, undated = _fetch_candidates(free_query, limit, debug_label=f'{label} stage1(free)')
     dated, undated = _exclude_used(dated, undated)
 
     # Stage 2: only if Stage 1 came back with literally nothing usable
@@ -481,7 +499,7 @@ def _fetch_topic_story(
     # today.
     if not dated and not undated:
         paywalled_query = f'{query} {paywalled_sources} {OPINION_EXCLUSION}'
-        dated, undated = _fetch_candidates(paywalled_query, limit)
+        dated, undated = _fetch_candidates(paywalled_query, limit, debug_label=f'{label} stage2(paywalled)')
         dated, undated = _exclude_used(dated, undated)
 
     # Stage 3: only if BOTH trusted tiers came back with literally
@@ -493,7 +511,7 @@ def _fetch_topic_story(
     # whatever topic neither trusted tier covered that day.
     if not dated and not undated:
         unrestricted_query = f'{query} {OPINION_EXCLUSION}'
-        dated, undated = _fetch_candidates(unrestricted_query, limit)
+        dated, undated = _fetch_candidates(unrestricted_query, limit, debug_label=f'{label} stage3(unrestricted)')
         dated, undated = _exclude_used(dated, undated)
 
     # NOTE on selection strategy: we used to return the FIRST entry (in
@@ -573,6 +591,7 @@ def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
                 used_urls=used_urls,
                 free_sources=free_src,
                 paywalled_sources=paywalled_src,
+                section_name=name,
             )
         except Exception as exc:
             # A failed fetch and a genuinely empty topic both need to
