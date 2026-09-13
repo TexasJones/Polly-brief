@@ -71,6 +71,20 @@ MAX_FALLBACK_AGE_DAYS = 30
 # news moves faster than job postings, and old entries are pruned past
 # this window so the file doesn't grow forever and a story CAN
 # eventually be shown again if it's still relevant weeks later.
+#
+# Scoped PER SECTION (url_to_date nested under each section name), not one
+# global pool. It was global originally, and that was the bug: a section
+# with a thin candidate pool (Media, before MEDIA_TRADE_FREE_SOURCES
+# above) would have its own last few picks block themselves out for the
+# full retention window with nothing else available to fall back to, and
+# every other section's picks were withheld from it too even though there
+# was no real reason a Legislative pick from three days ago should affect
+# what Media is allowed to show today. Scoping per section means a
+# section's history only ever competes with its own past picks. Same-day
+# duplicate prevention across DIFFERENT sections (e.g. an AI-regulation
+# story matching both AI+Policy and Legislative on the same run) is
+# handled separately in get_top_stories via an in-memory, non-persisted
+# set -- that part was never the problem and still works the same way.
 RECENT_STORIES_PATH = Path(__file__).resolve().parent / ".state" / "recent_stories.json"
 RECENT_STORIES_RETENTION_DAYS = 21
 
@@ -83,44 +97,63 @@ def _safe_parse_date(date_str: str) -> Optional[dt.date]:
 
 
 def _load_recent_stories(path: Path = RECENT_STORIES_PATH) -> dict:
-    """Returns the full url -> date-last-shown mapping, unfiltered by
-    retention window -- filtering happens separately in
-    _recent_urls_within_window, so a load always returns the raw stored
+    """Returns the full section -> {url: date-last-shown} mapping,
+    unfiltered by retention window -- filtering happens separately in
+    _excluded_urls_for_section, so a load always returns the raw stored
     truth. Corrupt or missing files are treated as "nothing on record"
     rather than crashing the run -- worst case a recently-shown story
     gets a chance to repeat once, which is recoverable; a crashed daily
-    brief is not."""
+    brief is not.
+
+    Also transparently handles the older flat schema (a single top-level
+    "url_to_date" map, not scoped by section) that this file used before
+    cross-day dedup was made per-section: that key is simply absent from
+    the "sections" lookup below, so an old-format file is treated the
+    same as an empty one -- a one-time reset of the recency history,
+    which is a much smaller risk than crashing or silently misreading the
+    old shape as if it were the new one."""
     if not path.exists():
         return {}
     try:
         data = json.loads(path.read_text())
-        return data.get("url_to_date", {})
+        return data.get("sections", {})
     except (json.JSONDecodeError, OSError):
         return {}
 
 
-def _recent_urls_within_window(url_to_date: dict, today: dt.date) -> set:
+def _excluded_urls_for_section(sections: dict, section: str, today: dt.date) -> set:
+    """URLs this SPECIFIC section has shown within RECENT_STORIES_RETENTION_DAYS.
+    Only ever reads this section's own sub-map -- see the module comment
+    above RECENT_STORIES_PATH for why this must not pull in other
+    sections' history."""
     cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
     result = set()
-    for url, date_str in url_to_date.items():
+    for url, date_str in sections.get(section, {}).items():
         parsed = _safe_parse_date(date_str)
         if parsed is not None and parsed >= cutoff:
             result.add(url)
     return result
 
 
-def _save_recent_stories(url_to_date: dict, today: dt.date, path: Path = RECENT_STORIES_PATH) -> None:
-    """Prunes entries older than RECENT_STORIES_RETENTION_DAYS before
-    saving, so this file doesn't grow forever and a story becomes
-    eligible to be shown again once it's genuinely old news."""
+def _save_recent_stories(sections: dict, today: dt.date, path: Path = RECENT_STORIES_PATH) -> None:
+    """Prunes entries older than RECENT_STORIES_RETENTION_DAYS from every
+    section before saving, so the file doesn't grow forever and a story
+    becomes eligible to be shown again (for that same section) once it's
+    genuinely old news. Empty sections are dropped entirely rather than
+    kept as empty dicts, so the file doesn't accumulate stale section
+    names if SECTION_QUERIES is ever renamed or trimmed."""
     cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
     pruned = {}
-    for url, date_str in url_to_date.items():
-        parsed = _safe_parse_date(date_str)
-        if parsed is not None and parsed >= cutoff:
-            pruned[url] = date_str
+    for section, url_to_date in sections.items():
+        kept = {}
+        for url, date_str in url_to_date.items():
+            parsed = _safe_parse_date(date_str)
+            if parsed is not None and parsed >= cutoff:
+                kept[url] = date_str
+        if kept:
+            pruned[section] = kept
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"url_to_date": pruned}, indent=2))
+    path.write_text(json.dumps({"sections": pruned}, indent=2))
 
 # Titles that indicate Google matched a section/category INDEX page
 # (e.g. a publisher's generic "Headlines" landing page) rather than an
@@ -158,6 +191,12 @@ OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -i
 # to find, and it also raises source credibility across the board --
 # Polly's own audience already reads these outlets, so citing them is a
 # trust signal, not just a freshness fix.
+#
+# This list is tuned for the five core DC-policy beats (Campaigns,
+# AI+Policy, Energy, Economy, Legislative) -- it is NOT a media-industry
+# trade press list. See MEDIA_TRADE_FREE_SOURCES / SECTION_SOURCE_OVERRIDES
+# below for why Media needs its own addition to this list rather than
+# using it alone.
 FREE_SOURCES = (
     '(site:axios.com OR site:politico.com OR site:punchbowl.news '
     'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
@@ -179,13 +218,45 @@ PAYWALLED_SOURCES = (
     'OR site:nationaljournal.com OR site:rollcall.com)'
 )
 
+# Media-industry trade press -- added because FREE_SOURCES/PAYWALLED_SOURCES
+# above are a DC-politics beat list (Axios, Politico, The Hill, etc.) and
+# genuinely don't cover the media/entertainment/press-freedom industry as a
+# daily beat the way they cover Capitol Hill. Media was the one section
+# whose candidate pool from the general lists alone was thin enough that
+# the cross-day dedup in RECENT_STORIES_PATH below could exhaust it
+# entirely (see SECTION_SOURCE_OVERRIDES) -- three trade outlets plus a
+# couple of paywalled-but-authoritative ones gives it a real daily supply
+# instead of depending on political outlets occasionally covering media
+# news as a crossover story.
+MEDIA_TRADE_FREE_SOURCES = (
+    '(site:variety.com OR site:hollywoodreporter.com OR site:deadline.com '
+    'OR site:adweek.com OR site:pressgazette.co.uk OR site:niemanlab.org '
+    'OR site:cjr.org OR site:thewrap.com OR site:poynter.org)'
+)
+MEDIA_TRADE_PAYWALLED_SOURCES = (
+    '(site:puck.news OR site:theinformation.com OR site:status.news)'
+)
+
+# Per-section overrides of the source tiers a topic searches. Only Media
+# is listed -- the other five sections are core DC-policy beats the
+# general FREE_SOURCES/PAYWALLED_SOURCES lists were built for, so they use
+# those as-is (see _fetch_topic_story's defaults). A section not present
+# here just gets (FREE_SOURCES, PAYWALLED_SOURCES).
+SECTION_SOURCE_OVERRIDES = {
+    'Media': (
+        f'({FREE_SOURCES} OR {MEDIA_TRADE_FREE_SOURCES})',
+        f'({PAYWALLED_SOURCES} OR {MEDIA_TRADE_PAYWALLED_SOURCES})',
+    ),
+}
+
 # Google News sometimes labels a story's source by its proper name
 # ("Reuters") and sometimes by its bare domain ("reuters.com"), depending
 # on how the individual publisher's own RSS feed happens to be formatted
 # upstream -- not something under our control. This maps the domain-style
-# form back to a proper display name, for the same 15 trusted outlets
-# listed in TRUSTED_SOURCES above (kept in sync with that same list).
-# Anything outside these 15 (e.g. a Stage 2 widened-search result) is left
+# form back to a proper display name, for every outlet named in
+# FREE_SOURCES / PAYWALLED_SOURCES / MEDIA_TRADE_FREE_SOURCES /
+# MEDIA_TRADE_PAYWALLED_SOURCES above (kept in sync with those lists).
+# Anything outside those (e.g. a Stage 3 unrestricted-web result) is left
 # exactly as Google reports it, since there's no way to enumerate every
 # possible outlet's preferred display name.
 SOURCE_NAME_MAP = {
@@ -204,14 +275,36 @@ SOURCE_NAME_MAP = {
     'nbcnews.com': 'NBC News',
     'nationaljournal.com': 'National Journal',
     'cnn.com': 'CNN',
+    # Added with FREE_SOURCES on 9/11 but never added here until now --
+    # stories from these were displaying with a raw domain instead of a
+    # proper name.
+    'pbs.org': 'PBS',
+    'bbc.com': 'BBC',
+    'csmonitor.com': 'The Christian Science Monitor',
+    'govexec.com': 'Government Executive',
+    'stateline.org': 'Stateline',
+    # Media-industry trade press, added alongside MEDIA_TRADE_FREE_SOURCES /
+    # MEDIA_TRADE_PAYWALLED_SOURCES above.
+    'variety.com': 'Variety',
+    'hollywoodreporter.com': 'The Hollywood Reporter',
+    'deadline.com': 'Deadline',
+    'adweek.com': 'Adweek',
+    'pressgazette.co.uk': 'Press Gazette',
+    'niemanlab.org': 'Nieman Lab',
+    'cjr.org': 'Columbia Journalism Review',
+    'thewrap.com': 'TheWrap',
+    'poynter.org': 'Poynter',
+    'puck.news': 'Puck',
+    'theinformation.com': 'The Information',
+    'status.news': 'Status',
 }
 
 
 def _normalize_source_name(source: str) -> str:
     """Map a bare-domain source name (e.g. 'reuters.com') back to its
-    proper display name (e.g. 'Reuters') for the 15 trusted outlets --
-    see SOURCE_NAME_MAP above. A source already in proper-name form, or
-    from outside the trusted 15, passes through unchanged."""
+    proper display name (e.g. 'Reuters') for outlets in SOURCE_NAME_MAP
+    above. A source already in proper-name form, or from outside that
+    map, passes through unchanged."""
     key = source.strip().lower()
     if key.startswith('www.'):
         key = key[4:]
@@ -314,7 +407,14 @@ def _fetch_candidates(query, limit):
     return dated, undated
 
 
-def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None, used_urls: Optional[set] = None):
+def _fetch_topic_story(
+    query,
+    limit=15,
+    today: Optional[dt.date] = None,
+    used_urls: Optional[set] = None,
+    free_sources: str = FREE_SOURCES,
+    paywalled_sources: str = PAYWALLED_SOURCES,
+):
     # Plain, unrestricted relevance search -- no `when:` operator. We
     # previously tried to bias this toward recent results by layering
     # `when:1d/3d/7d/14d` windowed searches on top, widening until one
@@ -341,22 +441,24 @@ def _fetch_topic_story(query, limit=15, today: Optional[dt.date] = None, used_ur
     # Stage 1: free/lightly-gated sources. Tried first because these
     # outlets both publish on DC politics constantly (fixing staleness)
     # and are sources Polly's own audience already trusts (fixing
-    # sourcing quality) -- see FREE_SOURCES above. A reader who clicks
-    # "Read More" here should almost always be able to actually read
-    # the story, not hit a paywall.
-    free_query = f'{query} {FREE_SOURCES} {OPINION_EXCLUSION}'
+    # sourcing quality) -- see FREE_SOURCES above (or, for a section with
+    # an override in SECTION_SOURCE_OVERRIDES, that section's own free
+    # tier). A reader who clicks "Read More" here should almost always be
+    # able to actually read the story, not hit a paywall.
+    free_query = f'{query} {free_sources} {OPINION_EXCLUSION}'
     dated, undated = _fetch_candidates(free_query, limit)
     dated, undated = _exclude_used(dated, undated)
 
     # Stage 2: only if Stage 1 came back with literally nothing usable
     # at all, try the paywalled-but-authoritative tier (Reuters, WaPo,
-    # Bloomberg, etc.) before giving up on quality sourcing entirely.
-    # These are genuinely good sources -- the issue isn't that they're
-    # bad, it's that they shouldn't be a story's ONLY chance to be
-    # featured when a free alternative exists. Only reached when the
-    # free tier genuinely has nothing for this topic today.
+    # Bloomberg, etc., or a section's own override) before giving up on
+    # quality sourcing entirely. These are genuinely good sources -- the
+    # issue isn't that they're bad, it's that they shouldn't be a story's
+    # ONLY chance to be featured when a free alternative exists. Only
+    # reached when the free tier genuinely has nothing for this topic
+    # today.
     if not dated and not undated:
-        paywalled_query = f'{query} {PAYWALLED_SOURCES} {OPINION_EXCLUSION}'
+        paywalled_query = f'{query} {paywalled_sources} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(paywalled_query, limit)
         dated, undated = _exclude_used(dated, undated)
 
@@ -423,28 +525,43 @@ def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
     today = today or dt.date.today()
     stories = []
 
-    # Load cross-day story memory and seed used_urls with it, so a story
-    # shown in a recent brief can't be picked again today just because
-    # it's still the "freshest available" match for a quiet topic. The
-    # same used_urls set is then extended below with THIS run's own
-    # picks too, so it still does its original job of preventing a
-    # repeat across sections within one email.
-    url_to_date = _load_recent_stories()
-    used_urls = _recent_urls_within_window(url_to_date, today)
+    # Cross-day story memory, scoped per section (see the module comment
+    # above RECENT_STORIES_PATH). Each section's own excluded set is
+    # computed fresh per iteration below from its own history only.
+    sections_data = _load_recent_stories()
+
+    # Separate, NON-persisted set: prevents two sections in THIS SAME run
+    # from featuring the identical story (e.g. an AI-regulation story
+    # matching both AI+Policy and Legislative today). This is intentionally
+    # global across sections and intentionally reset every run -- unlike
+    # the per-section cross-day memory above, same-day cross-section
+    # duplication is the one case where "did some other section already
+    # use this" is exactly the right question to ask.
+    same_day_used = set()
 
     for name, emoji, query in SECTION_QUERIES:
+        cross_day_excluded = _excluded_urls_for_section(sections_data, name, today)
+        used_urls = cross_day_excluded | same_day_used
+        free_src, paywalled_src = SECTION_SOURCE_OVERRIDES.get(name, (FREE_SOURCES, PAYWALLED_SOURCES))
         try:
-            item = _fetch_topic_story(query, limit=per_outlet, today=today, used_urls=used_urls)
+            item = _fetch_topic_story(
+                query,
+                limit=per_outlet,
+                today=today,
+                used_urls=used_urls,
+                free_sources=free_src,
+                paywalled_sources=paywalled_src,
+            )
         except Exception:
             item = None
         if item:
-            used_urls.add(item.url)
-            url_to_date[item.url] = today.isoformat()
+            same_day_used.add(item.url)
+            sections_data.setdefault(name, {})[item.url] = today.isoformat()
         stories.append(TopStory(section=name, emoji=emoji, item=item))
 
     # Persist today's picks (plus everything carried over from the load
     # above) for tomorrow's run to see. Pruning of anything past
     # RECENT_STORIES_RETENTION_DAYS happens inside _save_recent_stories.
-    _save_recent_stories(url_to_date, today)
+    _save_recent_stories(sections_data, today)
 
     return stories
