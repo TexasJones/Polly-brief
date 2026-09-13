@@ -514,6 +514,27 @@ def _fetch_topic_story(
         dated, undated = _fetch_candidates(unrestricted_query, limit, debug_label=f'{label} stage3(unrestricted)')
         dated, undated = _exclude_used(dated, undated)
 
+    # Diagnostic only -- added because the per-stage raw-entry counts above
+    # weren't enough on their own: they showed Google returning entries just
+    # fine, but the final pick was still None, which only made sense if
+    # every dated candidate was too old for both MAX_STORY_AGE_DAYS and
+    # MAX_FALLBACK_AGE_DAYS (or if the generic-title/missing-title-or-link
+    # filtering in _fetch_candidates ate everything from that stage). This
+    # prints the post-filter counts and, if any dated candidates survived,
+    # how old the freshest one actually is -- so a repeat of "found raw
+    # entries but still (none found)" points at the tier cutoffs or the
+    # title/link filtering instead of another guess.
+    if dated:
+        newest_age_days = (today - max(c[0] for c in dated)).days
+        oldest_age_days = (today - min(c[0] for c in dated)).days
+    else:
+        newest_age_days = oldest_age_days = None
+    print(
+        f'    [news_snapshot] {label} post-filter: dated={len(dated)} undated={len(undated)}'
+        f', newest_age_days={newest_age_days}, oldest_age_days={oldest_age_days}'
+        f', MAX_STORY_AGE_DAYS={MAX_STORY_AGE_DAYS}, MAX_FALLBACK_AGE_DAYS={MAX_FALLBACK_AGE_DAYS}'
+    )
+
     # NOTE on selection strategy: we used to return the FIRST entry (in
     # Google's relevance-ranked order) that passed the freshness check.
     # But relevance ranking has no concept of recency -- Google can easily
