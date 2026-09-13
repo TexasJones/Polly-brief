@@ -477,6 +477,32 @@ def _fetch_topic_story(
         u = [c for c in undated_list if c[1] not in used_urls]
         return d, u
 
+    def _has_fresh_enough(dated_list):
+        # Whether ANY accumulated dated candidate clears the outer
+        # MAX_FALLBACK_AGE_DAYS cap -- this, not "is the list non-empty,"
+        # is the right question for whether to keep escalating tiers. See
+        # the long comment above the stage cascade below for why: a stage
+        # returning old-but-real dated matches used to count as "found
+        # something" and block every later stage from ever being tried.
+        return any((today - c[0]).days <= MAX_FALLBACK_AGE_DAYS for c in dated_list)
+
+    # Accumulated across every stage actually tried, rather than each
+    # stage replacing the last -- see the cascade comment below for why
+    # this changed from "replace" to "accumulate."
+    label = section_name or query[:20]
+    all_dated, all_undated = [], []
+    seen_urls = set()
+
+    def _merge(new_dated, new_undated):
+        for c in new_dated:
+            if c[2] not in seen_urls:
+                seen_urls.add(c[2])
+                all_dated.append(c)
+        for c in new_undated:
+            if c[1] not in seen_urls:
+                seen_urls.add(c[1])
+                all_undated.append(c)
+
     # Stage 1: free/lightly-gated sources. Tried first because these
     # outlets both publish on DC politics constantly (fixing staleness)
     # and are sources Polly's own audience already trusts (fixing
@@ -484,46 +510,52 @@ def _fetch_topic_story(
     # an override in SECTION_SOURCE_OVERRIDES, that section's own free
     # tier). A reader who clicks "Read More" here should almost always be
     # able to actually read the story, not hit a paywall.
-    label = section_name or query[:20]
     free_query = f'{query} {free_sources} {OPINION_EXCLUSION}'
     dated, undated = _fetch_candidates(free_query, limit, debug_label=f'{label} stage1(free)')
     dated, undated = _exclude_used(dated, undated)
+    _merge(dated, undated)
 
-    # Stage 2: only if Stage 1 came back with literally nothing usable
-    # at all, try the paywalled-but-authoritative tier (Reuters, WaPo,
-    # Bloomberg, etc., or a section's own override) before giving up on
-    # quality sourcing entirely. These are genuinely good sources -- the
-    # issue isn't that they're bad, it's that they shouldn't be a story's
-    # ONLY chance to be featured when a free alternative exists. Only
-    # reached when the free tier genuinely has nothing for this topic
-    # today.
-    if not dated and not undated:
+    # Stage 2/3 used to only run when the PRIOR stage came back with
+    # literally nothing at all -- not "nothing fresh enough," literally
+    # empty. That was the actual bug behind Media (and, on this same run,
+    # Energy and Legislative) coming back empty: Stage 1 can genuinely
+    # match real, dated articles for a topic that are nonetheless months
+    # or years old -- an evergreen explainer, a retrospective a search
+    # engine still ranks highly for the topic terms -- well before it
+    # matches anything from today's news. That's "not empty," so the old
+    # gate stopped right there and never gave Stage 2/3 a chance to look
+    # for something actually fresh. Confirmed with real run data on
+    # 2026-09-13: Media's Stage 1 dated candidates topped out at 356 days
+    # old, Legislative's at 39, Energy's similarly stale -- all comfortably
+    # "not empty," none anywhere near useful, and every one of those
+    # sections still ended up blank because Tier 2 below also rejects
+    # anything past MAX_FALLBACK_AGE_DAYS.
+    #
+    # The fix: escalate based on freshness (_has_fresh_enough, checked
+    # against the accumulated pool so far) instead of emptiness, and
+    # ACCUMULATE candidates across stages instead of each stage replacing
+    # the last (via _merge above) -- so if Stage 2/3 also can't find
+    # anything within MAX_FALLBACK_AGE_DAYS, Tier 2's "best available"
+    # fallback below still has Stage 1's original candidates to choose
+    # from instead of whatever the last-tried stage happened to return.
+    if not _has_fresh_enough(all_dated):
         paywalled_query = f'{query} {paywalled_sources} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(paywalled_query, limit, debug_label=f'{label} stage2(paywalled)')
         dated, undated = _exclude_used(dated, undated)
+        _merge(dated, undated)
 
-    # Stage 3: only if BOTH trusted tiers came back with literally
-    # nothing usable at all -- not "nothing fresh enough" (Tier 1/2 below
-    # already handle that gracefully), but zero results, full stop -- do
-    # we widen to the unrestricted web. This preserves the Stage 1/2
-    # quality/freshness win for the normal case, while still honoring
-    # the "never show a blank section over a stale one" policy for
-    # whatever topic neither trusted tier covered that day.
-    if not dated and not undated:
+    if not _has_fresh_enough(all_dated):
         unrestricted_query = f'{query} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(unrestricted_query, limit, debug_label=f'{label} stage3(unrestricted)')
         dated, undated = _exclude_used(dated, undated)
+        _merge(dated, undated)
 
-    # Diagnostic only -- added because the per-stage raw-entry counts above
-    # weren't enough on their own: they showed Google returning entries just
-    # fine, but the final pick was still None, which only made sense if
-    # every dated candidate was too old for both MAX_STORY_AGE_DAYS and
-    # MAX_FALLBACK_AGE_DAYS (or if the generic-title/missing-title-or-link
-    # filtering in _fetch_candidates ate everything from that stage). This
-    # prints the post-filter counts and, if any dated candidates survived,
-    # how old the freshest one actually is -- so a repeat of "found raw
-    # entries but still (none found)" points at the tier cutoffs or the
-    # title/link filtering instead of another guess.
+    dated, undated = all_dated, all_undated
+
+    # Diagnostic only -- shows the FINAL accumulated pool (after every
+    # stage actually tried) so a repeat of "still empty" shows exactly how
+    # many candidates survived and how old the freshest one is, across all
+    # stages combined, not just whichever stage happened to run first.
     if dated:
         newest_age_days = (today - max(c[0] for c in dated)).days
         oldest_age_days = (today - min(c[0] for c in dated)).days
