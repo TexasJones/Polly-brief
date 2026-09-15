@@ -611,10 +611,15 @@ def _fetch_topic_story(
     return None
 
 
-def get_top_stories(per_outlet=15, today: Optional[dt.date] = None):
+def get_top_stories(per_outlet=100, today: Optional[dt.date] = None):
     # per_outlet kept as a parameter for compatibility with generate_brief.py's
     # existing --headlines-per-outlet flag; here it controls how many results
-    # deep we look per topic before giving up on that section.
+    # deep we look per topic before giving up on that section. Raised from 15
+    # to 100 alongside that flag's own default -- see the long comment above
+    # --headlines-per-outlet in generate_brief.py for why a shallow cutoff
+    # here was silently causing Media/Legislative-style blank sections on
+    # broad, evergreen-leaning queries (Google News RSS ranks by relevance,
+    # not recency, so genuinely fresh results can rank past a low cutoff).
     today = today or dt.date.today()
     stories = []
 
