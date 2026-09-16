@@ -15,12 +15,29 @@ HEADLINE_FONT = "Georgia, 'Times New Roman', serif"
 BODY_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
 # Topic Colors — Each section gets its own visual identity
+#
+# 'Economy' replaces a stale 'Finance' key left over from before Finance
+# and Economy were merged into one section (see news_snapshot.py's
+# SECTION_QUERIES comment) -- with no 'Economy' key present, template.py's
+# _topic_color() and its top-bar-gradient builder were each silently
+# falling back to a DIFFERENT hardcoded default (ACCENT green for the
+# badge, #DC2626 red for the gradient stripe), so Economy rendered as two
+# different colors in two different places. Given a real key of its own
+# here now, picked as a distinct kelly green (not reusing ACCENT, which is
+# the general brand/UI color and would otherwise make "Economy" and "just
+# the default accent" visually indistinguishable).
+#
+# AI+Policy and Energy were also darkened ~10-20% from their original
+# values (#0E8C96 -> #0C7E87, #C77B12 -> #9F620E) after both measured
+# below the 4.5:1 WCAG AA contrast minimum for the white badge text used
+# on top of them (4.03:1 and 3.35:1 respectively) -- same hue, just deep
+# enough to read clearly.
 TOPIC_COLORS = {
     'Campaigns': '#3357A8',
     'Media': '#8E44AD',
-    'AI+Policy': '#0E8C96',
-    'Energy': '#C77B12',
-    'Finance': '#2B5A4D',
+    'AI+Policy': '#0C7E87',
+    'Energy': '#9F620E',
+    'Economy': '#15803D',
     'Legislative': '#A8324A',
 }
 
