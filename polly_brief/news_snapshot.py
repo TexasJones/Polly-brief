@@ -165,6 +165,21 @@ def _save_recent_stories(sections: dict, today: dt.date, path: Path = RECENT_STO
 GENERIC_TITLE_BLOCKLIST = {
     'headlines', 'headline', 'news', 'latest', 'latest news',
     'top stories', 'home', 'homepage',
+    # Recurring daily/weekly show or segment titles -- these get indexed by
+    # Google News like any other article, but the "headline" is just the
+    # show's name, not a story. Added after NPR's "Morning Edition" (a
+    # general news roundup, not an economy story) got picked as Economy's
+    # top story on 2026-09-15/16 purely because that day's episode
+    # happened to be fresh -- an exact-title blocklist is safer here than
+    # a keyword-relevance requirement (see SECTION_RELEVANCE_KEYWORDS
+    # below), since a real Economy headline can be worded in ways that
+    # wouldn't hit a fixed keyword list (e.g. "The powerful millionaires
+    # hiding in plain sight : Planet Money" -- itself an NPR show
+    # segment, but a genuine economy story, not a placeholder title).
+    'morning edition', 'all things considered', 'weekend edition',
+    'weekend edition saturday', 'weekend edition sunday', 'here and now',
+    'the daily', 'up first', '1a', 'marketplace', 'fresh air', 'on point',
+    'the takeaway',
 }
 
 
@@ -445,6 +460,75 @@ def _fetch_candidates(query, limit, debug_label=None):
     return dated, undated
 
 
+# Relevance keyword filters for sections whose topic query is broad/thematic
+# enough that Google's own relevance ranking can, once results are examined
+# 100-deep instead of 10 (see --headlines-per-outlet's history in
+# generate_brief.py), surface an article that shares almost no real subject
+# overlap with the topic. Confirmed on 2026-09-15/16: Energy matched an
+# Attorney General's unrelated Rose Garden press-briefing announcement, and
+# Media matched an AP wire story about a ferry fire in the Philippines --
+# both real headlines that just happened to be fresh, not evergreen/generic
+# placeholder titles. (Economy's false positive that same run, NPR's daily
+# "Morning Edition" show, was a different kind of problem -- a recurring
+# show TITLE standing in for a real headline -- and is handled by adding it
+# to GENERIC_TITLE_BLOCKLIST above instead; a keyword-relevance requirement
+# for Economy risked rejecting genuinely good stories that don't happen to
+# use an on-the-nose economic term, e.g. "The powerful millionaires hiding
+# in plain sight : Planet Money.") Google News search doesn't require every
+# query word to be present in a match -- it's closer to "these words
+# increase this result's relevance score" than a strict AND -- so once the
+# freshness-first picker is looking 100 results deep instead of 10, a
+# barely-related-but-very-fresh article can beat a genuinely on-topic but
+# slightly older one.
+#
+# This is a second, independent check applied to the HEADLINE ONLY (no
+# summary is fetched at this stage): a candidate must contain at least one
+# of its section's keywords, case-insensitive, to be considered at all --
+# regardless of how fresh it is or how Google ranked it. Only sections
+# observed to actually need this are listed; a section not present here is
+# unfiltered, exactly as before -- Campaigns/AI+Policy/Legislative's own
+# queries are specific enough that this hasn't come up for them. Kept
+# deliberately broad (industry/topic vocabulary, not just the exact query
+# words) to minimize rejecting a genuinely on-topic story worded
+# differently than expected -- if a future run shows a good story getting
+# dropped here, that's a quick, log-visible fix (widen the list below),
+# the same way the false positives above were diagnosed from real run data
+# rather than guessed at.
+SECTION_RELEVANCE_KEYWORDS = {
+    'Media': (
+        'media', 'television', 'tv ', ' tv', 'cable news', 'hollywood',
+        'journalis', 'newsroom', 'broadcast', 'streaming', 'press freedom',
+        'news network', 'anchor', 'editor', 'publisher', 'newspaper',
+        'reporter', 'podcast', 'studio', 'film ', 'movie', 'entertainment',
+        'news outlet', 'news organization', 'internet', 'censor',
+        'platform', 'algorithm', 'misinformation', 'disinformation',
+        'social media', 'subscriber', 'advertising', 'ad revenue',
+        'content moderation', 'free press', 'correspondent', 'documentary',
+        'box office', 'ratings', 'viewership', 'paywall', 'layoffs',
+        'FCC', 'first amendment', 'propaganda', 'surveillance',
+    ),
+    'Energy': (
+        'energy', 'epa', 'climate', 'power plant', 'power grid', 'solar',
+        'renewable', 'wind farm', 'emissions', 'fossil fuel', ' oil ',
+        'natural gas', 'drilling', 'pipeline', 'nuclear', 'utility',
+        'utilities', 'coal', 'electricity', ' grid', 'battery', 'lithium',
+        'carbon', 'greenhouse', 'wildfire', 'drought', 'offshore wind',
+        'refinery', 'gasoline', 'diesel', 'clean energy', 'green energy',
+        'heat pump', 'ev ', 'electric vehicle',
+    ),
+}
+
+
+def _is_relevant_to_section(headline: str, section: Optional[str]) -> bool:
+    """Whether a candidate headline contains at least one on-topic keyword
+    for `section`, per SECTION_RELEVANCE_KEYWORDS above. Returns True
+    (no filtering applied) for a section not listed there."""
+    if not section or section not in SECTION_RELEVANCE_KEYWORDS:
+        return True
+    text = f' {headline.lower()} '
+    return any(kw in text for kw in SECTION_RELEVANCE_KEYWORDS[section])
+
+
 def _fetch_topic_story(
     query,
     limit=15,
@@ -475,6 +559,19 @@ def _fetch_topic_story(
         # would show the identical headline twice in one email.
         d = [c for c in dated_list if c[2] not in used_urls]
         u = [c for c in undated_list if c[1] not in used_urls]
+        return d, u
+
+    def _filter_relevant(dated_list, undated_list):
+        # See SECTION_RELEVANCE_KEYWORDS above -- a no-op for any section
+        # not listed there.
+        d = [c for c in dated_list if _is_relevant_to_section(c[1], section_name)]
+        u = [c for c in undated_list if _is_relevant_to_section(c[0], section_name)]
+        dropped = (len(dated_list) - len(d)) + (len(undated_list) - len(u))
+        if dropped:
+            # Visible in the workflow log so a future "good story got
+            # excluded" report can be diagnosed the same way the false
+            # positives above were: from real counts, not a guess.
+            print(f'    [news_snapshot] {label} relevance filter: dropped {dropped}')
         return d, u
 
     def _has_fresh_enough(dated_list):
@@ -513,6 +610,7 @@ def _fetch_topic_story(
     free_query = f'{query} {free_sources} {OPINION_EXCLUSION}'
     dated, undated = _fetch_candidates(free_query, limit, debug_label=f'{label} stage1(free)')
     dated, undated = _exclude_used(dated, undated)
+    dated, undated = _filter_relevant(dated, undated)
     _merge(dated, undated)
 
     # Stage 2/3 used to only run when the PRIOR stage came back with
@@ -542,12 +640,14 @@ def _fetch_topic_story(
         paywalled_query = f'{query} {paywalled_sources} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(paywalled_query, limit, debug_label=f'{label} stage2(paywalled)')
         dated, undated = _exclude_used(dated, undated)
+        dated, undated = _filter_relevant(dated, undated)
         _merge(dated, undated)
 
     if not _has_fresh_enough(all_dated):
         unrestricted_query = f'{query} {OPINION_EXCLUSION}'
         dated, undated = _fetch_candidates(unrestricted_query, limit, debug_label=f'{label} stage3(unrestricted)')
         dated, undated = _exclude_used(dated, undated)
+        dated, undated = _filter_relevant(dated, undated)
         _merge(dated, undated)
 
     dated, undated = all_dated, all_undated
