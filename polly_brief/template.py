@@ -323,7 +323,13 @@ def _story_block(story: TopStory, today: dt.date) -> str:
 
 
 def _featured_job_block(job: JobPosting) -> str:
-    """Render a featured job card."""
+    """Render a featured job card: a logo square (the company's real logo
+    when the feed supplied one via job.logo_url -- populated in
+    jobs_snapshot.py but never actually used in this file before -- or
+    else a colored initial in the job's topic color) plus title/company/
+    location. Replaces the earlier plain-text, left-border-only card: the
+    logo square gives each row a visual anchor to scan by. Uses
+    logo_box_style() and featured_job_card_style() from styles.py."""
     location = _esc(job.location) if job.location else ''
     company = _esc(job.company)
 
@@ -335,14 +341,40 @@ def _featured_job_block(job: JobPosting) -> str:
     meta = ' &middot; '.join(meta_parts)
 
     muted = _c('MUTED', '#64748B')
+    ink = _c('INK', '#0F172A')
+    headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
-    return (f'<tr><td style="padding-bottom: 12px;">'
-            f'<div style="border-left: 4px solid {job_color}; padding: 14px 18px; background-color: #F8FAFC; border-radius: 0 8px 8px 0;">'
-            f'<a href="{_esc(job.url)}" target="_blank" rel="noopener noreferrer" '
-            f'style="color: #0F172A; text-decoration: none; font-size: 15px; font-weight: 700;">'
-            f'{_esc(job.title)}</a>'
-            f'<div style="font-size: 13px; color: {muted}; margin-top: 4px; font-weight: 500;">{meta}</div>'
-            f'</div></td></tr>')
+    box_css = _style('logo_box_style', fallback=(
+        'width: 44px; height: 44px; border: 1px solid #E2E8F0; '
+        'border-radius: 8px; background-color: #FFFFFF;'
+    ))
+    if job.logo_url:
+        logo_html = (f'<img src="{_esc(job.logo_url)}" width="44" height="44" alt="" '
+                     f'style="display:block; width:44px; height:44px; border-radius:8px; '
+                     f'object-fit:contain;">')
+    else:
+        initial = (job.company[:1] if job.company else '?').upper()
+        logo_html = (f'<div style="width:44px; height:44px; line-height:44px; '
+                     f'text-align:center; font-family:{headline_font}; font-weight:800; '
+                     f'font-size:17px; color:{job_color};">{_esc(initial)}</div>')
+
+    card_css = _style('featured_job_card_style', fallback=(
+        'background-color: #F8FAFC; border-radius: 8px; padding: 14px 16px;'
+    ))
+
+    return (
+        f'<tr><td style="padding-bottom: 10px;">'
+        f'<div style="{card_css}">'
+        f'<table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr>'
+        f'<td width="44" style="{box_css}" valign="middle" align="center">{logo_html}</td>'
+        f'<td style="padding-left: 14px;" valign="middle">'
+        f'<a href="{_esc(job.url)}" target="_blank" rel="noopener noreferrer" '
+        f'style="color: {ink}; text-decoration: none; font-size: 15px; font-weight: 700;">'
+        f'{_esc(job.title)}</a>'
+        f'<div style="font-size: 13px; color: {muted}; margin-top: 2px; font-weight: 500;">{meta}</div>'
+        f'</td></tr></table>'
+        f'</div></td></tr>'
+    )
 
 
 def _pick_top_highlight(top_stories: list[TopStory]) -> Optional[TopStory]:
@@ -354,7 +386,15 @@ def _pick_top_highlight(top_stories: list[TopStory]) -> Optional[TopStory]:
 
 
 def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
-    """Render a clean, high-contrast top story box."""
+    """Render the top story as a solid-color hero block in that story's own
+    topic color, with a translucent tag naming the section -- using
+    highlight_block_style() and top_story_tag_style() from styles.py
+    (previously defined there but never wired up). Replaces the earlier
+    light, bordered box, which read as just another card rather than the
+    day's lead item; the solid color also means the hero itself changes
+    color day to day depending on which section led (blue for a Campaigns
+    day, purple for Media, etc.), the same information the badge used to
+    carry, just more visible at a glance."""
     story = _pick_top_highlight(top_stories)
     if not story:
         return ''
@@ -362,29 +402,39 @@ def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
     color = _topic_color(story.section)
     item = story.item
 
-    ink = _c('INK', '#0F172A')
-    muted = _c('MUTED', '#64748B')
+    white = _c('WHITE', '#FFFFFF')
+    headline_font = _c('HEADLINE_FONT', 'Georgia, serif')
 
     time_ago = _time_ago_label(item.published_date, today)
     time_ago_html = ''
     if time_ago:
-        time_ago_html = (f'<div style="font-size: 12px; color: {muted}; font-weight: 600; '
-                          f'text-transform: uppercase; letter-spacing: 0.4px; margin: 4px 0 0;">'
-                          f'{_esc(time_ago)}</div>')
+        time_ago_html = (f'<div style="font-size: 12px; color: rgba(255,255,255,0.75); '
+                          f'font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; '
+                          f'margin: 10px 0 0;">{_esc(time_ago)}</div>')
+
+    hero_css = _style('highlight_block_style', color, fallback=(
+        f'background-color: {color}; border-radius: 14px; padding: 28px 28px 24px 28px;'
+    ))
+    tag_css = _style('top_story_tag_style', fallback=(
+        'display: inline-block; background-color: rgba(255,255,255,0.18); color: #FFFFFF; '
+        'padding: 5px 14px; border-radius: 20px; font-size: 11px; font-weight: 700; '
+        'text-transform: uppercase; letter-spacing: 1px;'
+    ))
+    cta_css = _style('outline_button_style', white, fallback=(
+        f'background-color: transparent; color: {white}; padding: 10px 20px; '
+        f'border: 1.5px solid {white}; border-radius: 6px; font-weight: 700; '
+        f'font-size: 13px; text-decoration: none; display: inline-block;'
+    ))
 
     return (
         f'<tr><td class="polly-pad" style="padding: 0 40px 24px 40px;">'
-        f'<div style="border: 1px solid #E2E8F0; border-top: 4px solid {color}; padding: 20px; border-radius: 12px; background-color: #F8FAFC;">'
-        f'<div style="margin-bottom: 12px">'
-        f'{_topic_badge(story.emoji, story.section, color)} '
-        f'<span style="font-size: 11px; font-weight: 700; color: {muted}; '
-        f'text-transform: uppercase; letter-spacing: 0.6px; margin-left: 6px;">&middot; Today&rsquo;s Top Story</span>'
-        f'</div>'
-        f'<div style="font-size: 18px; font-weight: 800; color: {ink}; line-height: 1.35;">{_esc(item.title)}</div>'
+        f'<div style="{hero_css}">'
+        f'<div style="{tag_css}">{story.emoji} {_esc(story.section)} &middot; Today&rsquo;s Top Story</div>'
+        f'<div style="font-size: 20px; font-weight: 800; color: {white}; line-height: 1.35; '
+        f'font-family: {headline_font}; margin-top: 14px;">{_esc(item.title)}</div>'
         f'{time_ago_html}'
         f'<a href="{_esc(item.url)}" target="_blank" rel="noopener noreferrer" '
-        f'style="color: {color}; text-decoration: none; font-weight: 700; font-size: 13px; margin-top: 14px; display: inline-block">'
-        f'Read More ({_esc(item.outlet)}) &rarr;</a>'
+        f'style="{cta_css}; margin-top: 16px;">Read More ({_esc(item.outlet)}) &rarr;</a>'
         f'</div></td></tr>'
     )
 
@@ -489,6 +539,21 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     if not job_rows:
         job_rows = f'<tr><td style="{muted_default_css}">No featured jobs today.</td></tr>'
 
+    jobs_cta = ''
+    if featured_jobs:
+        accent = _c('ACCENT', '#1E3A8A')
+        cta_css = _style('outline_button_style', accent, fallback=(
+            f'background-color: transparent; color: {accent}; padding: 10px 20px; '
+            f'border: 1.5px solid {accent}; border-radius: 6px; font-weight: 700; '
+            f'font-size: 13px; text-decoration: none; display: inline-block;'
+        ))
+        jobs_cta = (
+            '<tr><td style="padding-top: 6px; text-align: center;">'
+            f'<a href="https://jobs.thepolly.co/jobs" target="_blank" rel="noopener noreferrer" '
+            f'style="{cta_css}">Explore all jobs on ThePolly.co &rarr;</a>'
+            '</td></tr>'
+        )
+
     quote_section = ''
     if quote_text:
         attribution = ''
@@ -516,7 +581,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f"{topic_colors.get('Media', '#059669')}, "
         f"{topic_colors.get('AI+Policy', '#7C3AED')}, "
         f"{topic_colors.get('Energy', '#D97706')}, "
-        f"{topic_colors.get('Economy', '#DC2626')}, "
+        f"{topic_colors.get('Economy', '#15803D')}, "
         f"{topic_colors.get('Legislative', '#4F46E5')}"
     )
 
@@ -578,7 +643,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("🔥", "Jobs Worth Looking At")}',
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}</table>',
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}{jobs_cta}</table>',
         '</td></tr>',
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
