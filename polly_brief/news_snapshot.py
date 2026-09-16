@@ -183,8 +183,30 @@ GENERIC_TITLE_BLOCKLIST = {
 }
 
 
+# Landing/index-page titles Google News occasionally indexes as if they
+# were an individual story -- most often a publisher's continuously "live"
+# front page or breaking-news tracker (e.g. "Associated Press News:
+# Breaking News | Latest News Today", which showed up as Campaigns' pick
+# on 2026-09-16, complete with a nonsensical -1 "newest_age_days" -- a
+# clear sign it's a perpetually-refreshing page, not a dated article).
+# Surfaced more now that --headlines-per-outlet examines up to 100 results
+# per stage instead of 10 (see that flag's history in generate_brief.py).
+# The exact wording varies by outlet and combines with the outlet's own
+# name ("AP News: Breaking News", "Latest News Today", etc.), so this is a
+# substring check rather than the exact-match GENERIC_TITLE_BLOCKLIST
+# above -- kept as a second, narrower list since a substring check is
+# easier to accidentally match a real headline with, so only phrases that
+# are themselves clearly page-label boilerplate belong here.
+GENERIC_TITLE_SUBSTRING_BLOCKLIST = (
+    'breaking news', 'latest news today', 'news: breaking news',
+)
+
+
 def _is_generic_title(title: str) -> bool:
-    return title.strip().lower() in GENERIC_TITLE_BLOCKLIST
+    normalized = title.strip().lower()
+    if normalized in GENERIC_TITLE_BLOCKLIST:
+        return True
+    return any(phrase in normalized for phrase in GENERIC_TITLE_SUBSTRING_BLOCKLIST)
 
 # Applied to every SECTION_QUERIES search below. Rather than trying to
 # detect opinion "tone" in headline text (unreliable -- an op-ed title
