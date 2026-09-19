@@ -522,8 +522,18 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     # story was also being repeated as the first entry in the Top Stories
     # list right below it, wasting space on a duplicate rather than
     # showing a sixth distinct story.
+    #
+    # Also exclude any section with no matching story at all (st.item is
+    # None). These used to still get a row -- a topic badge followed by
+    # "No story matched this section today." in italics -- which reads as
+    # an unpolished, semi-technical message to land in a subscriber's
+    # inbox. Dropping the row entirely means a slow news day for one
+    # section (e.g. Media) just means four story cards instead of five,
+    # not an apology. _story_block() keeps its own "no item" branch as a
+    # defensive fallback, but this filter means that branch should no
+    # longer be reachable from here.
     highlighted_story = _pick_top_highlight(top_stories)
-    remaining_stories = [st for st in top_stories if st is not highlighted_story]
+    remaining_stories = [st for st in top_stories if st is not highlighted_story and st.item]
 
     if remaining_stories:
         for i, st in enumerate(remaining_stories):
