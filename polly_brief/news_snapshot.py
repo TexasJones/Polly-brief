@@ -61,6 +61,59 @@ MAX_STORY_AGE_DAYS = 14
 # this cap, an empty section is the more honest outcome.
 MAX_FALLBACK_AGE_DAYS = 30
 
+# ─────────────────────────────────────────────
+# PR & Comms industry section — sourced differently from the six
+# SECTION_QUERIES topics above. Those run a Google News RSS *search* (broad,
+# relevance-ranked, needing the multi-stage fallback cascade plus a
+# relevance-keyword gate to catch off-topic drift -- see
+# _is_relevant_to_section below and its history of real false positives:
+# a FIBA World Cup story under Energy, a ferry-fire story under Media).
+# This section instead reads two PR-industry trade publications' own RSS
+# feeds directly. Every item in them already IS PR-industry news by
+# definition, so there's no search-relevance problem to guard against, and
+# no need for the search cascade -- just "take the newest item."
+#
+# Checked live 2026-09-20 before building this: PRovoke Media's feed posted
+# ~13 items in the prior 24 hours alone (almost entirely agency personnel/
+# account moves -- "Burson Names Jennifer Stearns Global Chief Innovation
+# Officer," "Penta Taps Johnson, McDevitt To Lead Global Businesses," etc.),
+# and PRWeek's general "Latest US News" feed independently corroborated
+# several of the same stories same-day (e.g. both had the Precision
+# Strategies/Adam Cubbage CEO story and the Mastercard/We. Communications
+# AOR move within hours of each other). Two solid, cross-corroborating,
+# multiple-times-daily sources -- no sparsity risk.
+#
+# Deliberately built and returned by its own function (get_pr_industry_story,
+# below), kept OUT of SECTION_QUERIES / get_top_stories() entirely, and
+# passed to render_brief() as a separate parameter. This is a structural
+# guarantee, not a fragile ordering trick: template.py's
+# _pick_top_highlight() only ever looks at the list get_top_stories()
+# returns, so a story that never enters that list can never become the
+# day's highlighted/hero story. This section is audience-specific bonus
+# content for PR/public-affairs professionals (who this section is not),
+# not general news competing for the lead slot.
+PR_TRADE_PRESS_SECTION_NAME = 'PR & Comms Industry'
+PR_TRADE_PRESS_EMOJI = chr(0x1F4E2)  # 📢
+
+PR_TRADE_PRESS_SOURCES = [
+    # (display name, feed URL, requires keyword filter). PRovoke is the
+    # primary source and doesn't need filtering -- see comment above.
+    # PRWeek's general feed is broader (includes creative-campaign and
+    # consumer-PR content, not just personnel/account moves), so it's
+    # filtered by PR_TRADE_PRESS_KEYWORDS to stay on the same "who's
+    # moving where" beat as the primary source.
+    ('PRovoke Media', 'https://www.provokemedia.com/newsfeed/provoke-media-latest', False),
+    ('PRWeek', 'http://feeds.feedburner.com/PrweekUsNews', True),
+]
+
+PR_TRADE_PRESS_KEYWORDS = [
+    'hires', 'hire', 'hired', 'names', 'appoints', 'appointed', 'promotes',
+    'promoted', 'joins', 'taps', 'names ceo', 'names cco', 'names chief',
+    'steps down', 'to leave', 'to exit', 'leaves', 'departs', 'exits',
+    'account win', 'wins account', 'acquires', 'acquisition', 'merger',
+    'merges', 'launches agency', 'agency of record', ' aor ',
+]
+
 # Persisted across runs (committed to the repo by the workflow, same
 # pattern as jobs_snapshot.py's seen_jobs.json) so the same story URL
 # doesn't get re-picked day after day just because a quiet topic's
@@ -799,3 +852,81 @@ def get_top_stories(per_outlet=100, today: Optional[dt.date] = None):
     _save_recent_stories(sections_data, today)
 
     return stories
+
+
+def _fetch_pr_trade_press_candidates(outlet: str, feed_url: str, require_keyword: bool) -> list:
+    """Fetch one PR trade-press RSS feed into a list of
+    (pub_date_or_None, title, link, outlet, summary) candidates. Unlike
+    _fetch_candidates (used for the Google News searches above), this reads
+    a real publication's own feed directly, so titles need no "Headline -
+    Source" splitting and summaries come straight from the entry itself."""
+    parsed = feedparser.parse(feed_url, request_headers=HEADERS)
+
+    print(
+        f'    [news_snapshot] PR trade press ({outlet}): {len(parsed.entries)} raw entries'
+        f', status={parsed.get("status")}, bozo={parsed.get("bozo")}'
+    )
+
+    candidates = []
+    for entry in parsed.entries:
+        raw_title = getattr(entry, 'title', '').strip()
+        link = getattr(entry, 'link', '').strip()
+        if not raw_title or not link:
+            continue
+        if require_keyword and not any(kw in raw_title.lower() for kw in PR_TRADE_PRESS_KEYWORDS):
+            continue
+        pub_date = _entry_published_date(entry)
+        raw_summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
+        summary = _summary_from_description(raw_summary)
+        candidates.append((pub_date, raw_title, link, outlet, summary))
+
+    return candidates
+
+
+def get_pr_industry_story(today: Optional[dt.date] = None) -> TopStory:
+    """Fetch the freshest PR/communications-industry trade-press item
+    (agency hires, promotions, account wins, mergers) for the newsletter's
+    dedicated PR & Comms section. Always returns a TopStory -- item is None
+    only if every configured feed came back genuinely empty or errored,
+    which given how often these feeds post (see the module comment above
+    PR_TRADE_PRESS_SECTION_NAME) should be rare.
+
+    Deliberately NOT folded into get_top_stories()/SECTION_QUERIES: this
+    keeps the PR section out of the list template.py's _pick_top_highlight()
+    scans, so it can never be chosen as the day's hero story -- it always
+    renders as its own fixed block instead (see render_brief in template.py).
+    """
+    today = today or dt.date.today()
+
+    sections_data = _load_recent_stories()
+    excluded = _excluded_urls_for_section(sections_data, PR_TRADE_PRESS_SECTION_NAME, today)
+
+    all_candidates = []
+    for outlet, feed_url, require_keyword in PR_TRADE_PRESS_SOURCES:
+        try:
+            all_candidates.extend(_fetch_pr_trade_press_candidates(outlet, feed_url, require_keyword))
+        except Exception as exc:
+            print(f'  [news_snapshot] PR trade press feed {outlet} raised {type(exc).__name__}: {exc}')
+
+    # Newest-dated first across both feeds combined; undated entries sort
+    # last rather than raising (None isn't orderable against a date).
+    all_candidates.sort(key=lambda c: c[0] or dt.date.min, reverse=True)
+
+    item = None
+    for pub_date, raw_title, link, outlet, summary in all_candidates:
+        if link in excluded:
+            continue
+        # Same outer age cap as the six search-based sections (see
+        # MAX_FALLBACK_AGE_DAYS above) -- an old PR-industry item is still
+        # worse than a fresh one, even though staleness is far less likely
+        # here given how often these feeds post.
+        if pub_date is not None and (today - pub_date).days > MAX_FALLBACK_AGE_DAYS:
+            continue
+        item = NewsItem(outlet=outlet, title=raw_title, url=link, summary=summary, published_date=pub_date)
+        break
+
+    if item:
+        sections_data.setdefault(PR_TRADE_PRESS_SECTION_NAME, {})[item.url] = today.isoformat()
+        _save_recent_stories(sections_data, today)
+
+    return TopStory(section=PR_TRADE_PRESS_SECTION_NAME, emoji=PR_TRADE_PRESS_EMOJI, item=item)
