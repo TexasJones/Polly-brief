@@ -480,9 +480,21 @@ def _view_in_browser_link(view_url: str) -> str:
 
 
 def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs: list[JobPosting],
+                 pr_story: Optional[TopStory] = None,
                  quote_text: str = None, quote_source: str = None, today: dt.date = None,
                  view_url: str = None) -> str:
     """Generate the complete HTML email for The Polly Brief.
+
+    pr_story: the PR & Comms Industry trade-press item from
+    news_snapshot.get_pr_industry_story(), fetched and passed in SEPARATELY
+    from top_stories. This is deliberate, not an oversight -- top_stories is
+    the only list _pick_top_highlight() below scans for the day's hero/lead
+    story, so keeping pr_story out of it structurally guarantees this
+    section can never become the highlighted story, regardless of what the
+    six SECTION_QUERIES sections do or don't find that day. It renders as
+    its own fixed block below Top Stories instead (or not at all, same
+    silently-dropped-if-empty treatment as the other sections -- see
+    remaining_stories below).
 
     view_url: absolute URL of this day's brief as published to GitHub
     Pages (docs/briefs/{date}.html). When provided, a 'View in browser'
@@ -543,6 +555,23 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     else:
         story_rows = f'<tr><td style="{muted_default_css}">No other stories today.</td></tr>'
 
+    # PR & Comms Industry -- rendered as its own fixed block, entirely
+    # separate from top_stories/highlighted_story/remaining_stories above.
+    # Never considered by _pick_top_highlight (it isn't in top_stories at
+    # all), and dropped with no divider/heading at all on the rare day it
+    # has no item -- same "no blank sections" treatment the other six
+    # sections got, not the old italic "No story matched" placeholder.
+    pr_story_section = ''
+    if pr_story and pr_story.item:
+        pr_story_section = (
+            _divider() +
+            '<tr><td class="polly-pad" style="padding: 0 40px">' +
+            _section_heading("📢", "PR & Comms Industry") +
+            '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' +
+            _story_block(pr_story, today) +
+            '</table></td></tr>'
+        )
+
     job_rows = ''
     for job in featured_jobs:
         job_rows += _featured_job_block(job)
@@ -577,7 +606,12 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
             f'&ldquo;{_esc(quote_text)}&rdquo;</div>{attribution}</td></tr>'
         )
 
-    word_count, read_minutes = _estimate_read_time(top_stories, quote_text)
+    # Include pr_story in the word count / read-time estimate -- it's real
+    # editorial content a reader reads top to bottom, same as the six
+    # top_stories -- while still keeping it out of top_stories itself so it
+    # stays ineligible for _pick_top_highlight() above.
+    read_time_stories = list(top_stories) + ([pr_story] if pr_story else [])
+    word_count, read_minutes = _estimate_read_time(read_time_stories, quote_text)
     read_time_label = f"{word_count:,} words, a {read_minutes}-min. read"
 
     days_left = _days_until_election(today)
@@ -650,7 +684,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'{_section_heading("📰", "Top Stories")}',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{story_rows}</table>',
         '</td></tr>',
-        _divider(),
+        pr_story_section,
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("🔥", "Jobs Worth Looking At")}',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}{jobs_cta}</table>',
