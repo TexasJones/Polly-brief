@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from jobs_snapshot import HiringPulse, JobPosting, get_hiring_pulse
-from news_snapshot import NewsItem, TopStory, get_top_stories
+from news_snapshot import NewsItem, TopStory, get_top_stories, get_pr_industry_story
 from template import render_brief
 
 # GitHub Pages base for this repo (Settings -> Pages: main branch, /docs
@@ -24,11 +24,13 @@ def _sample_data():
         TopStory('Congress', chr(0x1F3DB), NewsItem('Politico', 'Sample Congress headline', 'https://example.com', '')),
         TopStory('Campaigns', chr(0x1F5F3), NewsItem('Axios', 'Sample campaign headline', 'https://example.com', '')),
     ]
+    pr_story = TopStory('PR & Comms Industry', chr(0x1F4E2),
+                         NewsItem('PRovoke Media', 'Sample agency hires new CCO', 'https://example.com', ''))
     jobs = [
         JobPosting('Communications Director', 'Morning Consult', 'Washington, DC', 'https://www.thepolly.co/jobs/sample-1', dt.date.today()),
         JobPosting('Deputy Political Director', 'Campaign', 'Arizona', 'https://www.thepolly.co/jobs/sample-2', dt.date.today()),
     ]
-    return pulse, stories, jobs
+    return pulse, stories, pr_story, jobs
 
 
 def _build_subject(pulse, stories, today):
@@ -112,7 +114,7 @@ def main():
     today = dt.datetime.now(tz_eastern).date()
     
     if args.sample:
-        pulse, stories, jobs = _sample_data()
+        pulse, stories, pr_story, jobs = _sample_data()
         quote = args.quote or 'Sample quote'
         quote_source = args.quote_source or 'Sample Attribution'
     else:
@@ -125,6 +127,13 @@ def main():
         for s in stories:
             status = s.item.title if s.item else '(none found)'
             print(' -', s.section, ':', status)
+        # Fetched separately from stories above -- see the module comment
+        # in news_snapshot.py above PR_TRADE_PRESS_SECTION_NAME for why
+        # this is deliberately kept out of get_top_stories()/SECTION_QUERIES
+        # rather than appended to the same list: it must never be eligible
+        # for template.py's top-story/hero slot.
+        pr_story = get_pr_industry_story(today=today)
+        print(' -', pr_story.section, ':', pr_story.item.title if pr_story.item else '(none found)')
         quote, quote_source = args.quote, args.quote_source
 
     # The "View in browser" link needs the day's published URL before the
@@ -138,7 +147,7 @@ def main():
         filename = f"{today.isoformat()}.html"
         view_url = f"{PAGES_BASE_URL}/briefs/{filename}"
 
-    html_out = render_brief(pulse, stories, jobs, quote_text=quote, quote_source=quote_source,
+    html_out = render_brief(pulse, stories, jobs, pr_story=pr_story, quote_text=quote, quote_source=quote_source,
                              today=today, view_url=view_url)
 
     with open(args.out, 'w', encoding='utf-8') as f:
