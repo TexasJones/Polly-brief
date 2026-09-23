@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 import feedparser
+import requests
 from bs4 import BeautifulSoup
 HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; PollyBriefBot/1.0; +https://www.thepolly.co)'}
 GOOGLE_NEWS_BASE = 'https://news.google.com/rss/search'
@@ -272,6 +274,72 @@ def _is_generic_title(title: str) -> bool:
 # a directionally-framed op-ed showing up as "today's news" reads as the
 # brief taking a side, which straight reporting doesn't.
 OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -inurl:commentary'
+
+# The exclusion above is the QUERY-TIME defense, but it turns out Google
+# News's RSS search endpoint doesn't reliably honor `-inurl:` the way
+# regular Google web search does -- confirmed in production on 2026-09-22,
+# when two straight opinion pieces from The Hill's own /opinion/ path (one
+# in Energy, one in Economy, same day) made it into the brief despite this
+# exclusion being present in both queries. Google's RSS <link> for a match
+# is also an obfuscated news.google.com/rss/articles/... redirect, not the
+# publisher's own URL, so there's no path to inspect without actually
+# following that redirect -- nothing in the RSS payload itself (title,
+# description) reliably says "this is a column," and title tone is
+# explicitly not trusted here either (see this constant's own comment
+# above).
+#
+# So this is a second, SELECTION-TIME check: resolve a candidate's real
+# destination URL with a real HTTP request and inspect ITS path for the
+# same opinion/column markers the query-time exclusion was trying for.
+# Only applied to candidates actually being considered for the final pick
+# (see _first_non_opinion below), never the full raw candidate pool, so
+# the added network cost stays small and bounded regardless of how many
+# candidates a broad query returns.
+OPINION_URL_MARKERS = (
+    '/opinion/', '/opinions/', '/oped/', '/op-ed/', '/editorial/',
+    '/editorials/', '/commentary/',
+    # The Hill's older column URLs predate their current /opinion/ path
+    # and never migrated -- e.g. thehill.com/blogs/congress-blog/... --
+    # confirmed still live and still indexed alongside the newer
+    # /opinion/congress-blog/... path for the same column.
+    '/blogs/congress-blog/',
+)
+
+# Total real HTTP requests _first_non_opinion is willing to make across
+# ALL tiers combined in one _fetch_topic_story call -- a hard ceiling, not
+# a per-tier one, so a topic whose top candidates are all opinion pieces
+# can't multiply into dozens of redirect-resolution requests once Tier 2/3
+# re-scan a pool that overlaps with Tier 1's. Six is enough headroom to
+# skip past a small cluster of columns while keeping one section's worst
+# case to six extra requests in a daily batch job that otherwise makes no
+# other network calls from this module.
+MAX_OPINION_CHECKS_PER_STORY = 6
+
+
+def _resolve_final_url(link: str, timeout: float = 6.0) -> Optional[str]:
+    """Follow the Google News redirect to find the real destination URL.
+    The RSS <link> Google gives us (news.google.com/rss/articles/...) is
+    opaque -- nothing about the real publisher path can be read from it
+    without actually requesting it. stream=True + no body read means this
+    costs one redirect chain, not a full page download. Returns None on
+    any failure (timeout, connection error, non-HTTP response) -- treated
+    by the caller as "couldn't verify," not "is opinion" (see
+    _first_non_opinion): failing closed here would silently turn every
+    network hiccup into a dropped candidate, trading a possible op-ed for
+    a guaranteed worse outcome (a blank section, or a real story bumped
+    for no actual reason)."""
+    try:
+        resp = requests.get(link, headers=HEADERS, timeout=timeout, allow_redirects=True, stream=True)
+        resp.close()
+        return resp.url
+    except Exception:
+        return None
+
+
+def _is_opinion_url(url: str) -> bool:
+    """Whether url's path contains one of OPINION_URL_MARKERS."""
+    path = urlparse(url).path.lower()
+    return any(marker in path for marker in OPINION_URL_MARKERS)
 
 # The "core 15" trusted political news sources -- outlets that publish on
 # DC politics/policy multiple times a day, which is what actually fixes
@@ -658,6 +726,34 @@ def _fetch_topic_story(
         # something" and block every later stage from ever being tried.
         return any((today - c[0]).days <= MAX_FALLBACK_AGE_DAYS for c in dated_list)
 
+    # Shared across every tier in the selection step below (see
+    # MAX_OPINION_CHECKS_PER_STORY) -- a link already resolved-and-rejected
+    # as opinion in an earlier tier is skipped on sight in a later one
+    # instead of spending a second request on it, and the check budget is
+    # one pool for this whole call, not reset per tier.
+    opinion_rejected_links = set()
+    opinion_checks_used = [0]  # list so the closure below can mutate it
+
+    def _first_non_opinion(candidates, link_index):
+        """First candidate (in the given, already best-first order) whose
+        real URL isn't an opinion/column piece. Once the check budget for
+        this story is used up, remaining candidates are accepted without
+        further checking rather than silently returned to Tier 4 empty --
+        see MAX_OPINION_CHECKS_PER_STORY."""
+        for c in candidates:
+            link = c[link_index]
+            if link in opinion_rejected_links:
+                continue
+            if opinion_checks_used[0] >= MAX_OPINION_CHECKS_PER_STORY:
+                return c
+            opinion_checks_used[0] += 1
+            final_url = _resolve_final_url(link)
+            if final_url is None or not _is_opinion_url(final_url):
+                return c
+            opinion_rejected_links.add(link)
+            print(f'    [news_snapshot] {label} dropped opinion-section match: {final_url}')
+        return None
+
     # Accumulated across every stage actually tried, rather than each
     # stage replacing the last -- see the cascade comment below for why
     # this changed from "replace" to "accumulate."
@@ -751,35 +847,47 @@ def _fetch_topic_story(
     # were within the 14-day window. So instead we collect every entry we
     # can extract a date from and pick by date, not by search-result order.
 
-    # Tier 1: newest entry within MAX_STORY_AGE_DAYS. This is the normal,
-    # expected case -- fresh news exists and we picked the freshest of it.
+    # Tier 1: newest entry within MAX_STORY_AGE_DAYS that isn't an opinion
+    # piece (see _first_non_opinion above). This is the normal, expected
+    # case -- fresh news exists and we picked the freshest of it.
     fresh = [c for c in dated if (today - c[0]).days <= MAX_STORY_AGE_DAYS]
     if fresh:
-        pub_date, raw_title, link = max(fresh, key=lambda c: c[0])
-        headline, source = _split_title_source(raw_title)
-        return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
+        fresh_sorted = sorted(fresh, key=lambda c: c[0], reverse=True)
+        picked = _first_non_opinion(fresh_sorted, link_index=2)
+        if picked:
+            pub_date, raw_title, link = picked
+            headline, source = _split_title_source(raw_title)
+            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
 
-    # Tier 2: nothing within MAX_STORY_AGE_DAYS, but Google did return
-    # dated articles on this topic -- take the single newest one anyway,
-    # UNLESS it's older than MAX_FALLBACK_AGE_DAYS too. An older-than-
-    # ideal story is still more useful to a reader than a blank section,
-    # but only up to a real outer limit -- this cap exists specifically
-    # because a 139-day-old story once made it through here uncapped.
+    # Tier 2: nothing usable within MAX_STORY_AGE_DAYS, but Google did
+    # return dated articles on this topic -- take the newest one that
+    # clears MAX_FALLBACK_AGE_DAYS and isn't an opinion piece. An older-
+    # than-ideal story is still more useful to a reader than a blank
+    # section, but only up to a real outer limit -- this cap exists
+    # specifically because a 139-day-old story once made it through here
+    # uncapped. Sorted newest-first, so the first entry past the cap means
+    # everything after it is older still -- no need to scan further.
     if dated:
-        newest_date, newest_title, newest_link = max(dated, key=lambda c: c[0])
-        if (today - newest_date).days <= MAX_FALLBACK_AGE_DAYS:
-            headline, source = _split_title_source(newest_title)
-            return NewsItem(outlet=source, title=headline, url=newest_link, summary='', published_date=newest_date)
+        dated_sorted = sorted(dated, key=lambda c: c[0], reverse=True)
+        in_cap = [c for c in dated_sorted if (today - c[0]).days <= MAX_FALLBACK_AGE_DAYS]
+        picked = _first_non_opinion(in_cap, link_index=2)
+        if picked:
+            pub_date, raw_title, link = picked
+            headline, source = _split_title_source(raw_title)
+            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
 
-    # Tier 3: nothing had a parseable date at all (or the only dated
-    # candidate exceeded MAX_FALLBACK_AGE_DAYS) -- fall back to whatever
-    # Google ranked first by relevance among the undated entries. We
-    # can't verify how old it is, but returning it is still better than
-    # an empty section when the feed clearly returned real results.
+    # Tier 3: nothing had a parseable date at all (or every dated
+    # candidate was too old or an opinion piece) -- fall back to whatever
+    # Google ranked first by relevance among the undated entries that
+    # isn't an opinion piece. We can't verify how old it is, but returning
+    # it is still better than an empty section when the feed clearly
+    # returned real results.
     if undated:
-        raw_title, link = undated[0]
-        headline, source = _split_title_source(raw_title)
-        return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=None)
+        picked = _first_non_opinion(undated, link_index=1)
+        if picked:
+            raw_title, link = picked
+            headline, source = _split_title_source(raw_title)
+            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=None)
 
     # Tier 4: nothing usable at all, from any source tier -- this is the
     # only case that should still produce an empty section.
