@@ -103,7 +103,7 @@ def _mobile_style_block() -> str:
         '  .polly-card { width: 100% !important; }'
         '  .polly-pad { padding-left: 20px !important; padding-right: 20px !important; }'
         '  .polly-col { display: block !important; width: 100% !important; '
-        'padding-right: 0 !important; padding-bottom: 16px !important; }'
+        'padding-right: 0 !important; padding-left: 0 !important; padding-bottom: 12px !important; }'
         '}'
         '</style>'
     )
@@ -118,12 +118,18 @@ def _divider() -> str:
             f'</td></tr>')
 
 
-def _section_heading(emoji: str, title: str, color: str = None) -> str:
-    """Render a section heading."""
+def _section_heading(emoji: str, title: str, color: str = None, gap: int = 14) -> str:
+    """Render a section heading.
+
+    The bottom margin is set here explicitly rather than left to the
+    style: styles.section_heading_style() carries no margin (only this
+    function's fallback did, and the fallback is never used when styles.py
+    is present), so every heading sat flush against the cards/badges below
+    it."""
     ink = _c('INK', '#0F172A')
     color = color or ink
-    heading_css = _style('section_heading_style', color, fallback=f"font-size: 18px; font-weight: 800; color: {color}; margin-bottom: 16px;")
-    return (f'<div style="{heading_css}">'
+    heading_css = _style('section_heading_style', color, fallback=f"font-size: 18px; font-weight: 800; color: {color};")
+    return (f'<div style="{heading_css} margin: 0 0 {gap}px 0;">'
             f'{emoji} {_esc(title)}</div>')
 
 
@@ -153,13 +159,22 @@ def _list_row(text: str) -> str:
             f'{_esc(text)}</td></tr>')
 
 
-def _stat_block(number: str, label: str, bg_color: str = "#1E3A8A", url: str = None) -> str:
+def _pair_cell_padding(first: bool) -> str:
+    """Split the gap between two side-by-side cards evenly (6px each side)
+    so the pair is centered in the column. Previously both cards padded
+    only on the right, which left the right-hand card ~12px short of the
+    column edge."""
+    return 'padding-right: 6px;' if first else 'padding-left: 6px;'
+
+
+def _stat_block(number: str, label: str, bg_color: str = "#1E3A8A", url: str = None,
+                first: bool = True) -> str:
     """Render a high-contrast stat card with solid white text."""
     open_tag = (f'<a href="{url}" target="_blank" rel="noopener noreferrer" '
                 f'style="text-decoration:none; display:block;">') if url else '<div style="display:block;">'
     close_tag = '</a>' if url else '</div>'
 
-    return (f'<td width="50%" class="polly-col" style="padding-right: 12px; vertical-align: top;">'
+    return (f'<td width="50%" class="polly-col" style="{_pair_cell_padding(first)} vertical-align: top;">'
             f'{open_tag}'
             f'<div style="background-color: {bg_color}; border-radius: 10px; padding: 18px 16px; text-align: center; color: #FFFFFF;">'
             f'<div style="font-size: 32px; font-weight: 900; line-height: 1; color: #FFFFFF; font-family: Helvetica, Arial, sans-serif;">{_esc(number)}</div>'
@@ -258,7 +273,7 @@ def _odds_change_label(change_pts: Optional[int]) -> str:
     return f'{arrow} {abs(change_pts)}pt{plural} vs yesterday'
 
 
-def _control_card(line: OddsLine) -> str:
+def _control_card(line: OddsLine, first: bool = True) -> str:
     """Big colored stat card for House/Senate control -- same visual
     weight as Hiring Pulse's Active Jobs / New Today cards (_stat_block),
     plus a 24h-change line underneath since 'who's ahead' matters less
@@ -268,7 +283,7 @@ def _control_card(line: OddsLine) -> str:
     change_html = (f'<div style="font-size: 11px; font-weight: 700; '
                    f'color: rgba(255,255,255,0.85); margin-top: 6px;">{_esc(change)}</div>') if change else ''
 
-    return (f'<td width="50%" class="polly-col" style="padding-right: 12px; vertical-align: top;">'
+    return (f'<td width="50%" class="polly-col" style="{_pair_cell_padding(first)} vertical-align: top;">'
             f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
             f'style="text-decoration:none; display:block;">'
             f'<div style="background-color: {bg}; border-radius: 10px; padding: 18px 16px; '
@@ -375,7 +390,8 @@ def _poliodds_section(odds: PoliOdds) -> str:
     parts = []
 
     if odds.house or odds.senate:
-        cards = (odds.house and _control_card(odds.house) or '') + (odds.senate and _control_card(odds.senate) or '')
+        cards = ((_control_card(odds.house, first=True) if odds.house else '') +
+                 (_control_card(odds.senate, first=not odds.house) if odds.senate else ''))
         parts.append(
             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
             f'style="margin-bottom: 16px;"><tr>{cards}</tr></table>'
@@ -476,10 +492,13 @@ def _time_ago_label(published_date, today: dt.date) -> str:
     return f'{days} days ago'
 
 
-def _story_block(story: TopStory, today: dt.date) -> str:
-    """Render a news story block with a topic-colored badge."""
+def _story_block(story: TopStory, today: dt.date, show_badge: bool = True) -> str:
+    """Render a news story block with a topic-colored badge. show_badge=False
+    for a story that already sits under its own section heading (PR & Comms
+    Industry), where a badge repeating the heading's words is redundant."""
     color = _topic_color(story.section)
-    badge_row = f'<div style="margin-bottom: 10px">{_topic_badge(story.emoji, story.section, color)}</div>'
+    badge_row = (f'<div style="margin-bottom: 10px">{_topic_badge(story.emoji, story.section, color)}</div>'
+                 if show_badge else '')
 
     muted = _c('MUTED', '#64748B')
     muted_css = _style('muted_text_style', fallback=f"font-size: 14px; color: {muted};")
@@ -619,7 +638,7 @@ def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
     ))
 
     return (
-        f'<tr><td class="polly-pad" style="padding: 0 40px 24px 40px;">'
+        f'<tr><td class="polly-pad" style="padding: 0 40px 4px 40px;">'
         f'<div style="{hero_css}">'
         f'<div style="{tag_css}">{story.emoji} {_esc(story.section)} &middot; Today&rsquo;s Top Story</div>'
         f'<div style="font-size: 20px; font-weight: 800; color: {white}; line-height: 1.35; '
@@ -760,7 +779,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
             '<tr><td class="polly-pad" style="padding: 0 40px">' +
             _section_heading("📢", "PR & Comms Industry") +
             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' +
-            _story_block(pr_story, today) +
+            _story_block(pr_story, today, show_badge=False) +
             '</table></td></tr>'
         )
 
@@ -856,7 +875,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'{_section_heading("📊", "Polly Hiring Pulse")}',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;"><tr>',
         _stat_block(f'{pulse.total_active:,}', 'Active Jobs', bg_color="#1E3A8A", url='https://jobs.thepolly.co/jobs'),
-        _stat_block(str(pulse.new_today), 'New Today', bg_color="#2563EB"),
+        _stat_block(str(pulse.new_today), 'New Today', bg_color="#2563EB", first=False),
         '</tr></table>',
         # Remote / Hybrid / Onsite stacked bar. Sits between the stat cards
         # and the category/employer columns -- it's a Hiring Pulse metric
@@ -889,6 +908,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{story_rows}</table>',
         '</td></tr>',
         pr_story_section,
+        _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("🔥", "Jobs Worth Looking At")}',
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}{jobs_cta}</table>',
@@ -896,7 +916,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'<div style="background-color: #0F172A; border-radius: 12px; padding: 24px; text-align: center">',
-        f'{_section_heading("📅", "Election Countdown", color=white)}',
+        f'{_section_heading("📅", "Election Countdown", color=white, gap=8)}',
         f'<div style="font-size: 44px; font-weight: 900; color: {white}; font-family: {headline_font}; letter-spacing: -1px; line-height: 1;">{days_left}</div>',
         f'<div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px; font-weight: 700;">Days Until Election Day</div>',
         '</div></td></tr>',

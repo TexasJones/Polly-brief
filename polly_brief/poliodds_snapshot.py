@@ -373,8 +373,23 @@ def _line_from_markets(label: str, markets: list[dict], url: str) -> Optional[Od
     )
 
 
+STATE_NAMES = {
+    "AK": "Alaska", "AL": "Alabama", "AR": "Arkansas", "CO": "Colorado", "DE": "Delaware",
+    "FL": "Florida", "GA": "Georgia", "IA": "Iowa", "ID": "Idaho", "IL": "Illinois",
+    "KS": "Kansas", "KY": "Kentucky", "LA": "Louisiana", "MA": "Massachusetts", "ME": "Maine",
+    "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi", "MT": "Montana",
+    "NC": "North Carolina", "NE": "Nebraska", "NH": "New Hampshire", "NJ": "New Jersey",
+    "NM": "New Mexico", "OH": "Ohio", "OK": "Oklahoma", "OR": "Oregon", "RI": "Rhode Island",
+    "SC": "South Carolina", "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas",
+    "VA": "Virginia", "WV": "West Virginia", "WY": "Wyoming",
+}
+
+
 def _race_label(code: str) -> str:
-    return f"{code[:2]} Senate" + (" (special)" if len(code) == 3 else "")
+    """"Maine Senate", "Ohio Senate (special)" -- full state names read
+    better in the brief than postal codes ("ME Senate")."""
+    state = STATE_NAMES.get(code[:2], code[:2])
+    return f"{state} Senate" + (" (special)" if len(code) == 3 else "")
 
 
 def _fetch_odds(client: _KalshiClient) -> PoliOdds:
