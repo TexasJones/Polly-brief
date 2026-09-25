@@ -285,15 +285,20 @@ def _spotlight_card(line: OddsLine, kind: str) -> str:
     both = ' &middot; '.join(p for p in (dem, rep) if p)
     change = _odds_change_label(line.change_pts)
 
+    # The whole card is one link (not just the race name) -- same reasoning
+    # as _control_card: a small text-only tap target is easy to miss,
+    # especially on mobile, when the visual "button" (the colored % box)
+    # sits right next to it looking clickable but wasn't.
     return (
+        f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
+        f'style="text-decoration: none; display: block; color: inherit;">'
         f'<div style="border: 1px solid {_c("HAIRLINE", "#E7E5E0")}; border-radius: 10px; '
         f'padding: 14px 16px; margin-bottom: 12px;">'
         f'<div style="font-size: 11px; font-weight: 800; text-transform: uppercase; '
         f'letter-spacing: 0.6px; color: {muted}; margin-bottom: 6px;">{_esc(kind)}</div>'
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
         f'<td valign="middle">'
-        f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
-        f'style="color: {ink}; text-decoration: none; font-size: 16px; font-weight: 700;">{_esc(line.label)}</a>'
+        f'<div style="color: {ink}; font-size: 16px; font-weight: 700;">{_esc(line.label)}</div>'
         # `both` is built only from internally-formatted party letters and
         # integers (never user/network-supplied text) plus a raw &middot;
         # entity -- _esc() would double-escape that entity into literal
@@ -306,7 +311,7 @@ def _spotlight_card(line: OddsLine, kind: str) -> str:
         f'<td width="70" align="center" valign="middle">'
         f'<div style="background-color: {bg}; border-radius: 8px; padding: 8px 4px; color: #FFFFFF; '
         f'font-size: 18px; font-weight: 900;">{line.leader_pct}%</div>'
-        f'</td></tr></table></div>'
+        f'</td></tr></table></div></a>'
     )
 
 
@@ -331,15 +336,18 @@ def _tight_race_row(line: OddsLine) -> str:
     bar = (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
            f'style="border-radius: 4px; overflow: hidden;"><tr>{segments}</tr></table>')
 
+    # Whole row (label + bar) is one link, same reasoning as the spotlight
+    # card above -- the bar itself looks like a control, so it should
+    # behave like one rather than only the text next to it being tappable.
     return (
         f'<tr><td style="padding: 6px 0 10px 0;">'
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
-        f'<td style="font-size: 13px; font-weight: 700; color: {ink};">'
         f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
-        f'style="color: {ink}; text-decoration: none;">{_esc(line.label)}</a></td>'
+        f'style="text-decoration: none; display: block; color: inherit;">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+        f'<td style="font-size: 13px; font-weight: 700; color: {ink};">{_esc(line.label)}</td>'
         f'<td align="right" style="font-size: 12px; color: {muted}; font-weight: 700;">'
         f'{_esc(line.leader)} {line.leader_pct}%</td>'
-        f'</tr></table>{bar}</td></tr>'
+        f'</tr></table>{bar}</a></td></tr>'
     )
 
 

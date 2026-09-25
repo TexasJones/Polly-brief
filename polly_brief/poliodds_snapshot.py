@@ -85,7 +85,13 @@ MIN_RACE_VOLUME_CONTRACTS = 5_000
 # A race has to move at least this much in 24h to be called a "mover";
 # otherwise the spotlight card goes to the tightest race instead.
 MOVER_MIN_POINTS = 2
-TIGHT_RACES_SHOWN = 3
+# Set to 0 (the leaner layout Chris picked over the full version with
+# extra split-bar rows): control cards + one spotlight race only. The
+# selection logic below is unchanged either way -- it still computes the
+# full sorted list, this just slices it down to nothing -- so bumping
+# this back up later to bring the extra rows back is a one-line change,
+# not a re-implementation.
+TIGHT_RACES_SHOWN = 0
 # Stop hammering Kalshi if it's clearly down, rather than timing out 37x.
 MAX_CONSECUTIVE_FAILURES = 5
 
