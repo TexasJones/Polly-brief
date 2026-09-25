@@ -276,13 +276,32 @@ def test_summary_cleanup():
 
 
 def test_pending_feeds_checked_but_never_used():
-    politico = "https://rss.politico.com/congress.xml"
-    feeds = {politico: [("House passes stopgap funding bill", "https://www.politico.com/pend", hours_ago(1), "")],
-             ns._ROLL_CALL: [("Senate schedules vote on spending bill", "https://rollcall.com/ok", hours_ago(20), "")]}
+    mediaite = "https://www.mediaite.com/feed/"
+    feeds = {mediaite: [("CNN anchor exits network after 20 years", "https://www.mediaite.com/pend", hours_ago(1), "")],
+             ns.SECTION_FEEDS["Media"][0][1]: [("Newsrooms brace for election-night staffing crunch", f"{H}/m/ok", hours_ago(20), "")]}
     picks, _ = run(feeds)
-    assert all(i is None or "politico.com" not in i.url for i in picks.values())
-    assert picks["Legislative"].url == "https://rollcall.com/ok"
+    assert all(i is None or "mediaite.com" not in i.url for i in picks.values())
+    assert picks["Media"].url == f"{H}/m/ok"
     print("PASS: pending (unconfirmed) feeds are health-checked only, never used for picks")
+
+
+def test_one_retry_on_connection_error():
+    calls = {"n": 0}
+    url = ns.SECTION_FEEDS["Energy"][1][1]
+    good = fake_requests({url: [("Grid operator warns of winter shortfall", "https://www.utilitydive.com/ok", hours_ago(3), "")]})
+
+    def flaky(u, **kw):
+        if u == url and calls["n"] == 0:
+            calls["n"] += 1
+            raise requests.exceptions.ConnectionError("Connection reset by peer")
+        return good(u, **kw)
+    state = {"sections": {}}
+    with patch.object(ns.requests, "get", side_effect=flaky), patch.object(ns.time, "sleep", lambda s: None), \
+         patch.object(ns, "_load_recent_stories", lambda *a, **k: {}), \
+         patch.object(ns, "_save_recent_stories", lambda s, *a, **k: state.update(sections=s)):
+        stories = {st.section: st.item for st in ns.get_top_stories(today=TODAY, now=NOW)}
+    assert stories["Energy"] and stories["Energy"].url == "https://www.utilitydive.com/ok"
+    print("PASS: a one-off connection reset is retried once instead of losing the feed")
 
 
 def test_source_list_rules():
@@ -308,5 +327,6 @@ if __name__ == "__main__":
     test_hero_is_most_covered_story()
     test_summary_cleanup()
     test_pending_feeds_checked_but_never_used()
+    test_one_retry_on_connection_error()
     test_source_list_rules()
     print("\nAll news tests passed.")
