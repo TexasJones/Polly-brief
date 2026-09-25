@@ -932,7 +932,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<span style="vertical-align:middle;">Powered by Pollyai</span>'
         f'</div>',
         f'<div style="font-size: 11px; color: {muted}; margin-top: 2px">The Talent Marketplace for Politics &amp; Public Affairs</div>',
-        f'<div style="font-size: 11px; color: {muted}; margin-top: 10px">All rights reserved.</div>',
+        f'<div style="font-size: 11px; color: {muted}; margin-top: 10px">All rights reserved</div>',
         '</div></td></tr>',
         '</table></td></tr></table></body></html>',
     ])
