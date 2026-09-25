@@ -113,8 +113,8 @@ def test_thin_race_excluded_from_mover_and_tightest():
         odds = po._fetch_odds(client)
 
     all_labels = [odds.spotlight.label if odds.spotlight else None] + [r.label for r in odds.tight_races]
-    assert "WY Senate" not in all_labels, "thin market should be filtered by MIN_RACE_VOLUME_CONTRACTS"
-    assert "NC Senate" in all_labels
+    assert "Wyoming Senate" not in all_labels, "thin market should be filtered by MIN_RACE_VOLUME_CONTRACTS"
+    assert "North Carolina Senate" in all_labels
     print("PASS: thin/low-liquidity race excluded from spotlight & tight-races")
 
 
@@ -222,6 +222,8 @@ def test_ticker_list_and_urls_regressions():
     assert po.SENATE_EVENT_OVERRIDES.get("KY") == "SENATELA-26"
     assert po.HOUSE_CONTROL_URL.endswith("/controls/house-winner/controlh-2026")
     assert len(set(po.SENATE_RACE_CODES)) == len(po.SENATE_RACE_CODES), "duplicate race code"
+    assert po._race_label("KY") == "Kentucky Senate" and po._race_label("OHS") == "Ohio Senate (special)"
+    assert all(code[:2] in po.STATE_NAMES for code in po.SENATE_RACE_CODES)
     print("PASS: KY maps to SENATELA-26, no LA code, House URL is the verified path, no duplicate codes")
 
 
@@ -293,7 +295,7 @@ def test_against_real_kalshi_snapshot():
         odds = po._fetch_odds(po._KalshiClient(po.requests.Session()))
     assert (odds.house.leader, odds.house.leader_pct, odds.house.change_pts) == ("DEM", 91, -1)
     assert (odds.senate.leader, odds.senate.leader_pct, odds.senate.change_pts) == ("DEM", 61, -3)
-    assert odds.spotlight.label == "ME Senate" and odds.spotlight_kind == "Biggest mover"
+    assert odds.spotlight.label == "Maine Senate" and odds.spotlight_kind == "Biggest mover"
     assert (odds.spotlight.leader, odds.spotlight.leader_pct, odds.spotlight.change_pts) == ("DEM", 58, 8)
     assert (odds.spotlight.runner_up, odds.spotlight.runner_up_pct) == ("REP", 42)
 
