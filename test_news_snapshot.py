@@ -276,11 +276,12 @@ def test_summary_cleanup():
 
 
 def test_pending_feeds_checked_but_never_used():
-    mediaite = "https://www.mediaite.com/feed/"
-    feeds = {mediaite: [("CNN anchor exits network after 20 years", "https://www.mediaite.com/pend", hours_ago(1), "")],
+    trial = "https://example-trial.com/feed/"
+    feeds = {trial: [("CNN anchor exits network after 20 years", "https://example-trial.com/pend", hours_ago(1), "")],
              ns.SECTION_FEEDS["Media"][0][1]: [("Newsrooms brace for election-night staffing crunch", f"{H}/m/ok", hours_ago(20), "")]}
-    picks, _ = run(feeds)
-    assert all(i is None or "mediaite.com" not in i.url for i in picks.values())
+    with patch.object(ns, "PENDING_FEEDS", [("Trial Outlet", trial)]):
+        picks, _ = run(feeds)
+    assert all(i is None or "example-trial.com" not in i.url for i in picks.values())
     assert picks["Media"].url == f"{H}/m/ok"
     print("PASS: pending (unconfirmed) feeds are health-checked only, never used for picks")
 
