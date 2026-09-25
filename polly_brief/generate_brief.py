@@ -6,6 +6,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from jobs_snapshot import HiringPulse, JobPosting, get_hiring_pulse
 from news_snapshot import NewsItem, TopStory, get_top_stories, get_pr_industry_story
+from poliodds_snapshot import PoliOdds, OddsLine, PollAverage, get_poliodds
 from template import render_brief
 
 # GitHub Pages base for this repo (Settings -> Pages: main branch, /docs
@@ -30,7 +31,21 @@ def _sample_data():
         JobPosting('Communications Director', 'Morning Consult', 'Washington, DC', 'https://www.thepolly.co/jobs/sample-1', dt.date.today()),
         JobPosting('Deputy Political Director', 'Campaign', 'Arizona', 'https://www.thepolly.co/jobs/sample-2', dt.date.today()),
     ]
-    return pulse, stories, pr_story, jobs
+    poliodds = PoliOdds(
+        house=OddsLine('House', 'DEM', 90, 2, 90, 8, 2_000_000, 'https://kalshi.com/markets/controlh'),
+        senate=OddsLine('Senate', 'DEM', 64, 4, 64, 36, 1_000_000,
+                        'https://kalshi.com/markets/controls/senate-winner/controls-2026'),
+        spotlight=OddsLine('NC Senate', 'REP', 53, 5, 47, 53, 900_000,
+                           'https://kalshi.com/markets/senatenc/senatenc-26'),
+        spotlight_kind='Biggest mover',
+        tight_races=[
+            OddsLine('ME Senate', 'DEM', 55, 1, 55, 43, 400_000, 'https://kalshi.com/markets/senateme/senateme-26'),
+            OddsLine('TX Senate', 'REP', 58, -1, 40, 58, 600_000, 'https://kalshi.com/markets/senatetx/senatetx-26'),
+        ],
+        polls=[PollAverage('Generic ballot', 'D +1.7', 'avg of 6 polls'),
+               PollAverage('Trump approval', '43%', 'net -12 · avg of 5 polls')],
+    )
+    return pulse, stories, pr_story, jobs, poliodds
 
 
 def _build_subject(pulse, stories, today):
@@ -114,7 +129,7 @@ def main():
     today = dt.datetime.now(tz_eastern).date()
     
     if args.sample:
-        pulse, stories, pr_story, jobs = _sample_data()
+        pulse, stories, pr_story, jobs, poliodds = _sample_data()
         quote = args.quote or 'Sample quote'
         quote_source = args.quote_source or 'Sample Attribution'
     else:
@@ -134,6 +149,12 @@ def main():
         # for template.py's top-story/hero slot.
         pr_story = get_pr_industry_story(today=today)
         print(' -', pr_story.section, ':', pr_story.item.title if pr_story.item else '(none found)')
+        print('Fetching PoliOdds (Kalshi + VoteHub)...')
+        # get_poliodds() is fully fail-safe on its own (see
+        # poliodds_snapshot.py) -- a Kalshi/VoteHub outage returns None
+        # here, never an exception, so it can never block the brief.
+        poliodds = get_poliodds(today=today)
+        print(' - PoliOdds Watch:', 'ok' if (poliodds and poliodds.has_content) else '(none found)')
         quote, quote_source = args.quote, args.quote_source
 
     # The "View in browser" link needs the day's published URL before the
@@ -148,7 +169,7 @@ def main():
         view_url = f"{PAGES_BASE_URL}/briefs/{filename}"
 
     html_out = render_brief(pulse, stories, jobs, pr_story=pr_story, quote_text=quote, quote_source=quote_source,
-                             today=today, view_url=view_url)
+                             today=today, view_url=view_url, poliodds=poliodds)
 
     with open(args.out, 'w', encoding='utf-8') as f:
         f.write(html_out)

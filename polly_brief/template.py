@@ -5,9 +5,17 @@ import inspect
 from typing import Optional
 from jobs_snapshot import HiringPulse, JobPosting
 from news_snapshot import TopStory
+from poliodds_snapshot import PoliOdds, OddsLine, VOTEHUB_WEB
 import styles as s
 
 ELECTION_DAY = dt.date(2026, 11, 3)
+
+# Party colors for PoliOdds Watch -- intentionally NOT drawn from
+# TOPIC_COLORS (those brand news sections; DEM/REP need to read as
+# "blue team / red team" at a glance, independent of whatever color a
+# news topic happens to already own).
+PARTY_COLORS = {"DEM": "#1D4ED8", "REP": "#B91C1C", "IND": "#6D28D9"}
+DEFAULT_PARTY_COLOR = "#475569"
 
 # Hosted, transparent PNG of the Polly bird mark (exact artwork, not inline SVG —
 # Outlook desktop and Brevo campaigns don't reliably render inline/embedded SVG).
@@ -223,6 +231,164 @@ def _location_mix_bar(mix: dict[str, int]) -> str:
         '</tr></table>'
     )
     return bar + f'<div>{"".join(legend_items)}</div>'
+
+
+def _party_color(key: str) -> str:
+    return PARTY_COLORS.get(key, DEFAULT_PARTY_COLOR)
+
+
+def _odds_change_label(change_pts: Optional[int]) -> str:
+    """'▲ 2pts vs yesterday' / '▼ 3pts vs yesterday' / '' when
+    unknown or flat -- Kalshi's own previous_price_dollars fields are what
+    make this possible without a history file of our own (see
+    poliodds_snapshot.py)."""
+    if not change_pts:
+        return ''
+    arrow = '▲' if change_pts > 0 else '▼'
+    plural = '' if abs(change_pts) == 1 else 's'
+    return f'{arrow} {abs(change_pts)}pt{plural} vs yesterday'
+
+
+def _control_card(line: OddsLine) -> str:
+    """Big colored stat card for House/Senate control -- same visual
+    weight as Hiring Pulse's Active Jobs / New Today cards (_stat_block),
+    plus a 24h-change line underneath since 'who's ahead' matters less
+    here than 'did that just move'."""
+    bg = _party_color(line.leader)
+    change = _odds_change_label(line.change_pts)
+    change_html = (f'<div style="font-size: 11px; font-weight: 700; '
+                   f'color: rgba(255,255,255,0.85); margin-top: 6px;">{_esc(change)}</div>') if change else ''
+
+    return (f'<td width="50%" class="polly-col" style="padding-right: 12px; vertical-align: top;">'
+            f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
+            f'style="text-decoration:none; display:block;">'
+            f'<div style="background-color: {bg}; border-radius: 10px; padding: 18px 16px; '
+            f'text-align: center; color: #FFFFFF;">'
+            f'<div style="font-size: 28px; font-weight: 900; line-height: 1; color: #FFFFFF; '
+            f'font-family: Helvetica, Arial, sans-serif;">{_esc(line.leader)} {line.leader_pct}%</div>'
+            f'<div style="font-size: 11px; font-weight: 800; text-transform: uppercase; margin-top: 8px; '
+            f'letter-spacing: 0.8px; color: #FFFFFF; opacity: 0.95;">{_esc(line.label)} Control</div>'
+            f'{change_html}'
+            f'</div></a></td>')
+
+
+def _spotlight_card(line: OddsLine, kind: str) -> str:
+    """The single featured race -- either the day's biggest mover or, on
+    a quiet day with no real movement, the tightest race on the board
+    (see poliodds_snapshot.MOVER_MIN_POINTS). Wider than the two control
+    cards since it carries a full race name plus both parties' numbers."""
+    bg = _party_color(line.leader)
+    ink = _c('INK', '#161616')
+    muted = _c('MUTED', '#767676')
+    dem = f'D {line.dem_pct}%' if line.dem_pct is not None else ''
+    rep = f'R {line.rep_pct}%' if line.rep_pct is not None else ''
+    both = ' &middot; '.join(p for p in (dem, rep) if p)
+    change = _odds_change_label(line.change_pts)
+
+    return (
+        f'<div style="border: 1px solid {_c("HAIRLINE", "#E7E5E0")}; border-radius: 10px; '
+        f'padding: 14px 16px; margin-bottom: 12px;">'
+        f'<div style="font-size: 11px; font-weight: 800; text-transform: uppercase; '
+        f'letter-spacing: 0.6px; color: {muted}; margin-bottom: 6px;">{_esc(kind)}</div>'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+        f'<td valign="middle">'
+        f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
+        f'style="color: {ink}; text-decoration: none; font-size: 16px; font-weight: 700;">{_esc(line.label)}</a>'
+        # `both` is built only from internally-formatted party letters and
+        # integers (never user/network-supplied text) plus a raw &middot;
+        # entity -- _esc() would double-escape that entity into literal
+        # "&amp;middot;" text, so it's inserted as-is like the other
+        # already-safe &middot; joins elsewhere in this file (e.g.
+        # _featured_job_block's `meta`).
+        f'<div style="font-size: 13px; color: {muted}; margin-top: 2px;">{both}'
+        f'{" &middot; " + _esc(change) if change else ""}</div>'
+        f'</td>'
+        f'<td width="70" align="center" valign="middle">'
+        f'<div style="background-color: {bg}; border-radius: 8px; padding: 8px 4px; color: #FFFFFF; '
+        f'font-size: 18px; font-weight: 900;">{line.leader_pct}%</div>'
+        f'</td></tr></table></div>'
+    )
+
+
+def _tight_race_row(line: OddsLine) -> str:
+    """One compact row per remaining tight race: name + leader on top,
+    a two-color split bar below. dem_pct/rep_pct are rendered at their
+    own widths (not renormalized to sum to 100) so any gap -- undecided,
+    a third-party candidate -- shows honestly as blank track rather than
+    being silently absorbed into one party's share."""
+    ink = _c('INK', '#161616')
+    muted = _c('MUTED', '#767676')
+    dem, rep = line.dem_pct or 0, line.rep_pct or 0
+    leftover = max(0, 100 - dem - rep)
+
+    segments = ''
+    if dem:
+        segments += f'<td width="{dem}%" style="background-color:{PARTY_COLORS["DEM"]}; height:12px;"></td>'
+    if rep:
+        segments += f'<td width="{rep}%" style="background-color:{PARTY_COLORS["REP"]}; height:12px;"></td>'
+    if leftover:
+        segments += f'<td width="{leftover}%" style="background-color:#E2E8F0; height:12px;"></td>'
+    bar = (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+           f'style="border-radius: 4px; overflow: hidden;"><tr>{segments}</tr></table>')
+
+    return (
+        f'<tr><td style="padding: 6px 0 10px 0;">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
+        f'<td style="font-size: 13px; font-weight: 700; color: {ink};">'
+        f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
+        f'style="color: {ink}; text-decoration: none;">{_esc(line.label)}</a></td>'
+        f'<td align="right" style="font-size: 12px; color: {muted}; font-weight: 700;">'
+        f'{_esc(line.leader)} {line.leader_pct}%</td>'
+        f'</tr></table>{bar}</td></tr>'
+    )
+
+
+def _poliodds_section(odds: PoliOdds) -> str:
+    """Full PoliOdds Watch body (heading rendered by the caller, same
+    pattern as PR & Comms Industry): control cards, one spotlight race,
+    up to three more tight races, a polling strip, then attribution.
+    Every piece is independently optional -- odds.has_content already
+    gated whether this function gets called at all (see render_brief),
+    but each sub-piece here also checks its own data so a partial feed
+    (say, Kalshi up but VoteHub down) renders whatever came through
+    instead of an all-or-nothing block."""
+    parts = []
+
+    if odds.house or odds.senate:
+        cards = (odds.house and _control_card(odds.house) or '') + (odds.senate and _control_card(odds.senate) or '')
+        parts.append(
+            '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+            f'style="margin-bottom: 16px;"><tr>{cards}</tr></table>'
+        )
+
+    if odds.spotlight:
+        parts.append(_spotlight_card(odds.spotlight, odds.spotlight_kind or 'Featured Race'))
+
+    if odds.tight_races:
+        rows = ''.join(_tight_race_row(r) for r in odds.tight_races)
+        parts.append(f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{rows}</table>')
+
+    if odds.polls:
+        ink = _c('INK', '#161616')
+        muted = _c('MUTED', '#767676')
+        poll_items = ' &nbsp;&middot;&nbsp; '.join(
+            f'<strong style="color:{ink};">{_esc(p.label)}:</strong> {_esc(p.value)} '
+            f'<span style="color:{muted};">({_esc(p.detail)})</span>' for p in odds.polls
+        )
+        parts.append(f'<div style="font-size: 12px; margin: 4px 0 14px 0;">{poll_items}</div>')
+
+    muted = _c('MUTED', '#767676')
+    attribution = (
+        f'<div style="font-size: 11px; color: {muted};">'
+        f'Odds via <a href="https://kalshi.com" target="_blank" rel="noopener noreferrer" '
+        f'style="color:{muted};">Kalshi</a>'
+        + (f' &middot; Polling via <a href="{VOTEHUB_WEB}" target="_blank" rel="noopener noreferrer" '
+           f'style="color:{muted};">VoteHub</a> (CC BY 4.0)' if odds.polls else '')
+        + ' &middot; updated daily</div>'
+    )
+    parts.append(attribution)
+
+    return ''.join(parts)
 
 
 def _bold_lead_in(text: str, num_words: int = 8) -> str:
@@ -482,7 +648,7 @@ def _view_in_browser_link(view_url: str) -> str:
 def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs: list[JobPosting],
                  pr_story: Optional[TopStory] = None,
                  quote_text: str = None, quote_source: str = None, today: dt.date = None,
-                 view_url: str = None) -> str:
+                 view_url: str = None, poliodds: Optional[PoliOdds] = None) -> str:
     """Generate the complete HTML email for The Polly Brief.
 
     pr_story: the PR & Comms Industry trade-press item from
@@ -679,6 +845,18 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         _subheading_label("Top Hiring Organizations"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
         '</tr></table></td></tr>',
+        # PoliOdds Watch -- dropped entirely (no heading, no divider) when
+        # there's nothing usable, same "no blank sections" treatment as
+        # PR & Comms Industry and the six news sections. odds.has_content
+        # is already what poliodds_snapshot.get_poliodds() gates on before
+        # returning non-None, but checked again here so this still
+        # degrades safely if render_brief is ever called directly with a
+        # PoliOdds that happens to be empty.
+        (_divider() +
+         '<tr><td class="polly-pad" style="padding: 0 40px">' +
+         _section_heading("🎲", "PoliOdds Watch") +
+         _poliodds_section(poliodds) +
+         '</td></tr>') if (poliodds and poliodds.has_content) else '',
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'{_section_heading("📰", "Top Stories")}',
