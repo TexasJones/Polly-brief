@@ -1,0 +1,1141 @@
+{
+ "_source": "Kalshi public API GET /trade-api/v2/events/{ticker}, fetched 2026-09-25 (via WebFetch). SENATEKY-26 returned 404; Kentucky is SENATELA-26.",
+ "events": {
+  "CONTROLH-2026": [
+   {
+    "ticker": "CONTROLH-2026-D",
+    "subtitle": "Democratic Party",
+    "yes_sub_title": "Democratic Party",
+    "status": "active",
+    "last_price_dollars": "0.9130",
+    "previous_price_dollars": "0.9190",
+    "yes_bid_dollars": "0.9130",
+    "yes_ask_dollars": "0.9140",
+    "previous_yes_bid_dollars": "0.9160",
+    "previous_yes_ask_dollars": "0.9190",
+    "volume_fp": "13503477.82",
+    "volume_24h_fp": "284119.53"
+   },
+   {
+    "ticker": "CONTROLH-2026-R",
+    "subtitle": "Republican Party",
+    "yes_sub_title": "Republican Party",
+    "status": "active",
+    "last_price_dollars": "0.0870",
+    "previous_price_dollars": "0.0840",
+    "yes_bid_dollars": "0.0860",
+    "yes_ask_dollars": "0.0870",
+    "previous_yes_bid_dollars": "0.0820",
+    "previous_yes_ask_dollars": "0.0840",
+    "volume_fp": "23524490.30",
+    "volume_24h_fp": "723205.74"
+   }
+  ],
+  "CONTROLS-2026": [
+   {
+    "ticker": "CONTROLS-2026-D",
+    "subtitle": "Democratic Party",
+    "yes_sub_title": "Democratic Party",
+    "status": "active",
+    "last_price_dollars": "0.6100",
+    "previous_price_dollars": "0.6400",
+    "yes_bid_dollars": "0.6000",
+    "yes_ask_dollars": "0.6100",
+    "previous_yes_bid_dollars": "0.6400",
+    "previous_yes_ask_dollars": "0.6500",
+    "volume_fp": "4672893.32",
+    "volume_24h_fp": "196072.65"
+   },
+   {
+    "ticker": "CONTROLS-2026-R",
+    "subtitle": "Republican Party",
+    "yes_sub_title": "Republican Party",
+    "status": "active",
+    "last_price_dollars": "0.3900",
+    "previous_price_dollars": "0.3600",
+    "yes_bid_dollars": "0.3800",
+    "yes_ask_dollars": "0.3900",
+    "previous_yes_bid_dollars": "0.3500",
+    "previous_yes_ask_dollars": "0.3600",
+    "volume_fp": "5808962.78",
+    "volume_24h_fp": "455055.59"
+   }
+  ],
+  "SENATEAK-26": [
+   {
+    "ticker": "SENATEAK-26-R",
+    "subtitle": "Republican party:: Current incumbent: Dan Sullivan",
+    "yes_sub_title": "Republican party",
+    "status": "active",
+    "last_price_dollars": "0.2900",
+    "previous_price_dollars": "0.2800",
+    "yes_bid_dollars": "0.2800",
+    "yes_ask_dollars": "0.2900",
+    "previous_yes_bid_dollars": "0.2800",
+    "previous_yes_ask_dollars": "0.2900",
+    "volume_fp": "1166391.81",
+    "volume_24h_fp": "34616.89"
+   },
+   {
+    "ticker": "SENATEAK-26-D",
+    "subtitle": ":: ",
+    "yes_sub_title": "Democratic party",
+    "status": "active",
+    "last_price_dollars": "0.7000",
+    "previous_price_dollars": "0.7200",
+    "yes_bid_dollars": "0.7000",
+    "yes_ask_dollars": "0.7100",
+    "previous_yes_bid_dollars": "0.7100",
+    "previous_yes_ask_dollars": "0.7200",
+    "volume_fp": "630811.86",
+    "volume_24h_fp": "43505.63"
+   }
+  ],
+  "SENATEAL-26": [
+   {
+    "ticker": "SENATEAL-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Barry Moore",
+    "status": "active",
+    "last_price_dollars": "0.9850",
+    "previous_price_dollars": "0.9770",
+    "yes_bid_dollars": "0.9650",
+    "yes_ask_dollars": "0.9790",
+    "previous_yes_bid_dollars": "0.9650",
+    "previous_yes_ask_dollars": "0.9850",
+    "volume_fp": "2075.13",
+    "volume_24h_fp": "1.00"
+   },
+   {
+    "ticker": "SENATEAL-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Everett Wess",
+    "status": "active",
+    "last_price_dollars": "0.0360",
+    "previous_price_dollars": "0.0350",
+    "yes_bid_dollars": "0.0350",
+    "yes_ask_dollars": "0.0380",
+    "previous_yes_bid_dollars": "0.0350",
+    "previous_yes_ask_dollars": "0.0370",
+    "volume_fp": "7541.09",
+    "volume_24h_fp": "31.96"
+   }
+  ],
+  "SENATEAR-26": [
+   {
+    "ticker": "SENATEAR-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Tom Cotton",
+    "status": "active",
+    "last_price_dollars": "0.9070",
+    "previous_price_dollars": "0.9300",
+    "yes_bid_dollars": "0.9070",
+    "yes_ask_dollars": "0.9260",
+    "previous_yes_bid_dollars": "0.9260",
+    "previous_yes_ask_dollars": "0.9340",
+    "volume_fp": "29407.69",
+    "volume_24h_fp": "7308.93"
+   },
+   {
+    "ticker": "SENATEAR-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Hallie Shoffner",
+    "status": "active",
+    "last_price_dollars": "0.0910",
+    "previous_price_dollars": "0.0750",
+    "yes_bid_dollars": "0.0790",
+    "yes_ask_dollars": "0.0900",
+    "previous_yes_bid_dollars": "0.0680",
+    "previous_yes_ask_dollars": "0.0740",
+    "volume_fp": "119179.17",
+    "volume_24h_fp": "28865.39"
+   }
+  ],
+  "SENATECO-26": [
+   {
+    "ticker": "SENATECO-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Mark Baisley",
+    "status": "active",
+    "last_price_dollars": "0.0270",
+    "previous_price_dollars": "0.0200",
+    "yes_bid_dollars": "0.0130",
+    "yes_ask_dollars": "0.0220",
+    "previous_yes_bid_dollars": "0.0120",
+    "previous_yes_ask_dollars": "0.0160",
+    "volume_fp": "17668.04",
+    "volume_24h_fp": "253.00"
+   },
+   {
+    "ticker": "SENATECO-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "John Hickenlooper",
+    "status": "active",
+    "last_price_dollars": "0.9830",
+    "previous_price_dollars": "0.9830",
+    "yes_bid_dollars": "0.9630",
+    "yes_ask_dollars": "0.9880",
+    "previous_yes_bid_dollars": "0.9830",
+    "previous_yes_ask_dollars": "0.9870",
+    "volume_fp": "8195.10",
+    "volume_24h_fp": "765.00"
+   }
+  ],
+  "SENATEDE-26": [
+   {
+    "ticker": "SENATEDE-26-R",
+    "subtitle": ":: ",
+    "yes_sub_title": "Republican party",
+    "status": "active",
+    "last_price_dollars": "0.0170",
+    "previous_price_dollars": "0.0160",
+    "yes_bid_dollars": "0.0020",
+    "yes_ask_dollars": "0.0170",
+    "previous_yes_bid_dollars": "0.0020",
+    "previous_yes_ask_dollars": "0.0140",
+    "volume_fp": "17549.32",
+    "volume_24h_fp": "464.43"
+   },
+   {
+    "ticker": "SENATEDE-26-D",
+    "subtitle": ":: Current incumbent: Chris Coons",
+    "yes_sub_title": "Democratic party",
+    "status": "active",
+    "last_price_dollars": "0.9850",
+    "previous_price_dollars": "0.9850",
+    "yes_bid_dollars": "0.9830",
+    "yes_ask_dollars": "0.9900",
+    "previous_yes_bid_dollars": "0.9830",
+    "previous_yes_ask_dollars": "0.9900",
+    "volume_fp": "7232.29",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATEFLS-26": [
+   {
+    "ticker": "SENATEFLS-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Ashley Moody",
+    "status": "active",
+    "last_price_dollars": "0.9000",
+    "previous_price_dollars": "0.8900",
+    "yes_bid_dollars": "0.8900",
+    "yes_ask_dollars": "0.9000",
+    "previous_yes_bid_dollars": "0.8900",
+    "previous_yes_ask_dollars": "0.9000",
+    "volume_fp": "288853.57",
+    "volume_24h_fp": "8339.03"
+   },
+   {
+    "ticker": "SENATEFLS-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Angie Nixon",
+    "status": "active",
+    "last_price_dollars": "0.1200",
+    "previous_price_dollars": "0.1200",
+    "yes_bid_dollars": "0.1100",
+    "yes_ask_dollars": "0.1200",
+    "previous_yes_bid_dollars": "0.1100",
+    "previous_yes_ask_dollars": "0.1200",
+    "volume_fp": "543277.25",
+    "volume_24h_fp": "9883.41"
+   }
+  ],
+  "SENATEGA-26": [
+   {
+    "ticker": "SENATEGA-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Mike Collins",
+    "status": "active",
+    "last_price_dollars": "0.0650",
+    "previous_price_dollars": "0.0590",
+    "yes_bid_dollars": "0.0550",
+    "yes_ask_dollars": "0.0650",
+    "previous_yes_bid_dollars": "0.0550",
+    "previous_yes_ask_dollars": "0.0590",
+    "volume_fp": "981288.58",
+    "volume_24h_fp": "13524.65"
+   },
+   {
+    "ticker": "SENATEGA-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Jon Ossoff",
+    "status": "active",
+    "last_price_dollars": "0.9440",
+    "previous_price_dollars": "0.9420",
+    "yes_bid_dollars": "0.9430",
+    "yes_ask_dollars": "0.9440",
+    "previous_yes_bid_dollars": "0.9420",
+    "previous_yes_ask_dollars": "0.9460",
+    "volume_fp": "404080.78",
+    "volume_24h_fp": "324.30"
+   }
+  ],
+  "SENATEIA-26": [
+   {
+    "ticker": "SENATEIA-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Ashley Hinson",
+    "status": "active",
+    "last_price_dollars": "0.5700",
+    "previous_price_dollars": "0.5500",
+    "yes_bid_dollars": "0.5600",
+    "yes_ask_dollars": "0.5700",
+    "previous_yes_bid_dollars": "0.5500",
+    "previous_yes_ask_dollars": "0.5600",
+    "volume_fp": "1415221.33",
+    "volume_24h_fp": "27089.16"
+   },
+   {
+    "ticker": "SENATEIA-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Josh Turek",
+    "status": "active",
+    "last_price_dollars": "0.4400",
+    "previous_price_dollars": "0.4500",
+    "yes_bid_dollars": "0.4300",
+    "yes_ask_dollars": "0.4400",
+    "previous_yes_bid_dollars": "0.4400",
+    "previous_yes_ask_dollars": "0.4500",
+    "volume_fp": "1891730.73",
+    "volume_24h_fp": "18522.85"
+   }
+  ],
+  "SENATEID-26": [
+   {
+    "ticker": "SENATEID-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Jim Risch",
+    "status": "active",
+    "last_price_dollars": "0.9150",
+    "previous_price_dollars": "0.9300",
+    "yes_bid_dollars": "0.9150",
+    "yes_ask_dollars": "0.9270",
+    "previous_yes_bid_dollars": "0.9290",
+    "previous_yes_ask_dollars": "0.9300",
+    "volume_fp": "68347.90",
+    "volume_24h_fp": "1377.67"
+   },
+   {
+    "ticker": "SENATEID-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "David Roth",
+    "status": "active",
+    "last_price_dollars": "0.0040",
+    "previous_price_dollars": "0.0040",
+    "yes_bid_dollars": "0.0020",
+    "yes_ask_dollars": "0.0070",
+    "previous_yes_bid_dollars": "0.0020",
+    "previous_yes_ask_dollars": "0.0070",
+    "volume_fp": "51404.52",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATEID-26-TACH",
+    "subtitle": "Todd Achilles:: Independent",
+    "yes_sub_title": "Todd Achilles",
+    "status": "active",
+    "last_price_dollars": "0.0900",
+    "previous_price_dollars": "0.0900",
+    "yes_bid_dollars": "0.0700",
+    "yes_ask_dollars": "0.0900",
+    "previous_yes_bid_dollars": "0.0700",
+    "previous_yes_ask_dollars": "0.0900",
+    "volume_fp": "88363.54",
+    "volume_24h_fp": "87.03"
+   }
+  ],
+  "SENATEIL-26": [
+   {
+    "ticker": "SENATEIL-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Don Tracy",
+    "status": "active",
+    "last_price_dollars": "0.0190",
+    "previous_price_dollars": "0.0190",
+    "yes_bid_dollars": "0.0190",
+    "yes_ask_dollars": "0.0290",
+    "previous_yes_bid_dollars": "0.0190",
+    "previous_yes_ask_dollars": "0.0260",
+    "volume_fp": "8383.13",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATEIL-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Juliana Stratton",
+    "status": "active",
+    "last_price_dollars": "0.9820",
+    "previous_price_dollars": "0.9900",
+    "yes_bid_dollars": "0.9610",
+    "yes_ask_dollars": "0.9890",
+    "previous_yes_bid_dollars": "0.9830",
+    "previous_yes_ask_dollars": "0.9890",
+    "volume_fp": "9085.68",
+    "volume_24h_fp": "51.50"
+   }
+  ],
+  "SENATEKS-26": [
+   {
+    "ticker": "SENATEKS-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Roger Marshall",
+    "status": "active",
+    "last_price_dollars": "0.7300",
+    "previous_price_dollars": "0.7800",
+    "yes_bid_dollars": "0.7300",
+    "yes_ask_dollars": "0.7400",
+    "previous_yes_bid_dollars": "0.7700",
+    "previous_yes_ask_dollars": "0.7800",
+    "volume_fp": "430117.24",
+    "volume_24h_fp": "54514.57"
+   },
+   {
+    "ticker": "SENATEKS-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Adam Hamilton",
+    "status": "active",
+    "last_price_dollars": "0.2600",
+    "previous_price_dollars": "0.2200",
+    "yes_bid_dollars": "0.2500",
+    "yes_ask_dollars": "0.2600",
+    "previous_yes_bid_dollars": "0.2200",
+    "previous_yes_ask_dollars": "0.2300",
+    "volume_fp": "683625.35",
+    "volume_24h_fp": "87904.18"
+   }
+  ],
+  "SENATELA-26": [
+   {
+    "ticker": "SENATELA-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Andy Barr",
+    "status": "active",
+    "last_price_dollars": "0.9450",
+    "previous_price_dollars": "0.9490",
+    "yes_bid_dollars": "0.9460",
+    "yes_ask_dollars": "0.9520",
+    "previous_yes_bid_dollars": "0.9440",
+    "previous_yes_ask_dollars": "0.9500",
+    "volume_fp": "75400.37",
+    "volume_24h_fp": "111.79"
+   },
+   {
+    "ticker": "SENATELA-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Charles Booker",
+    "status": "active",
+    "last_price_dollars": "0.0540",
+    "previous_price_dollars": "0.0560",
+    "yes_bid_dollars": "0.0510",
+    "yes_ask_dollars": "0.0540",
+    "previous_yes_bid_dollars": "0.0540",
+    "previous_yes_ask_dollars": "0.0560",
+    "volume_fp": "78231.47",
+    "volume_24h_fp": "36.00"
+   }
+  ],
+  "SENATEMA-26": [
+   {
+    "ticker": "SENATEMA-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "John Deaton",
+    "status": "active",
+    "last_price_dollars": "0.0270",
+    "previous_price_dollars": "0.0150",
+    "yes_bid_dollars": "0.0120",
+    "yes_ask_dollars": "0.0230",
+    "previous_yes_bid_dollars": "0.0120",
+    "previous_yes_ask_dollars": "0.0160",
+    "volume_fp": "7260.08",
+    "volume_24h_fp": "2093.92"
+   },
+   {
+    "ticker": "SENATEMA-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Ed Markey",
+    "status": "active",
+    "last_price_dollars": "0.9810",
+    "previous_price_dollars": "0.9810",
+    "yes_bid_dollars": "0.9790",
+    "yes_ask_dollars": "0.9870",
+    "previous_yes_bid_dollars": "0.9820",
+    "previous_yes_ask_dollars": "0.9880",
+    "volume_fp": "8405.41",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATEME-26": [
+   {
+    "ticker": "SENATEME-26-R",
+    "subtitle": "Republican party:: Susan Collins",
+    "yes_sub_title": "Republican party",
+    "status": "active",
+    "last_price_dollars": "0.4200",
+    "previous_price_dollars": "0.5000",
+    "yes_bid_dollars": "0.4200",
+    "yes_ask_dollars": "0.4300",
+    "previous_yes_bid_dollars": "0.4900",
+    "previous_yes_ask_dollars": "0.5000",
+    "volume_fp": "1491882.89",
+    "volume_24h_fp": "351867.35"
+   },
+   {
+    "ticker": "SENATEME-26-D",
+    "subtitle": "Democratic party:: Graham Platner",
+    "yes_sub_title": "Democratic party",
+    "status": "active",
+    "last_price_dollars": "0.5800",
+    "previous_price_dollars": "0.5000",
+    "yes_bid_dollars": "0.5700",
+    "yes_ask_dollars": "0.5800",
+    "previous_yes_bid_dollars": "0.5000",
+    "previous_yes_ask_dollars": "0.5100",
+    "volume_fp": "1450770.93",
+    "volume_24h_fp": "479824.04"
+   }
+  ],
+  "SENATEMI-26": [
+   {
+    "ticker": "SENATEMI-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Mike Rogers",
+    "status": "active",
+    "last_price_dollars": "0.2800",
+    "previous_price_dollars": "0.2700",
+    "yes_bid_dollars": "0.2700",
+    "yes_ask_dollars": "0.2800",
+    "previous_yes_bid_dollars": "0.2600",
+    "previous_yes_ask_dollars": "0.2700",
+    "volume_fp": "2477176.39",
+    "volume_24h_fp": "60909.49"
+   },
+   {
+    "ticker": "SENATEMI-26-D",
+    "subtitle": ":: Democratic party",
+    "yes_sub_title": "Abdul El-Sayed",
+    "status": "active",
+    "last_price_dollars": "0.7400",
+    "previous_price_dollars": "0.7300",
+    "yes_bid_dollars": "0.7300",
+    "yes_ask_dollars": "0.7400",
+    "previous_yes_bid_dollars": "0.7300",
+    "previous_yes_ask_dollars": "0.7400",
+    "volume_fp": "1896357.82",
+    "volume_24h_fp": "52218.55"
+   }
+  ],
+  "SENATEMN-26": [
+   {
+    "ticker": "SENATEMN-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Michele Tafoya",
+    "status": "active",
+    "last_price_dollars": "0.1100",
+    "previous_price_dollars": "0.0990",
+    "yes_bid_dollars": "0.1000",
+    "yes_ask_dollars": "0.1100",
+    "previous_yes_bid_dollars": "0.0950",
+    "previous_yes_ask_dollars": "0.0960",
+    "volume_fp": "637230.96",
+    "volume_24h_fp": "43286.90"
+   },
+   {
+    "ticker": "SENATEMN-26-D",
+    "subtitle": "Democratic (DFL) party:: Democratic (DFL) party",
+    "yes_sub_title": "Peggy Flanagan",
+    "status": "active",
+    "last_price_dollars": "0.8900",
+    "previous_price_dollars": "0.9080",
+    "yes_bid_dollars": "0.8900",
+    "yes_ask_dollars": "0.9020",
+    "previous_yes_bid_dollars": "0.9020",
+    "previous_yes_ask_dollars": "0.9080",
+    "volume_fp": "274978.70",
+    "volume_24h_fp": "5959.79"
+   }
+  ],
+  "SENATEMS-26": [
+   {
+    "ticker": "SENATEMS-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Cindy Hyde-Smith",
+    "status": "active",
+    "last_price_dollars": "0.9060",
+    "previous_price_dollars": "0.9140",
+    "yes_bid_dollars": "0.9070",
+    "yes_ask_dollars": "0.9130",
+    "previous_yes_bid_dollars": "0.9110",
+    "previous_yes_ask_dollars": "0.9140",
+    "volume_fp": "60853.16",
+    "volume_24h_fp": "1887.79"
+   },
+   {
+    "ticker": "SENATEMS-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Scott Colom",
+    "status": "active",
+    "last_price_dollars": "0.1000",
+    "previous_price_dollars": "0.0900",
+    "yes_bid_dollars": "0.0940",
+    "yes_ask_dollars": "0.1000",
+    "previous_yes_bid_dollars": "0.0880",
+    "previous_yes_ask_dollars": "0.0900",
+    "volume_fp": "101979.94",
+    "volume_24h_fp": "1639.71"
+   }
+  ],
+  "SENATEMT-26": [
+   {
+    "ticker": "SENATEMT-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Kurt Alme",
+    "status": "active",
+    "last_price_dollars": "0.9050",
+    "previous_price_dollars": "0.9090",
+    "yes_bid_dollars": "0.9040",
+    "yes_ask_dollars": "0.9060",
+    "previous_yes_bid_dollars": "0.9040",
+    "previous_yes_ask_dollars": "0.9050",
+    "volume_fp": "222460.85",
+    "volume_24h_fp": "594.12"
+   },
+   {
+    "ticker": "SENATEMT-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Alani Bankhead",
+    "status": "active",
+    "last_price_dollars": "0.0170",
+    "previous_price_dollars": "0.0130",
+    "yes_bid_dollars": "0.0060",
+    "yes_ask_dollars": "0.0170",
+    "previous_yes_bid_dollars": "0.0020",
+    "previous_yes_ask_dollars": "0.0060",
+    "volume_fp": "107487.36",
+    "volume_24h_fp": "15184.36"
+   },
+   {
+    "ticker": "SENATEMT-26-IND",
+    "subtitle": "Seth Bodnar:: Independent",
+    "yes_sub_title": "Seth Bodnar",
+    "status": "active",
+    "last_price_dollars": "0.0990",
+    "previous_price_dollars": "0.0990",
+    "yes_bid_dollars": "0.0810",
+    "yes_ask_dollars": "0.0990",
+    "previous_yes_bid_dollars": "0.0980",
+    "previous_yes_ask_dollars": "0.0990",
+    "volume_fp": "229861.72",
+    "volume_24h_fp": "754.48"
+   }
+  ],
+  "SENATENC-26": [
+   {
+    "ticker": "SENATENC-26-R",
+    "subtitle": ":: Republican",
+    "yes_sub_title": "Michael Whatley",
+    "status": "active",
+    "last_price_dollars": "0.0690",
+    "previous_price_dollars": "0.0650",
+    "yes_bid_dollars": "0.0650",
+    "yes_ask_dollars": "0.0690",
+    "previous_yes_bid_dollars": "0.0660",
+    "previous_yes_ask_dollars": "0.0680",
+    "volume_fp": "867933.47",
+    "volume_24h_fp": "11310.14"
+   },
+   {
+    "ticker": "SENATENC-26-D",
+    "subtitle": ":: Democratic",
+    "yes_sub_title": "Roy Cooper",
+    "status": "active",
+    "last_price_dollars": "0.9330",
+    "previous_price_dollars": "0.9360",
+    "yes_bid_dollars": "0.9330",
+    "yes_ask_dollars": "0.9350",
+    "previous_yes_bid_dollars": "0.9330",
+    "previous_yes_ask_dollars": "0.9360",
+    "volume_fp": "1341354.75",
+    "volume_24h_fp": "333.15"
+   }
+  ],
+  "SENATENE-26": [
+   {
+    "ticker": "SENATENE-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Pete Ricketts",
+    "status": "active",
+    "last_price_dollars": "0.7300",
+    "previous_price_dollars": "0.6700",
+    "yes_bid_dollars": "0.7000",
+    "yes_ask_dollars": "0.7300",
+    "previous_yes_bid_dollars": "0.6700",
+    "previous_yes_ask_dollars": "0.6800",
+    "volume_fp": "1029303.07",
+    "volume_24h_fp": "236178.74"
+   },
+   {
+    "ticker": "SENATENE-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Cindy Burbank",
+    "status": "active",
+    "last_price_dollars": "0.0040",
+    "previous_price_dollars": "0.0050",
+    "yes_bid_dollars": "0.0000",
+    "yes_ask_dollars": "0.0010",
+    "previous_yes_bid_dollars": "0.0000",
+    "previous_yes_ask_dollars": "0.0050",
+    "volume_fp": "57293.45",
+    "volume_24h_fp": "1.00"
+   },
+   {
+    "ticker": "SENATENE-26-DOSB",
+    "subtitle": "Dan Osborn:: Independent",
+    "yes_sub_title": "Dan Osborn",
+    "status": "active",
+    "last_price_dollars": "0.3000",
+    "previous_price_dollars": "0.3500",
+    "yes_bid_dollars": "0.2900",
+    "yes_ask_dollars": "0.3000",
+    "previous_yes_bid_dollars": "0.3400",
+    "previous_yes_ask_dollars": "0.3500",
+    "volume_fp": "674023.35",
+    "volume_24h_fp": "67850.71"
+   }
+  ],
+  "SENATENH-26": [
+   {
+    "ticker": "SENATENH-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "John E. Sununu",
+    "status": "active",
+    "last_price_dollars": "0.1500",
+    "previous_price_dollars": "0.1700",
+    "yes_bid_dollars": "0.1300",
+    "yes_ask_dollars": "0.1500",
+    "previous_yes_bid_dollars": "0.1500",
+    "previous_yes_ask_dollars": "0.1700",
+    "volume_fp": "813005.86",
+    "volume_24h_fp": "170066.17"
+   },
+   {
+    "ticker": "SENATENH-26-D",
+    "subtitle": ":: Democratic party",
+    "yes_sub_title": "Chris Pappas",
+    "status": "active",
+    "last_price_dollars": "0.8600",
+    "previous_price_dollars": "0.8500",
+    "yes_bid_dollars": "0.8600",
+    "yes_ask_dollars": "0.8700",
+    "previous_yes_bid_dollars": "0.8500",
+    "previous_yes_ask_dollars": "0.8600",
+    "volume_fp": "408486.87",
+    "volume_24h_fp": "57726.80"
+   }
+  ],
+  "SENATENJ-26": [
+   {
+    "ticker": "SENATENJ-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Justin Murphy",
+    "status": "active",
+    "last_price_dollars": "0.0240",
+    "previous_price_dollars": "0.0240",
+    "yes_bid_dollars": "0.0020",
+    "yes_ask_dollars": "0.0290",
+    "previous_yes_bid_dollars": "0.0020",
+    "previous_yes_ask_dollars": "0.0240",
+    "volume_fp": "30062.37",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATENJ-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Cory Booker",
+    "status": "active",
+    "last_price_dollars": "0.9810",
+    "previous_price_dollars": "0.9810",
+    "yes_bid_dollars": "0.9570",
+    "yes_ask_dollars": "0.9810",
+    "previous_yes_bid_dollars": "0.9760",
+    "previous_yes_ask_dollars": "0.9810",
+    "volume_fp": "11768.87",
+    "volume_24h_fp": "1.00"
+   }
+  ],
+  "SENATENM-26": [
+   {
+    "ticker": "SENATENM-26-R",
+    "subtitle": "Republican party",
+    "yes_sub_title": "Larry E. Marker",
+    "status": "active",
+    "last_price_dollars": "0.0260",
+    "previous_price_dollars": "0.0260",
+    "yes_bid_dollars": "0.0240",
+    "yes_ask_dollars": "0.0250",
+    "previous_yes_bid_dollars": "0.0240",
+    "previous_yes_ask_dollars": "0.0250",
+    "volume_fp": "6078.02",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATENM-26-D",
+    "subtitle": "Democratic party",
+    "yes_sub_title": "Ben Ray Luj\u00e1n",
+    "status": "active",
+    "last_price_dollars": "0.9740",
+    "previous_price_dollars": "0.9710",
+    "yes_bid_dollars": "0.9730",
+    "yes_ask_dollars": "0.9740",
+    "previous_yes_bid_dollars": "0.9730",
+    "previous_yes_ask_dollars": "0.9740",
+    "volume_fp": "19777.87",
+    "volume_24h_fp": "1.01"
+   }
+  ],
+  "SENATEOHS-26": [
+   {
+    "ticker": "SENATEOHS-26-R",
+    "subtitle": "Republican party",
+    "yes_sub_title": "Jon Husted",
+    "status": "active",
+    "last_price_dollars": "0.4100",
+    "previous_price_dollars": "0.4000",
+    "yes_bid_dollars": "0.4000",
+    "yes_ask_dollars": "0.4100",
+    "previous_yes_bid_dollars": "0.4000",
+    "previous_yes_ask_dollars": "0.4100",
+    "volume_fp": "2167113.86",
+    "volume_24h_fp": "37819.83"
+   },
+   {
+    "ticker": "SENATEOHS-26-D",
+    "subtitle": "Democratic party",
+    "yes_sub_title": "Sherrod Brown",
+    "status": "active",
+    "last_price_dollars": "0.5900",
+    "previous_price_dollars": "0.6000",
+    "yes_bid_dollars": "0.5800",
+    "yes_ask_dollars": "0.5900",
+    "previous_yes_bid_dollars": "0.5900",
+    "previous_yes_ask_dollars": "0.6000",
+    "volume_fp": "2258667.45",
+    "volume_24h_fp": "311971.65"
+   }
+  ],
+  "SENATEOK-26": [
+   {
+    "ticker": "SENATEOK-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Kevin Hern",
+    "status": "active",
+    "last_price_dollars": "0.9750",
+    "previous_price_dollars": "0.9740",
+    "yes_bid_dollars": "0.9760",
+    "yes_ask_dollars": "0.9850",
+    "previous_yes_bid_dollars": "0.9740",
+    "previous_yes_ask_dollars": "0.9750",
+    "volume_fp": "21239.44",
+    "volume_24h_fp": "503.98"
+   },
+   {
+    "ticker": "SENATEOK-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "N'Kiyla Thomas",
+    "status": "active",
+    "last_price_dollars": "0.0230",
+    "previous_price_dollars": "0.0230",
+    "yes_bid_dollars": "0.0110",
+    "yes_ask_dollars": "0.0220",
+    "previous_yes_bid_dollars": "0.0230",
+    "previous_yes_ask_dollars": "0.0260",
+    "volume_fp": "17257.47",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATEOR-26": [
+   {
+    "ticker": "SENATEOR-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "David Brock Smith",
+    "status": "active",
+    "last_price_dollars": "0.0230",
+    "previous_price_dollars": "0.0240",
+    "yes_bid_dollars": "0.0200",
+    "yes_ask_dollars": "0.0230",
+    "previous_yes_bid_dollars": "0.0200",
+    "previous_yes_ask_dollars": "0.0230",
+    "volume_fp": "5421.62",
+    "volume_24h_fp": "122.08"
+   },
+   {
+    "ticker": "SENATEOR-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Jeff Merkley",
+    "status": "active",
+    "last_price_dollars": "0.9780",
+    "previous_price_dollars": "0.9760",
+    "yes_bid_dollars": "0.9770",
+    "yes_ask_dollars": "0.9780",
+    "previous_yes_bid_dollars": "0.9760",
+    "previous_yes_ask_dollars": "0.9780",
+    "volume_fp": "4755.20",
+    "volume_24h_fp": "2.03"
+   }
+  ],
+  "SENATERI-26": [
+   {
+    "ticker": "SENATERI-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Raymond McKay",
+    "status": "active",
+    "last_price_dollars": "0.0190",
+    "previous_price_dollars": "0.0190",
+    "yes_bid_dollars": "0.0080",
+    "yes_ask_dollars": "0.0150",
+    "previous_yes_bid_dollars": "0.0070",
+    "previous_yes_ask_dollars": "0.0120",
+    "volume_fp": "4892.18",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATERI-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Jack Reed",
+    "status": "active",
+    "last_price_dollars": "0.9800",
+    "previous_price_dollars": "0.9800",
+    "yes_bid_dollars": "0.9840",
+    "yes_ask_dollars": "0.9940",
+    "previous_yes_bid_dollars": "0.9870",
+    "previous_yes_ask_dollars": "0.9940",
+    "volume_fp": "18684.90",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATESC-26": [
+   {
+    "ticker": "SENATESC-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "(Republican candidate)",
+    "status": "active",
+    "last_price_dollars": "0.8700",
+    "previous_price_dollars": "0.8600",
+    "yes_bid_dollars": "0.8600",
+    "yes_ask_dollars": "0.8700",
+    "previous_yes_bid_dollars": "0.8600",
+    "previous_yes_ask_dollars": "0.8700",
+    "volume_fp": "567996.78",
+    "volume_24h_fp": "2902.56"
+   },
+   {
+    "ticker": "SENATESC-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Annie Andrews",
+    "status": "active",
+    "last_price_dollars": "0.1400",
+    "previous_price_dollars": "0.1400",
+    "yes_bid_dollars": "0.1300",
+    "yes_ask_dollars": "0.1400",
+    "previous_yes_bid_dollars": "0.1300",
+    "previous_yes_ask_dollars": "0.1400",
+    "volume_fp": "883677.85",
+    "volume_24h_fp": "8101.04"
+   }
+  ],
+  "SENATESD-26": [
+   {
+    "ticker": "SENATESD-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Mike Rounds",
+    "status": "active",
+    "last_price_dollars": "0.9010",
+    "previous_price_dollars": "0.9000",
+    "yes_bid_dollars": "0.9010",
+    "yes_ask_dollars": "0.9190",
+    "previous_yes_bid_dollars": "0.9150",
+    "previous_yes_ask_dollars": "0.9390",
+    "volume_fp": "57788.53",
+    "volume_24h_fp": "953.74"
+   },
+   {
+    "ticker": "SENATESD-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Julian Beaudion",
+    "status": "active",
+    "last_price_dollars": "0.0050",
+    "previous_price_dollars": "0.0050",
+    "yes_bid_dollars": "0.0030",
+    "yes_ask_dollars": "0.0050",
+    "previous_yes_bid_dollars": "0.0030",
+    "previous_yes_ask_dollars": "0.0060",
+    "volume_fp": "28168.28",
+    "volume_24h_fp": "0.00"
+   },
+   {
+    "ticker": "SENATESD-26-BBEN",
+    "subtitle": ":: Independent",
+    "yes_sub_title": "Brian Bengs",
+    "status": "active",
+    "last_price_dollars": "0.0900",
+    "previous_price_dollars": "0.0700",
+    "yes_bid_dollars": "0.0700",
+    "yes_ask_dollars": "0.0900",
+    "previous_yes_bid_dollars": "0.0700",
+    "previous_yes_ask_dollars": "0.0800",
+    "volume_fp": "66596.62",
+    "volume_24h_fp": "1655.13"
+   }
+  ],
+  "SENATETN-26": [
+   {
+    "ticker": "SENATETN-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Bill Hagerty",
+    "status": "active",
+    "last_price_dollars": "0.9820",
+    "previous_price_dollars": "0.9840",
+    "yes_bid_dollars": "0.9810",
+    "yes_ask_dollars": "0.9820",
+    "previous_yes_bid_dollars": "0.9810",
+    "previous_yes_ask_dollars": "0.9820",
+    "volume_fp": "7191.18",
+    "volume_24h_fp": "1.00"
+   },
+   {
+    "ticker": "SENATETN-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Marquita Bradshaw",
+    "status": "active",
+    "last_price_dollars": "0.0200",
+    "previous_price_dollars": "0.0200",
+    "yes_bid_dollars": "0.0180",
+    "yes_ask_dollars": "0.0190",
+    "previous_yes_bid_dollars": "0.0180",
+    "previous_yes_ask_dollars": "0.0190",
+    "volume_fp": "28328.71",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATETX-26": [
+   {
+    "ticker": "SENATETX-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Ken Paxton",
+    "status": "active",
+    "last_price_dollars": "0.4300",
+    "previous_price_dollars": "0.4300",
+    "yes_bid_dollars": "0.4200",
+    "yes_ask_dollars": "0.4300",
+    "previous_yes_bid_dollars": "0.4200",
+    "previous_yes_ask_dollars": "0.4300",
+    "volume_fp": "8180092.75",
+    "volume_24h_fp": "89831.76"
+   },
+   {
+    "ticker": "SENATETX-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "James Talarico",
+    "status": "active",
+    "last_price_dollars": "0.5900",
+    "previous_price_dollars": "0.5900",
+    "yes_bid_dollars": "0.5800",
+    "yes_ask_dollars": "0.5900",
+    "previous_yes_bid_dollars": "0.5800",
+    "previous_yes_ask_dollars": "0.5900",
+    "volume_fp": "6022065.18",
+    "volume_24h_fp": "79160.74"
+   }
+  ],
+  "SENATEVA-26": [
+   {
+    "ticker": "SENATEVA-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Bert Mizusawa",
+    "status": "active",
+    "last_price_dollars": "0.0370",
+    "previous_price_dollars": "0.0100",
+    "yes_bid_dollars": "0.0240",
+    "yes_ask_dollars": "0.0270",
+    "previous_yes_bid_dollars": "0.0240",
+    "previous_yes_ask_dollars": "0.0290",
+    "volume_fp": "11962.70",
+    "volume_24h_fp": "87.54"
+   },
+   {
+    "ticker": "SENATEVA-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Mark Warner",
+    "status": "active",
+    "last_price_dollars": "0.9800",
+    "previous_price_dollars": "0.9740",
+    "yes_bid_dollars": "0.9770",
+    "yes_ask_dollars": "0.9800",
+    "previous_yes_bid_dollars": "0.9760",
+    "previous_yes_ask_dollars": "0.9800",
+    "volume_fp": "18657.37",
+    "volume_24h_fp": "922.39"
+   }
+  ],
+  "SENATEWV-26": [
+   {
+    "ticker": "SENATEWV-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Shelley Moore Capito",
+    "status": "active",
+    "last_price_dollars": "0.9860",
+    "previous_price_dollars": "0.9790",
+    "yes_bid_dollars": "0.9740",
+    "yes_ask_dollars": "0.9860",
+    "previous_yes_bid_dollars": "0.9710",
+    "previous_yes_ask_dollars": "0.9840",
+    "volume_fp": "8909.77",
+    "volume_24h_fp": "2.01"
+   },
+   {
+    "ticker": "SENATEWV-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "Rachel Fetty Anderson",
+    "status": "active",
+    "last_price_dollars": "0.0250",
+    "previous_price_dollars": "0.0250",
+    "yes_bid_dollars": "0.0080",
+    "yes_ask_dollars": "0.0240",
+    "previous_yes_bid_dollars": "0.0090",
+    "previous_yes_ask_dollars": "0.0260",
+    "volume_fp": "12705.38",
+    "volume_24h_fp": "0.00"
+   }
+  ],
+  "SENATEWY-26": [
+   {
+    "ticker": "SENATEWY-26-R",
+    "subtitle": "Republican party:: Republican party",
+    "yes_sub_title": "Harriet Hageman",
+    "status": "active",
+    "last_price_dollars": "0.9770",
+    "previous_price_dollars": "0.9800",
+    "yes_bid_dollars": "0.9770",
+    "yes_ask_dollars": "0.9810",
+    "previous_yes_bid_dollars": "0.9750",
+    "previous_yes_ask_dollars": "0.9820",
+    "volume_fp": "13947.33",
+    "volume_24h_fp": "3.91"
+   },
+   {
+    "ticker": "SENATEWY-26-D",
+    "subtitle": "Democratic party:: Democratic party",
+    "yes_sub_title": "James Byrd",
+    "status": "active",
+    "last_price_dollars": "0.0190",
+    "previous_price_dollars": "0.0190",
+    "yes_bid_dollars": "0.0140",
+    "yes_ask_dollars": "0.0230",
+    "previous_yes_bid_dollars": "0.0130",
+    "previous_yes_ask_dollars": "0.0250",
+    "volume_fp": "9504.33",
+    "volume_24h_fp": "0.00"
+   }
+  ]
+ }
+}
