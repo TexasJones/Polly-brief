@@ -85,9 +85,9 @@ SECTIONS = [
 # Politics, NBC Politics, Semafor, ...) must match on the headline itself.
 #
 # ACTIVE feeds only: every one was checked on 2026-09-25 to exist and post
-# fresh items daily. Politico (politics, congress, energy, technology) and
-# CNBC were confirmed by the first GitHub run's pending check the same day
-# and promoted here. Politico's economy feed was dropped: that run found
+# fresh items daily. Politico (politics, congress, energy, technology),
+# CNBC, The Verge and Mediaite were confirmed by the first GitHub run's
+# pending check the same day and promoted here. Politico's economy feed was dropped: that run found
 # only 3 items, none within 48 hours.
 _HILL = 'https://thehill.com'
 _NPR_POLITICS = 'https://feeds.npr.org/1014/rss.xml'
@@ -113,10 +113,15 @@ SECTION_FEEDS = {
         ('Nieman Lab', 'https://www.niemanlab.org/feed/', True),
         ('Semafor', _SEMAFOR, False),
         ('Press Gazette', 'https://www.pressgazette.co.uk/feed/', False),
+        # General, not beat: Mediaite mixes political commentary with media
+        # news, so its headlines must name a media topic, and the beat feeds
+        # above win ties. Very fresh (18 items within 24h on 2026-09-25).
+        ('Mediaite', 'https://www.mediaite.com/feed/', False),
     ],
     'AI+Policy': [
         ('The Hill', f'{_HILL}/policy/technology/feed/', True),
         ('Politico', 'https://rss.politico.com/technology.xml', True),
+        ('The Verge', 'https://www.theverge.com/rss/policy/index.xml', True),
         ('FedScoop', 'https://fedscoop.com/feed/', False),
         ('Nextgov', 'https://www.nextgov.com/rss/all/', False),
         ('NPR', 'https://feeds.npr.org/1019/rss.xml', False),
@@ -157,8 +162,8 @@ SECTION_FEEDS = {
 # with item counts, or FAILED -- but their stories are never used. Once a
 # log shows one is OK, move it into SECTION_FEEDS above (section, beat).
 PENDING_FEEDS = [
-    ('The Verge', 'https://www.theverge.com/rss/policy/index.xml'),    # AI+Policy, beat
-    ('Mediaite', 'https://www.mediaite.com/feed/'),               # Media, beat
+    # Empty: every candidate so far has been confirmed or rejected. Add a
+    # new feed here first, as ('Outlet', 'url'), to test it for a run.
 ]
 
 # Headline topic check, per section. A candidate's headline must match its
