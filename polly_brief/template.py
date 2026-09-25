@@ -476,12 +476,10 @@ def _time_ago_label(published_date, today: dt.date) -> str:
     published_date is None (the Tier 3 undated fallback in
     news_snapshot.py) -- an unverified date shouldn't display a
     fabricated-looking label, so the caller simply omits this line rather
-    than show something misleading. Day-level granularity only, matching
-    what the underlying data actually supports: feedparser can return
-    finer timestamps, but _entry_published_date deliberately truncates to
-    a date, and the whole freshness-tier system already operates in whole
-    days (see MAX_STORY_AGE_DAYS in news_snapshot.py) -- so "2 hours ago"
-    isn't a real distinction this data can honestly make."""
+    than show something misleading. Day-level only on purpose: the brief is
+    built early in the morning but read all day, so "3 hours ago" would be
+    wrong by the time most readers see it. (news_snapshot.py never picks a
+    story older than 48 hours, so this is always Today or Yesterday.)"""
     if published_date is None:
         return ''
     days = (today - published_date).days
@@ -589,11 +587,14 @@ def _featured_job_block(job: JobPosting) -> str:
 
 
 def _pick_top_highlight(top_stories: list[TopStory]) -> Optional[TopStory]:
-    """Find the first story with content to feature at the top."""
-    for story in top_stories:
-        if story.item:
-            return story
-    return None
+    """The day's lead story: the one the most other outlets are also
+    covering (NewsItem.coverage, counted by news_snapshot.py). Ties -- and
+    a day where nothing is widely covered -- go to the earliest section, so
+    Campaigns still leads when nothing stands out."""
+    with_items = [s for s in top_stories if s.item]
+    if not with_items:
+        return None
+    return max(with_items, key=lambda s: getattr(s.item, 'coverage', 0) or 0)
 
 
 def _top_highlight_block(top_stories: list[TopStory], today: dt.date) -> str:
@@ -702,7 +703,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     the only list _pick_top_highlight() below scans for the day's hero/lead
     story, so keeping pr_story out of it structurally guarantees this
     section can never become the highlighted story, regardless of what the
-    six SECTION_QUERIES sections do or don't find that day. It renders as
+    six news sections do or don't find that day. It renders as
     its own fixed block below Top Stories instead (or not at all, same
     silently-dropped-if-empty treatment as the other sections -- see
     remaining_stories below).

@@ -98,29 +98,9 @@ def main():
     parser.add_argument('--sample', action='store_true')
     parser.add_argument('--out', default='polly_brief.html')
     parser.add_argument('--subject-out', default='polly_brief_subject.txt')
-    # This controls how many of each Google News search's raw entries
-    # get examined for a publish date, per source-tier stage (see
-    # news_snapshot._fetch_candidates / _fetch_topic_story). It used to
-    # default to 10 -- but Google News RSS ranks results by RELEVANCE,
-    # not recency, so for a broad, evergreen-leaning query (e.g. Media's
-    # "U.S. media television cable news Hollywood press freedom", or
-    # Legislative's "Congress committee vote markup bill...") a genuinely
-    # fresh article can easily rank outside the top 10 while an old
-    # retrospective or explainer sits above it. The freshness-based
-    # picker in _fetch_topic_story never got a chance to see anything
-    # past that cutoff. Confirmed on 2026-09-15: Media and Legislative
-    # both had 40-56 raw entries in their unrestricted-web stage, but
-    # only examining the first 10 meant the freshest dated candidate
-    # found was 56 and 34 days old respectively -- both past
-    # MAX_FALLBACK_AGE_DAYS -- so both sections went blank even though
-    # fresher, on-topic stories were sitting a few slots further down in
-    # the same feed. Raised to 100 (matches the typical full size of a
-    # single Google News RSS response) so the freshness picker sees
-    # everything Google actually returned instead of an arbitrary early
-    # slice of it. This is safe to raise -- MAX_STORY_AGE_DAYS /
-    # MAX_FALLBACK_AGE_DAYS in news_snapshot.py are what actually gate
-    # quality, so widening this only gives the picker more candidates to
-    # choose the freshest of, never a worse one.
+    # No longer used: news now comes from outlets' own RSS feeds with a
+    # 48-hour freshness limit (see news_snapshot.py), not a depth-limited
+    # Google search. Kept so existing workflow commands don't break.
     parser.add_argument('--headlines-per-outlet', type=int, default=100)
     parser.add_argument('--quote', default=None)
     parser.add_argument('--quote-source', default=None)

@@ -1,4 +1,42 @@
+"""
+News for The Polly Brief: one fresh, on-topic story per section, plus the
+PR & Comms Industry item.
+
+HOW STORIES ARE CHOSEN (rebuilt 2026-09-25 -- "no old news")
+------------------------------------------------------------
+The previous version ran one Google News *search* per section. Google
+ranks search results by relevance, not recency, so the freshest on-topic
+story often wasn't in the results at all, and the code then fell back to
+anything up to 14, then 30 days old, then undated items. Readers got 4-,
+10-, 11- and 21-day-old stories, plus off-topic matches (a Supreme Court
+story under AI+Policy).
+
+Now:
+  1. SOURCES: each section reads several outlets' own RSS feeds
+     (SECTION_FEEDS) -- only feeds confirmed to work; unconfirmed
+     candidates are health-checked in the log (PENDING_FEEDS) but unused. Outlet feeds are in time order and carry real
+     timestamps, and their links go straight to the publisher.
+  2. FRESHNESS: stories from the last FRESH_HOURS (24) always come first;
+     nothing older than MAX_AGE_HOURS (48) is ever used, and anything
+     without a verifiable timestamp is dropped. If a section has nothing
+     that fresh, it's left out of the brief -- never padded with old news.
+  3. RELEVANCE: a headline must match its section's topic words
+     (SECTION_TOPIC_PATTERNS), even from a section-specific feed -- outlet
+     section feeds wander (The Hill's energy feed also carries mortgage-
+     rate stories).
+  4. IMPORTANCE: among fresh candidates, the story that other outlets are
+     also covering wins ("coverage", counted across every feed fetched this
+     run), so a section leads with the day's real story rather than
+     whatever minor item was posted last. Ties go to the newest.
+  5. BACKUP: only if a section's feeds yield nothing fresh and relevant is
+     a Google News search tried -- under the same 48-hour rule.
+
+Every feed prints a one-line diagnostic (entries, how many are within
+24h/48h, newest age) so the workflow log shows exactly where each pick
+came from.
+"""
 from __future__ import annotations
+
 import datetime as dt
 import json
 import re
@@ -6,108 +44,251 @@ from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
 from typing import Optional
-from urllib.parse import urlparse
+from urllib.parse import quote_plus, urlparse
+from zoneinfo import ZoneInfo
+
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+
 HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; PollyBriefBot/1.0; +https://www.thepolly.co)'}
 GOOGLE_NEWS_BASE = 'https://news.google.com/rss/search'
-# One targeted search query per topic instead of maintaining individual
-# outlet RSS feeds. This sidesteps broken/guessed outlet URLs entirely and
-# guarantees on-topic results, since we're searching for the topic directly
-# rather than filtering a general political-news pool after the fact.
-#
-# Finance and Economy were originally split into two separate categories,
-# then both removed entirely (neither mapped to a job category Polly
-# actually tracks). Economy came back as a single category afterward,
-# deliberately scoped to broader business/economic news (markets, jobs
-# reports, macro trends) rather than the narrower "money in politics"
-# angle Finance used to cover -- readers wanted general business context
-# for a political-professional audience, not a second campaign-finance
-# section.
-SECTION_QUERIES = [
-    ('Campaigns', chr(0x1F5F3), 'political campaign primary election'),
-    ('Media', chr(0x1F4FA), 'U.S. media television cable news Hollywood press freedom -"journalists association"'),
-    ('AI+Policy', chr(0x1F916), 'artificial intelligence policy regulation Congress'),
-    ('Energy', chr(0x26A1), 'energy policy EPA regulation'),
-    ('Economy', chr(0x1F4C8), 'U.S. economy jobs report inflation stock market Federal Reserve'),
-    ('Legislative', chr(0x1F3DB), 'Congress committee vote markup bill passed signed law'),
-]
-
-# Preferred freshness window for a "top story." This is a PREFERENCE, not
-# a hard reject -- see the tiered fallback in _fetch_topic_story below.
-# We used to also lean on Google's `when:` search-time operator
-# (when:1d/3d/7d/14d, widening in stages) to bias results toward recent
-# articles before any per-entry date check even ran. That turned out to
-# be the actual bug: `when:` is undocumented at the RSS level and behaves
-# unreliably -- windowed queries were silently returning zero results far
-# more often than expected. With no unrestricted fallback left after the
-# last window, every section went blank at once -- a fetch failure, not
-# seven simultaneous quiet news days.
-#
-# Fix, in two parts:
-#   1. Stop depending on `when:` entirely -- one plain, unrestricted
-#      search per topic, which is what was reliably working the whole
-#      time under the old code's fallback.
-#   2. Prefer articles within this many days, but never let "nothing
-#      fresh enough" collapse into "show nothing" -- an older article,
-#      or even an unverified-date one, is still more useful to a reader
-#      than a blank section. A section only comes back empty if Google
-#      genuinely returned zero usable entries for that query.
-MAX_STORY_AGE_DAYS = 14
-
-# Outer cap on how old a story can be even in the "graceful fallback"
-# tier below -- added after a 139-day-old story slipped through under
-# the previous uncapped version. An old story still beats a blank
-# section up to a point, but 139 days is well past that point; beyond
-# this cap, an empty section is the more honest outcome.
-MAX_FALLBACK_AGE_DAYS = 30
+EASTERN = ZoneInfo('America/New_York')
+FEED_TIMEOUT_SECONDS = 10
 
 # ─────────────────────────────────────────────
-# PR & Comms industry section — sourced differently from the six
-# SECTION_QUERIES topics above. Those run a Google News RSS *search* (broad,
-# relevance-ranked, needing the multi-stage fallback cascade plus a
-# relevance-keyword gate to catch off-topic drift -- see
-# _is_relevant_to_section below and its history of real false positives:
-# a FIBA World Cup story under Energy, a ferry-fire story under Media).
-# This section instead reads two PR-industry trade publications' own RSS
-# feeds directly. Every item in them already IS PR-industry news by
-# definition, so there's no search-relevance problem to guard against, and
-# no need for the search cascade -- just "take the newest item."
+# Freshness
+# ─────────────────────────────────────────────
+FRESH_HOURS = 24      # always preferred
+MAX_AGE_HOURS = 48    # hard limit -- nothing older is ever shown
+
+# ─────────────────────────────────────────────
+# Sections and their sources
+# ─────────────────────────────────────────────
+# Display order of the six news sections (template.py renders them in this
+# order, minus whichever story is promoted to the hero slot).
+SECTIONS = [
+    ('Campaigns', chr(0x1F5F3)),
+    ('Media', chr(0x1F4FA)),
+    ('AI+Policy', chr(0x1F916)),
+    ('Energy', chr(0x26A1)),
+    ('Economy', chr(0x1F4C8)),
+    ('Legislative', chr(0x1F3DB)),
+]
+
+# (outlet display name, feed URL, beat). "beat" = the feed IS this
+# section's beat (The Hill's campaign feed for Campaigns, Utility Dive for
+# Energy): its items may pass the topic check on their summary as well as
+# the headline, and win ties against general feeds. General feeds (NPR
+# Politics, NBC Politics, Semafor, ...) must match on the headline itself.
 #
-# Checked live 2026-09-20 before building this: PRovoke Media's feed posted
-# ~13 items in the prior 24 hours alone (almost entirely agency personnel/
-# account moves -- "Burson Names Jennifer Stearns Global Chief Innovation
-# Officer," "Penta Taps Johnson, McDevitt To Lead Global Businesses," etc.),
-# and PRWeek's general "Latest US News" feed independently corroborated
-# several of the same stories same-day (e.g. both had the Precision
-# Strategies/Adam Cubbage CEO story and the Mastercard/We. Communications
-# AOR move within hours of each other). Two solid, cross-corroborating,
-# multiple-times-daily sources -- no sparsity risk.
-#
-# Deliberately built and returned by its own function (get_pr_industry_story,
-# below), kept OUT of SECTION_QUERIES / get_top_stories() entirely, and
-# passed to render_brief() as a separate parameter. This is a structural
-# guarantee, not a fragile ordering trick: template.py's
-# _pick_top_highlight() only ever looks at the list get_top_stories()
-# returns, so a story that never enters that list can never become the
-# day's highlighted/hero story. This section is audience-specific bonus
-# content for PR/public-affairs professionals (who this section is not),
-# not general news competing for the lead slot.
+# ACTIVE feeds only: every one was checked on 2026-09-25 to exist and post
+# fresh items daily. Feeds that couldn't be checked from Claude's sandbox
+# live in PENDING_FEEDS below until a GitHub run confirms them.
+_HILL = 'https://thehill.com'
+_NPR_POLITICS = 'https://feeds.npr.org/1014/rss.xml'
+_NBC_POLITICS = 'https://feeds.nbcnews.com/nbcnews/public/politics'
+_CBS_POLITICS = 'https://www.cbsnews.com/latest/rss/politics'
+_ABC_POLITICS = 'https://abcnews.com/abcnews/politicsheadlines'
+_ROLL_CALL = 'https://rollcall.com/feed/'
+_SEMAFOR = 'https://www.semafor.com/rss.xml'
+SECTION_FEEDS = {
+    'Campaigns': [
+        ('The Hill', f'{_HILL}/homenews/campaign/feed/', True),
+        ('Ballotpedia', 'https://news.ballotpedia.org/feed/', True),
+        ('NBC News', _NBC_POLITICS, False),
+        ('CBS News', _CBS_POLITICS, False),
+        ('ABC News', _ABC_POLITICS, False),
+        ('NPR', _NPR_POLITICS, False),
+        ('Roll Call', _ROLL_CALL, False),
+    ],
+    'Media': [
+        ('The Hill', f'{_HILL}/homenews/media/feed/', True),
+        ('Poynter', 'https://www.poynter.org/feed/', True),
+        ('Nieman Lab', 'https://www.niemanlab.org/feed/', True),
+        ('Semafor', _SEMAFOR, False),
+        ('Press Gazette', 'https://www.pressgazette.co.uk/feed/', False),
+    ],
+    'AI+Policy': [
+        ('The Hill', f'{_HILL}/policy/technology/feed/', True),
+        ('FedScoop', 'https://fedscoop.com/feed/', False),
+        ('Nextgov', 'https://www.nextgov.com/rss/all/', False),
+        ('NPR', 'https://feeds.npr.org/1019/rss.xml', False),
+        ('NBC News', _NBC_POLITICS, False),
+        ('Semafor', _SEMAFOR, False),
+    ],
+    'Energy': [
+        ('The Hill', f'{_HILL}/policy/energy-environment/feed/', True),
+        ('Utility Dive', 'https://www.utilitydive.com/feeds/news/', True),
+        ('Canary Media', 'https://www.canarymedia.com/rss.rss', True),
+        ('Inside Climate News', 'https://insideclimatenews.org/feed/', True),
+        ('Grist', 'https://grist.org/feed/', False),
+    ],
+    'Economy': [
+        ('The Hill', f'{_HILL}/business/feed/', True),
+        ('NPR', 'https://feeds.npr.org/1017/rss.xml', True),
+        ('CBS News', 'https://www.cbsnews.com/latest/rss/moneywatch', True),
+        ('NBC News', 'https://feeds.nbcnews.com/nbcnews/public/business', True),
+        ('Fortune', 'https://fortune.com/feed/fortune-feeds/?id=3230629', False),
+        ('Semafor', _SEMAFOR, False),
+    ],
+    'Legislative': [
+        ('Roll Call', _ROLL_CALL, True),
+        ('The Hill', f'{_HILL}/homenews/house/feed/', True),
+        ('The Hill', f'{_HILL}/homenews/senate/feed/', True),
+        ('NPR', _NPR_POLITICS, False),
+        ('NBC News', _NBC_POLITICS, False),
+        ('CBS News', _CBS_POLITICS, False),
+        ('ABC News', _ABC_POLITICS, False),
+    ],
+}
+
+# Candidate feeds NOT yet confirmed (they block the sandbox's checking
+# tool). Every run fetches them and logs a "[pending check]" line -- OK
+# with item counts, or FAILED -- but their stories are never used. Once a
+# log shows one is OK, move it into SECTION_FEEDS above (section, beat).
+PENDING_FEEDS = [
+    ('Politico', 'https://rss.politico.com/politics-news.xml'),   # Campaigns, general
+    ('Politico', 'https://rss.politico.com/congress.xml'),        # Legislative, beat
+    ('Politico', 'https://rss.politico.com/energy.xml'),          # Energy, beat
+    ('Politico', 'https://rss.politico.com/economy.xml'),         # Economy, beat
+    ('Politico', 'https://rss.politico.com/technology.xml'),      # AI+Policy, beat
+    ('CNBC', 'https://www.cnbc.com/id/20910258/device/rss/rss.html'),  # Economy, beat
+    ('The Verge', 'https://www.theverge.com/rss/policy/index.xml'),    # AI+Policy, beat
+    ('Mediaite', 'https://www.mediaite.com/feed/'),               # Media, beat
+]
+
+# Headline topic check, per section. A candidate's headline must match its
+# section's pattern (case-insensitive, whole words; "\w*" marks a stem).
+# "White House" is masked before matching (see _topic_text) so it never
+# counts as "House" for Legislative.
+SECTION_TOPIC_PATTERNS = {
+    'Campaigns': (
+        r"campaign\w*|election\w*|primar(?:y|ies)|midterms?|ballots?|voters?|voting|"
+        r"polls?|polling|pollsters?|candidates?|endorse\w*|super pac|"
+        r"fundrais\w*|donors?|debates?|turnout|rnc|dnc|running mate|ticket|swing states?|"
+        r"battleground\w*|governor'?s race|senate race|house race|race for|reelection|"
+        r"re-election|redistricting|gerrymander\w*|attack ads?|campaign ads?|presidential|"
+        r"hopefuls?|2028|races?|incumbents?|challengers?|seats?|governor"
+    ),
+    'Media': (
+        r"media|journalis\w*|newsrooms?|reporters?|press|broadcast\w*|television|tv|cable|"
+        r"networks?|anchors?|editors?|publishers?|newspapers?|podcast\w*|streaming|streamers?|"
+        r"hollywood|studios?|films?|movies?|box office|late-night|talk show|ratings|viewers?|"
+        r"viewership|fcc|first amendment|free speech|censor\w*|misinformation|disinformation|"
+        r"social media|paywall|subscribers?|cnn|msnbc|ms now|fox news|abc|cbs|nbc|npr|pbs|"
+        r"new york times|washington post|wall street journal|press corps|press pool|kimmel|"
+        r"colbert|paramount|warner bros\w*|disney|netflix|comcast|tiktok|youtube|financial times|"
+        r"bbc|the guardian|reuters|associated press|axios|politico|substack"
+    ),
+    'AI+Policy': (
+        r"ai|a\.i\.|artificial intelligence|chatbots?|openai|anthropic|chatgpt|deepfakes?|"
+        r"machine learning|large language models?|llms?|generative|data centers?|nvidia|"
+        r"semiconductors?|chips?|algorithm\w*|automation|robot\w*|big tech|tech giants?|"
+        r"superintelligence|agi|genai"
+    ),
+    'Energy': (
+        r"energy|epa|climate|power plants?|power grid|grids?|electric\w*|utilit(?:y|ies)|solar|"
+        r"wind|renewabl\w*|emissions?|fossil fuels?|oil|natural gas|gas prices|gasoline|diesel|"
+        r"lng|drilling|pipelines?|nuclear|coal|batter(?:y|ies)|lithium|carbon|greenhouse|"
+        r"wildfires?|drought|heat waves?|ferc|transmission|permitting|department of energy|doe|"
+        r"crude|opec|refiner\w*|evs?|clean energy|offshore|hydropower|geothermal|power generat\w*|power sector"
+    ),
+    'Economy': (
+        r"econom\w*|inflation|jobs report|jobless|unemployment|employment|payrolls?|hiring|"
+        r"layoffs?|wages?|fed|federal reserve|interest rates?|rate cuts?|rate hikes?|"
+        r"mortgages?|gdp|recession|tariffs?|trade war|trade deal|trade deficit|stocks?|"
+        r"markets?|wall street|dow|s&p|nasdaq|treasur(?:y|ies)|bonds?|yields?|prices|"
+        r"consumers?|spending|deficit|debt|budget|tax(?:es)?|bessent|powell|housing|rents?|"
+        r"affordab\w*|dividends?|banks?|banking|crypto\w*|bitcoin|earnings|retail\w*|"
+        r"manufactur\w*|farmers?|supply chains?|imports?|exports?|social security|retirement|medicare costs?"
+    ),
+    'Legislative': (
+        r"congress\w*|senate|senators?|house|lawmakers?|legislat\w*|bills?|votes?|voted|"
+        r"committee|subcommittee|appropriat\w*|spending bill|funding|shutdown|filibuster|"
+        r"speaker|caucus|markup|hearings?|confirmation|confirmed|resolution|amendment|"
+        r"capitol hill|thune|schumer|jeffries|mike johnson|cloture|stopgap|continuing resolution"
+    ),
+}
+_TOPIC_RE = {name: re.compile(rf"\b(?:{pat})\b", re.IGNORECASE)
+             for name, pat in SECTION_TOPIC_PATTERNS.items()}
+
+
+def _topic_text(headline: str) -> str:
+    """Headline prepared for topic matching: 'White House' masked so it
+    can't count as the chamber."""
+    return re.sub(r"white house", "whitehouse", headline, flags=re.IGNORECASE)
+
+
+def _is_on_topic(headline: str, section: str, summary: str = '') -> bool:
+    """Headline matches the section's topic words -- or, when a summary is
+    passed (beat feeds only), the summary does."""
+    pattern = _TOPIC_RE.get(section)
+    if pattern is None:
+        return True
+    return bool(pattern.search(_topic_text(headline)) or
+                (summary and pattern.search(_topic_text(summary))))
+
+
+# Backup Google News queries (used only when a section's feeds yield
+# nothing fresh and on-topic). Restricted to trusted outlets.
+SECTION_BACKUP_QUERIES = {
+    'Campaigns': 'campaign election midterm candidates',
+    'Media': 'news media journalists networks press',
+    'AI+Policy': 'artificial intelligence policy regulation',
+    'Energy': 'energy policy EPA power grid',
+    'Economy': 'economy inflation jobs Federal Reserve markets',
+    'Legislative': 'Congress Senate House vote bill',
+}
+_FREE_SOURCES_INNER = (
+    'site:axios.com OR site:politico.com OR site:punchbowl.news '
+    'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
+    'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com '
+    'OR site:pbs.org OR site:bbc.com OR site:csmonitor.com '
+    'OR site:govexec.com OR site:stateline.org OR site:rollcall.com'
+)
+_MEDIA_TRADE_INNER = (
+    'site:variety.com OR site:hollywoodreporter.com OR site:deadline.com '
+    'OR site:adweek.com OR site:niemanlab.org OR site:cjr.org OR site:thewrap.com '
+    'OR site:poynter.org'
+)
+BACKUP_SOURCES = f'({_FREE_SOURCES_INNER})'
+BACKUP_SOURCE_OVERRIDES = {'Media': f'({_FREE_SOURCES_INNER} OR {_MEDIA_TRADE_INNER})'}
+
+# Google sometimes labels a source by its bare domain; map those to names.
+SOURCE_NAME_MAP = {
+    'axios.com': 'Axios', 'politico.com': 'Politico', 'punchbowl.news': 'Punchbowl News',
+    'semafor.com': 'Semafor', 'apnews.com': 'AP', 'thehill.com': 'The Hill', 'npr.org': 'NPR',
+    'rollcall.com': 'Roll Call', 'notus.org': 'NOTUS', 'nbcnews.com': 'NBC News', 'cnn.com': 'CNN',
+    'pbs.org': 'PBS', 'bbc.com': 'BBC', 'csmonitor.com': 'The Christian Science Monitor',
+    'govexec.com': 'Government Executive', 'stateline.org': 'Stateline', 'variety.com': 'Variety',
+    'hollywoodreporter.com': 'The Hollywood Reporter', 'deadline.com': 'Deadline',
+    'adweek.com': 'Adweek', 'niemanlab.org': 'Nieman Lab', 'cjr.org': 'Columbia Journalism Review',
+    'thewrap.com': 'TheWrap', 'poynter.org': 'Poynter',
+}
+
+
+def _normalize_source_name(source: str) -> str:
+    key = source.strip().lower()
+    if key.startswith('www.'):
+        key = key[4:]
+    return SOURCE_NAME_MAP.get(key, source)
+
+
+# ─────────────────────────────────────────────
+# PR & Comms industry section
+# ─────────────────────────────────────────────
+# Read from two PR trade publications' own feeds. Kept out of
+# get_top_stories() on purpose: template.py only picks the hero story from
+# that list, so the PR item can never become the day's lead. Same 48-hour
+# freshness rule as every other section.
 PR_TRADE_PRESS_SECTION_NAME = 'PR & Comms Industry'
 PR_TRADE_PRESS_EMOJI = chr(0x1F4E2)  # 📢
-
 PR_TRADE_PRESS_SOURCES = [
-    # (display name, feed URL, requires keyword filter). PRovoke is the
-    # primary source and doesn't need filtering -- see comment above.
-    # PRWeek's general feed is broader (includes creative-campaign and
-    # consumer-PR content, not just personnel/account moves), so it's
-    # filtered by PR_TRADE_PRESS_KEYWORDS to stay on the same "who's
-    # moving where" beat as the primary source.
+    # (display name, feed URL, requires keyword filter)
     ('PRovoke Media', 'https://www.provokemedia.com/newsfeed/provoke-media-latest', False),
     ('PRWeek', 'http://feeds.feedburner.com/PrweekUsNews', True),
 ]
-
 PR_TRADE_PRESS_KEYWORDS = [
     'hires', 'hire', 'hired', 'names', 'appoints', 'appointed', 'promotes',
     'promoted', 'joins', 'taps', 'names ceo', 'names cco', 'names chief',
@@ -116,30 +297,12 @@ PR_TRADE_PRESS_KEYWORDS = [
     'merges', 'launches agency', 'agency of record', ' aor ',
 ]
 
-# Persisted across runs (committed to the repo by the workflow, same
-# pattern as jobs_snapshot.py's seen_jobs.json) so the same story URL
-# doesn't get re-picked day after day just because a quiet topic's
-# "freshest available" article happens to still be the best match --
-# without this, freshness checks alone can't tell "genuinely new" apart
-# from "same story we already showed, still technically within the
-# freshness window." Retention is shorter than jobs_snapshot's since
-# news moves faster than job postings, and old entries are pruned past
-# this window so the file doesn't grow forever and a story CAN
-# eventually be shown again if it's still relevant weeks later.
-#
-# Scoped PER SECTION (url_to_date nested under each section name), not one
-# global pool. It was global originally, and that was the bug: a section
-# with a thin candidate pool (Media, before MEDIA_TRADE_FREE_SOURCES
-# above) would have its own last few picks block themselves out for the
-# full retention window with nothing else available to fall back to, and
-# every other section's picks were withheld from it too even though there
-# was no real reason a Legislative pick from three days ago should affect
-# what Media is allowed to show today. Scoping per section means a
-# section's history only ever competes with its own past picks. Same-day
-# duplicate prevention across DIFFERENT sections (e.g. an AI-regulation
-# story matching both AI+Policy and Legislative on the same run) is
-# handled separately in get_top_stories via an in-memory, non-persisted
-# set -- that part was never the problem and still works the same way.
+# ─────────────────────────────────────────────
+# Cross-day memory (don't repeat a story a section already ran)
+# ─────────────────────────────────────────────
+# Per section, url -> date last shown; committed by the workflow. With the
+# 48-hour window this simply means "yesterday's pick can't run again today"
+# -- the next freshest story is used instead, never an older one.
 RECENT_STORIES_PATH = Path(__file__).resolve().parent / ".state" / "recent_stories.json"
 RECENT_STORIES_RETENTION_DAYS = 21
 
@@ -152,182 +315,71 @@ def _safe_parse_date(date_str: str) -> Optional[dt.date]:
 
 
 def _load_recent_stories(path: Path = RECENT_STORIES_PATH) -> dict:
-    """Returns the full section -> {url: date-last-shown} mapping,
-    unfiltered by retention window -- filtering happens separately in
-    _excluded_urls_for_section, so a load always returns the raw stored
-    truth. Corrupt or missing files are treated as "nothing on record"
-    rather than crashing the run -- worst case a recently-shown story
-    gets a chance to repeat once, which is recoverable; a crashed daily
-    brief is not.
-
-    Also transparently handles the older flat schema (a single top-level
-    "url_to_date" map, not scoped by section) that this file used before
-    cross-day dedup was made per-section: that key is simply absent from
-    the "sections" lookup below, so an old-format file is treated the
-    same as an empty one -- a one-time reset of the recency history,
-    which is a much smaller risk than crashing or silently misreading the
-    old shape as if it were the new one."""
+    """section -> {url: date shown}. Missing/corrupt file = nothing on
+    record (worst case a story repeats once; never crash the brief)."""
     if not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text())
-        return data.get("sections", {})
+        return json.loads(path.read_text()).get("sections", {})
     except (json.JSONDecodeError, OSError):
         return {}
 
 
 def _excluded_urls_for_section(sections: dict, section: str, today: dt.date) -> set:
-    """URLs this SPECIFIC section has shown within RECENT_STORIES_RETENTION_DAYS.
-    Only ever reads this section's own sub-map -- see the module comment
-    above RECENT_STORIES_PATH for why this must not pull in other
-    sections' history."""
     cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
-    result = set()
-    for url, date_str in sections.get(section, {}).items():
-        parsed = _safe_parse_date(date_str)
-        if parsed is not None and parsed >= cutoff:
-            result.add(url)
-    return result
+    return {url for url, d in sections.get(section, {}).items()
+            if (parsed := _safe_parse_date(d)) is not None and parsed >= cutoff}
 
 
 def _save_recent_stories(sections: dict, today: dt.date, path: Path = RECENT_STORIES_PATH) -> None:
-    """Prunes entries older than RECENT_STORIES_RETENTION_DAYS from every
-    section before saving, so the file doesn't grow forever and a story
-    becomes eligible to be shown again (for that same section) once it's
-    genuinely old news. Empty sections are dropped entirely rather than
-    kept as empty dicts, so the file doesn't accumulate stale section
-    names if SECTION_QUERIES is ever renamed or trimmed."""
     cutoff = today - dt.timedelta(days=RECENT_STORIES_RETENTION_DAYS)
     pruned = {}
     for section, url_to_date in sections.items():
-        kept = {}
-        for url, date_str in url_to_date.items():
-            parsed = _safe_parse_date(date_str)
-            if parsed is not None and parsed >= cutoff:
-                kept[url] = date_str
+        kept = {u: d for u, d in url_to_date.items()
+                if (parsed := _safe_parse_date(d)) is not None and parsed >= cutoff}
         if kept:
             pruned[section] = kept
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"sections": pruned}, indent=2))
 
-# Titles that indicate Google matched a section/category INDEX page
-# (e.g. a publisher's generic "Headlines" landing page) rather than an
-# actual individual news article -- these can occasionally get indexed
-# and outrank real articles for a broad query. Checked as an exact match
-# against the full trimmed headline, not a substring, so a real headline
-# that happens to CONTAIN one of these words (e.g. "Latest jobs report
-# shows...") isn't wrongly excluded.
+
+# ─────────────────────────────────────────────
+# Filters: placeholder titles, opinion pieces
+# ─────────────────────────────────────────────
 GENERIC_TITLE_BLOCKLIST = {
-    'headlines', 'headline', 'news', 'latest', 'latest news',
-    'top stories', 'home', 'homepage',
-    # Recurring daily/weekly show or segment titles -- these get indexed by
-    # Google News like any other article, but the "headline" is just the
-    # show's name, not a story. Added after NPR's "Morning Edition" (a
-    # general news roundup, not an economy story) got picked as Economy's
-    # top story on 2026-09-15/16 purely because that day's episode
-    # happened to be fresh -- an exact-title blocklist is safer here than
-    # a keyword-relevance requirement (see SECTION_RELEVANCE_KEYWORDS
-    # below), since a real Economy headline can be worded in ways that
-    # wouldn't hit a fixed keyword list (e.g. "The powerful millionaires
-    # hiding in plain sight : Planet Money" -- itself an NPR show
-    # segment, but a genuine economy story, not a placeholder title).
-    'morning edition', 'all things considered', 'weekend edition',
-    'weekend edition saturday', 'weekend edition sunday', 'here and now',
-    'the daily', 'up first', '1a', 'marketplace', 'fresh air', 'on point',
-    'the takeaway',
+    'headlines', 'headline', 'news', 'latest', 'latest news', 'top stories',
+    'home', 'homepage', 'morning edition', 'all things considered',
+    'weekend edition', 'weekend edition saturday', 'weekend edition sunday',
+    'here and now', 'the daily', 'up first', '1a', 'marketplace', 'fresh air',
+    'on point', 'the takeaway',
 }
-
-
-# Landing/index-page titles Google News occasionally indexes as if they
-# were an individual story -- most often a publisher's continuously "live"
-# front page or breaking-news tracker (e.g. "Associated Press News:
-# Breaking News | Latest News Today", which showed up as Campaigns' pick
-# on 2026-09-16, complete with a nonsensical -1 "newest_age_days" -- a
-# clear sign it's a perpetually-refreshing page, not a dated article).
-# Surfaced more now that --headlines-per-outlet examines up to 100 results
-# per stage instead of 10 (see that flag's history in generate_brief.py).
-# The exact wording varies by outlet and combines with the outlet's own
-# name ("AP News: Breaking News", "Latest News Today", etc.), so this is a
-# substring check rather than the exact-match GENERIC_TITLE_BLOCKLIST
-# above -- kept as a second, narrower list since a substring check is
-# easier to accidentally match a real headline with, so only phrases that
-# are themselves clearly page-label boilerplate belong here.
-GENERIC_TITLE_SUBSTRING_BLOCKLIST = (
-    'breaking news', 'latest news today', 'news: breaking news',
-)
+GENERIC_TITLE_SUBSTRING_BLOCKLIST = ('breaking news', 'latest news today', 'news: breaking news')
 
 
 def _is_generic_title(title: str) -> bool:
     normalized = title.strip().lower()
-    if normalized in GENERIC_TITLE_BLOCKLIST:
-        return True
-    return any(phrase in normalized for phrase in GENERIC_TITLE_SUBSTRING_BLOCKLIST)
+    return normalized in GENERIC_TITLE_BLOCKLIST or any(
+        phrase in normalized for phrase in GENERIC_TITLE_SUBSTRING_BLOCKLIST)
 
-# Applied to every SECTION_QUERIES search below. Rather than trying to
-# detect opinion "tone" in headline text (unreliable -- an op-ed title
-# doesn't have to say "opinion" anywhere, e.g. "Congress Should Rein in
-# EPA Overreach"), this excludes by URL PATH instead: nearly every major
-# outlet organizes opinion/editorial content under a predictable URL
-# segment (nytimes.com/opinion/..., washingtonpost.com/opinions/...,
-# etc.), and Google's `-inurl:` operator can filter on that structurally.
-# Matters here specifically because Polly's audience spans both parties --
-# a directionally-framed op-ed showing up as "today's news" reads as the
-# brief taking a side, which straight reporting doesn't.
-OPINION_EXCLUSION = '-inurl:opinion -inurl:oped -inurl:op-ed -inurl:editorial -inurl:commentary'
 
-# The exclusion above is the QUERY-TIME defense, but it turns out Google
-# News's RSS search endpoint doesn't reliably honor `-inurl:` the way
-# regular Google web search does -- confirmed in production on 2026-09-22,
-# when two straight opinion pieces from The Hill's own /opinion/ path (one
-# in Energy, one in Economy, same day) made it into the brief despite this
-# exclusion being present in both queries. Google's RSS <link> for a match
-# is also an obfuscated news.google.com/rss/articles/... redirect, not the
-# publisher's own URL, so there's no path to inspect without actually
-# following that redirect -- nothing in the RSS payload itself (title,
-# description) reliably says "this is a column," and title tone is
-# explicitly not trusted here either (see this constant's own comment
-# above).
-#
-# So this is a second, SELECTION-TIME check: resolve a candidate's real
-# destination URL with a real HTTP request and inspect ITS path for the
-# same opinion/column markers the query-time exclusion was trying for.
-# Only applied to candidates actually being considered for the final pick
-# (see _first_non_opinion below), never the full raw candidate pool, so
-# the added network cost stays small and bounded regardless of how many
-# candidates a broad query returns.
+# Opinion/column pieces are excluded by URL path: the brief reports news,
+# and an op-ed presented as "today's news" reads as taking a side.
 OPINION_URL_MARKERS = (
     '/opinion/', '/opinions/', '/oped/', '/op-ed/', '/editorial/',
-    '/editorials/', '/commentary/',
-    # The Hill's older column URLs predate their current /opinion/ path
-    # and never migrated -- e.g. thehill.com/blogs/congress-blog/... --
-    # confirmed still live and still indexed alongside the newer
-    # /opinion/congress-blog/... path for the same column.
-    '/blogs/congress-blog/',
+    '/editorials/', '/commentary/', '/blogs/congress-blog/',
 )
+MAX_BACKUP_OPINION_CHECKS = 4  # redirect lookups per section, backup search only
 
-# Total real HTTP requests _first_non_opinion is willing to make across
-# ALL tiers combined in one _fetch_topic_story call -- a hard ceiling, not
-# a per-tier one, so a topic whose top candidates are all opinion pieces
-# can't multiply into dozens of redirect-resolution requests once Tier 2/3
-# re-scan a pool that overlaps with Tier 1's. Six is enough headroom to
-# skip past a small cluster of columns while keeping one section's worst
-# case to six extra requests in a daily batch job that otherwise makes no
-# other network calls from this module.
-MAX_OPINION_CHECKS_PER_STORY = 6
+
+def _is_opinion_url(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    return any(marker in path for marker in OPINION_URL_MARKERS)
 
 
 def _resolve_final_url(link: str, timeout: float = 6.0) -> Optional[str]:
-    """Follow the Google News redirect to find the real destination URL.
-    The RSS <link> Google gives us (news.google.com/rss/articles/...) is
-    opaque -- nothing about the real publisher path can be read from it
-    without actually requesting it. stream=True + no body read means this
-    costs one redirect chain, not a full page download. Returns None on
-    any failure (timeout, connection error, non-HTTP response) -- treated
-    by the caller as "couldn't verify," not "is opinion" (see
-    _first_non_opinion): failing closed here would silently turn every
-    network hiccup into a dropped candidate, trading a possible op-ed for
-    a guaranteed worse outcome (a blank section, or a real story bumped
-    for no actual reason)."""
+    """Follow a Google News redirect to the publisher URL (backup search
+    only -- direct feed links are already publisher URLs). None on failure,
+    which the caller treats as "couldn't verify", not "is opinion"."""
     try:
         resp = requests.get(link, headers=HEADERS, timeout=timeout, allow_redirects=True, stream=True)
         resp.close()
@@ -336,705 +388,343 @@ def _resolve_final_url(link: str, timeout: float = 6.0) -> Optional[str]:
         return None
 
 
-def _is_opinion_url(url: str) -> bool:
-    """Whether url's path contains one of OPINION_URL_MARKERS."""
-    path = urlparse(url).path.lower()
-    return any(marker in path for marker in OPINION_URL_MARKERS)
-
-# The "core 15" trusted political news sources -- outlets that publish on
-# DC politics/policy multiple times a day, which is what actually fixes
-# staleness: a tightened topic query narrows WHAT matches, but doesn't by
-# itself guarantee the matches are recent. Restricting to outlets that
-# cover this beat constantly means there's almost always something fresh
-# to find, and it also raises source credibility across the board --
-# Polly's own audience already reads these outlets, so citing them is a
-# trust signal, not just a freshness fix.
-#
-# This list is tuned for the five core DC-policy beats (Campaigns,
-# AI+Policy, Energy, Economy, Legislative) -- it is NOT a media-industry
-# trade press list. See MEDIA_TRADE_FREE_SOURCES / SECTION_SOURCE_OVERRIDES
-# below for why Media needs its own addition to this list rather than
-# using it alone.
-# Kept as bare "site:a OR site:b OR ..." text, WITHOUT wrapping parens --
-# see _FREE_SOURCES_INNER's docstring-style comment below for why. The
-# public FREE_SOURCES constant (wrapped in one set of parens) is what
-# every section other than Media actually queries with.
-_FREE_SOURCES_INNER = (
-    'site:axios.com OR site:politico.com OR site:punchbowl.news '
-    'OR site:semafor.com OR site:apnews.com OR site:thehill.com '
-    'OR site:npr.org OR site:notus.org OR site:nbcnews.com OR site:cnn.com '
-    'OR site:pbs.org OR site:bbc.com OR site:csmonitor.com '
-    'OR site:govexec.com OR site:stateline.org'
-)
-FREE_SOURCES = f'({_FREE_SOURCES_INNER})'
-
-# Genuinely useful, authoritative sources -- but each has a real paywall
-# (Reuters is metered, the rest are hard paywalls or subscription-gated).
-# Kept as a SECOND-CHOICE tier rather than removed outright: still better
-# to occasionally show a paywalled story than nothing at all on a
-# genuinely quiet-news topic, but a reader shouldn't hit "Read More" and
-# get blocked more often than not. See _fetch_topic_story's 3-stage
-# cascade -- this tier is only tried if FREE_SOURCES comes up completely
-# empty for that topic.
-_PAYWALLED_SOURCES_INNER = (
-    'site:reuters.com OR site:washingtonpost.com OR site:bloomberg.com '
-    'OR site:nationaljournal.com OR site:rollcall.com'
-)
-PAYWALLED_SOURCES = f'({_PAYWALLED_SOURCES_INNER})'
-
-# Media-industry trade press -- added because FREE_SOURCES/PAYWALLED_SOURCES
-# above are a DC-politics beat list (Axios, Politico, The Hill, etc.) and
-# genuinely don't cover the media/entertainment/press-freedom industry as a
-# daily beat the way they cover Capitol Hill. Media was the one section
-# whose candidate pool from the general lists alone was thin enough that
-# the cross-day dedup in RECENT_STORIES_PATH below could exhaust it
-# entirely (see SECTION_SOURCE_OVERRIDES) -- three trade outlets plus a
-# couple of paywalled-but-authoritative ones gives it a real daily supply
-# instead of depending on political outlets occasionally covering media
-# news as a crossover story.
-_MEDIA_TRADE_FREE_INNER = (
-    'site:variety.com OR site:hollywoodreporter.com OR site:deadline.com '
-    'OR site:adweek.com OR site:pressgazette.co.uk OR site:niemanlab.org '
-    'OR site:cjr.org OR site:thewrap.com OR site:poynter.org'
-)
-MEDIA_TRADE_FREE_SOURCES = f'({_MEDIA_TRADE_FREE_INNER})'
-
-_MEDIA_TRADE_PAYWALLED_INNER = 'site:puck.news OR site:theinformation.com OR site:status.news'
-MEDIA_TRADE_PAYWALLED_SOURCES = f'({_MEDIA_TRADE_PAYWALLED_INNER})'
-
-# Per-section overrides of the source tiers a topic searches. Only Media
-# is listed -- the other five sections are core DC-policy beats the
-# general FREE_SOURCES/PAYWALLED_SOURCES lists were built for, so they use
-# those as-is (see _fetch_topic_story's defaults). A section not present
-# here just gets (FREE_SOURCES, PAYWALLED_SOURCES).
-#
-# Built from the bare _INNER strings above into ONE flat parenthesized
-# OR-group each, not by wrapping two already-parenthesized constants
-# together (e.g. f'({FREE_SOURCES} OR {MEDIA_TRADE_FREE_SOURCES})', which
-# produces "((a OR b) OR (c OR d))"). That double-nested form is what this
-# override originally shipped with, and it's the leading suspect for why
-# Media still came back completely empty after the trade-press sources
-# were added -- this file's own history already has a precedent for
-# Google's News search silently returning zero results for a query it
-# doesn't like, rather than erroring (see the `when:` operator postmortem
-# above MAX_STORY_AGE_DAYS). A single flat OR-group of 24 site: clauses is
-# unusual in scale but structurally identical to what every other section
-# already sends successfully; nesting two nine-and-fifteen-site groups
-# inside each other is a different, untested shape. Flattening removes
-# that variable entirely rather than leaving it as an open question.
-SECTION_SOURCE_OVERRIDES = {
-    'Media': (
-        f'({_FREE_SOURCES_INNER} OR {_MEDIA_TRADE_FREE_INNER})',
-        f'({_PAYWALLED_SOURCES_INNER} OR {_MEDIA_TRADE_PAYWALLED_INNER})',
-    ),
-}
-
-# Google News sometimes labels a story's source by its proper name
-# ("Reuters") and sometimes by its bare domain ("reuters.com"), depending
-# on how the individual publisher's own RSS feed happens to be formatted
-# upstream -- not something under our control. This maps the domain-style
-# form back to a proper display name, for every outlet named in
-# FREE_SOURCES / PAYWALLED_SOURCES / MEDIA_TRADE_FREE_SOURCES /
-# MEDIA_TRADE_PAYWALLED_SOURCES above (kept in sync with those lists).
-# Anything outside those (e.g. a Stage 3 unrestricted-web result) is left
-# exactly as Google reports it, since there's no way to enumerate every
-# possible outlet's preferred display name.
-SOURCE_NAME_MAP = {
-    'axios.com': 'Axios',
-    'politico.com': 'Politico',
-    'punchbowl.news': 'Punchbowl News',
-    'semafor.com': 'Semafor',
-    'reuters.com': 'Reuters',
-    'apnews.com': 'AP',
-    'washingtonpost.com': 'The Washington Post',
-    'thehill.com': 'The Hill',
-    'npr.org': 'NPR',
-    'rollcall.com': 'Roll Call',
-    'notus.org': 'NOTUS',
-    'bloomberg.com': 'Bloomberg',
-    'nbcnews.com': 'NBC News',
-    'nationaljournal.com': 'National Journal',
-    'cnn.com': 'CNN',
-    # Added with FREE_SOURCES on 9/11 but never added here until now --
-    # stories from these were displaying with a raw domain instead of a
-    # proper name.
-    'pbs.org': 'PBS',
-    'bbc.com': 'BBC',
-    'csmonitor.com': 'The Christian Science Monitor',
-    'govexec.com': 'Government Executive',
-    'stateline.org': 'Stateline',
-    # Media-industry trade press, added alongside MEDIA_TRADE_FREE_SOURCES /
-    # MEDIA_TRADE_PAYWALLED_SOURCES above.
-    'variety.com': 'Variety',
-    'hollywoodreporter.com': 'The Hollywood Reporter',
-    'deadline.com': 'Deadline',
-    'adweek.com': 'Adweek',
-    'pressgazette.co.uk': 'Press Gazette',
-    'niemanlab.org': 'Nieman Lab',
-    'cjr.org': 'Columbia Journalism Review',
-    'thewrap.com': 'TheWrap',
-    'poynter.org': 'Poynter',
-    'puck.news': 'Puck',
-    'theinformation.com': 'The Information',
-    'status.news': 'Status',
-}
-
-
-def _normalize_source_name(source: str) -> str:
-    """Map a bare-domain source name (e.g. 'reuters.com') back to its
-    proper display name (e.g. 'Reuters') for outlets in SOURCE_NAME_MAP
-    above. A source already in proper-name form, or from outside that
-    map, passes through unchanged."""
-    key = source.strip().lower()
-    if key.startswith('www.'):
-        key = key[4:]
-    return SOURCE_NAME_MAP.get(key, source)
-
-
+# ─────────────────────────────────────────────
+# Data types
+# ─────────────────────────────────────────────
 @dataclass
 class NewsItem:
     outlet: str
     title: str
     url: str
     summary: str
-    # The story's own verified publish date, as determined during
-    # selection in _fetch_topic_story (see _entry_published_date). None
-    # specifically means "Google gave us no parseable date for this one"
-    # (the Tier 3 undated fallback) -- kept as None rather than guessing
-    # a date, since template.py uses this to decide whether to show a
-    # "time ago" label at all: an unverified date shouldn't display a
-    # fabricated-looking one.
+    # Publish date in Eastern time (drives "Today"/"Yesterday" in the brief).
     published_date: Optional[dt.date] = None
+    # How many OTHER outlets ran the same story in this run's feeds -- the
+    # "importance" signal. template.py uses it to pick the hero story.
+    coverage: int = 0
+
+
 @dataclass
 class TopStory:
     section: str
     emoji: str
     item: Optional[NewsItem]
+
+
+@dataclass
+class _Entry:
+    outlet: str
+    title: str
+    url: str
+    summary: str
+    published: dt.datetime  # timezone-aware, UTC
+    feed_url: str = ''
+
+
+# ─────────────────────────────────────────────
+# Text helpers
+# ─────────────────────────────────────────────
 def _clean_html(raw_html):
     if not raw_html:
         return ''
     text = BeautifulSoup(unescape(raw_html), 'html.parser').get_text(separator=' ').strip()
     return re.sub(r'\s+', ' ', text)
+
+
 def _split_title_source(raw_title):
-    # Google News formats titles as "Headline - Source Name". Split on the
-    # LAST " - " so headlines that themselves contain a hyphen don't get
-    # cut in the wrong place.
+    """Google News titles are "Headline - Source"; split on the LAST " - "."""
     if ' - ' in raw_title:
         headline, source = raw_title.rsplit(' - ', 1)
         return headline.strip(), _normalize_source_name(source.strip())
     return raw_title.strip(), 'Google News'
-def _summary_from_description(raw_html, max_sentences=2):
+
+
+SUMMARY_MAX_CHARS = 220
+
+
+def _summary_from_description(raw_html, max_sentences=2, title: str = ''):
+    """First sentence or two of a feed item's description, without
+    WordPress boilerplate, capped at SUMMARY_MAX_CHARS. Empty if it would
+    just repeat the headline."""
     text = _clean_html(raw_html)
+    text = re.sub(r'\s*The post .*? appeared first on .*$', '', text)
+    text = re.sub(r'\s*(Continue reading|Read more)\s*(\.\.\.|…|»)?\s*$', '', text, flags=re.IGNORECASE)
     if not text:
         return ''
     sentences = re.split(r'(?<=[.!?])\s+', text)
-    return ' '.join(sentences[:max_sentences]).strip()
+    summary = ' '.join(sentences[:max_sentences]).strip()
+    if len(summary) > SUMMARY_MAX_CHARS:
+        summary = summary[:SUMMARY_MAX_CHARS].rsplit(' ', 1)[0].rstrip(',;:') + '…'
+    if title and summary.lower().rstrip('.…') == title.lower().rstrip('.…'):
+        return ''
+    return summary
 
 
-def _entry_published_date(entry) -> Optional[dt.date]:
-    """Pull the entry's own publish date out of feedparser's parsed struct.
-    Checks `published_parsed` first, falling back to `updated_parsed` since
-    not every feed populates both. Returns None if neither is present or
-    parseable -- that's treated as "can't verify this is fresh" by the
-    caller, not as "assume it's fine," since the whole point here is not
-    trusting an unverified date. Used by _fetch_topic_story to rank
-    candidates by actual freshness rather than search-result order; an
-    entry with no parseable date can still be used as a last-resort
-    fallback there, but only after every dated entry has been tried."""
+_TOKEN_STOPWORDS = {
+    'trump', 'trumps', 'biden', 'whitehouse', 'white', 'house', 'senate', 'congress',
+    'president', 'says', 'said', 'over', 'after', 'amid', 'could', 'would', 'will',
+    'with', 'from', 'that', 'this', 'they', 'their', 'them', 'about', 'into', 'more',
+    'than', 'what', 'when', 'where', 'which', 'while', 'against', 'ahead', 'before',
+    'first', 'last', 'year', 'years', 'week', 'weeks', 'report', 'reports', 'news',
+    'live', 'update', 'updates', 'here', 'there', 'just', 'only', 'still', 'also',
+    'back', 'down', 'make', 'makes', 'made', 'take', 'takes', 'calls', 'call', 'gets',
+    'plan', 'plans', 'push', 'pushes', 'talks', 'deal', 'americans', 'american',
+    'state', 'states', 'federal', 'government', 'officials', 'official', 'people',
+    'says', 'new', 'how', 'why', 'who', 'amid', 'being', 'been', 'have', 'has', 'were',
+    'your', 'some', 'most', 'many', 'much', 'very', 'like', 'next', 'time', 'days',
+    'republicans', 'democrats', 'republican', 'democratic', 'gop',
+}
+
+
+def _tokens(headline: str) -> set:
+    words = re.findall(r"[a-z][a-z'\-]{3,}", _topic_text(headline).lower())
+    return {w.removesuffix("'s").strip("'-") for w in words} - _TOKEN_STOPWORDS
+
+
+def _same_story(a: set, b: set) -> bool:
+    """Two headlines' significant-word sets describe the same story."""
+    overlap = len(a & b)
+    return overlap >= 3 or (overlap >= 2 and overlap >= 0.6 * min(len(a), len(b)))
+
+
+def _entry_datetime(entry) -> Optional[dt.datetime]:
+    """Publish time as an aware UTC datetime (feedparser normalizes feed
+    timestamps to UTC). None if the item carries no usable timestamp --
+    such items are dropped, since their freshness can't be verified."""
     struct = getattr(entry, 'published_parsed', None) or getattr(entry, 'updated_parsed', None)
     if not struct:
         return None
     try:
-        return dt.date(struct.tm_year, struct.tm_mon, struct.tm_mday)
+        return dt.datetime(*struct[:6], tzinfo=dt.timezone.utc)
     except (TypeError, ValueError):
         return None
 
 
-def _fetch_candidates(query, limit, debug_label=None):
-    """Fetch and parse one Google News search into (dated, undated) candidate
-    lists. Pulled out as its own function so the two-stage search in
-    _fetch_topic_story (trusted-15 first, then a widened fallback) can
-    run identical parsing logic on both stages rather than duplicating it."""
-    url = f'{GOOGLE_NEWS_BASE}?q={query.replace(" ", "+")}&hl=en-US&gl=US&ceid=US:en'
-    parsed = feedparser.parse(url, request_headers=HEADERS)
-
-    # Diagnostic only (debug_label is passed by _fetch_topic_story, tagged
-    # with which section/stage this call is): a truthy `bozo` with a
-    # `bozo_exception` means feedparser choked on what it got back --
-    # different from Google cleanly returning zero <item> entries. Both
-    # currently collapse into "(none found)" in the final brief with no
-    # way to tell them apart from the outside, which is exactly what made
-    # Media's empty section hard to diagnose. Cheap to print (stdout,
-    # already captured in the workflow's own logs) and directly answers
-    # "is this a broken fetch or a genuinely quiet topic."
-    if debug_label:
-        print(
-            f'    [news_snapshot] {debug_label}: {len(parsed.entries)} raw entries'
-            f', status={parsed.get("status")}, bozo={parsed.get("bozo")}'
-            f', bozo_exception={parsed.get("bozo_exception")}'
-        )
-
-    # dated: (pub_date, raw_title, link) for every entry with a parseable
-    # date, regardless of how old. undated: (raw_title, link) for entries
-    # we couldn't get a date from at all, kept only as a last-resort
-    # fallback -- see the tier selection in _fetch_topic_story.
-    dated = []
-    undated = []
-    for entry in parsed.entries[:limit]:
-        raw_title = getattr(entry, 'title', '').strip()
-        link = getattr(entry, 'link', '').strip()
-        if not raw_title or not link:
-            continue
-
-        # Check the actual headline portion (before " - Source") against
-        # the generic-title blocklist -- checking the full raw_title
-        # would let a real headline from a source whose own NAME happens
-        # to match (unlikely, but the split keeps this precise either way).
-        headline_only = raw_title.rsplit(' - ', 1)[0].strip() if ' - ' in raw_title else raw_title
-        if _is_generic_title(headline_only):
-            continue
-
-        pub_date = _entry_published_date(entry)
-        if pub_date is None:
-            undated.append((raw_title, link))
-        else:
-            dated.append((pub_date, raw_title, link))
-
-    return dated, undated
+def _age_hours(published: dt.datetime, now: dt.datetime) -> float:
+    return (now - published).total_seconds() / 3600
 
 
-# Relevance keyword filters for sections whose topic query is broad/thematic
-# enough that Google's own relevance ranking can, once results are examined
-# 100-deep instead of 10 (see --headlines-per-outlet's history in
-# generate_brief.py), surface an article that shares almost no real subject
-# overlap with the topic. Confirmed on 2026-09-15/16: Energy matched an
-# Attorney General's unrelated Rose Garden press-briefing announcement, and
-# Media matched an AP wire story about a ferry fire in the Philippines --
-# both real headlines that just happened to be fresh, not evergreen/generic
-# placeholder titles. (Economy's false positive that same run, NPR's daily
-# "Morning Edition" show, was a different kind of problem -- a recurring
-# show TITLE standing in for a real headline -- and is handled by adding it
-# to GENERIC_TITLE_BLOCKLIST above instead; a keyword-relevance requirement
-# for Economy risked rejecting genuinely good stories that don't happen to
-# use an on-the-nose economic term, e.g. "The powerful millionaires hiding
-# in plain sight : Planet Money.") Google News search doesn't require every
-# query word to be present in a match -- it's closer to "these words
-# increase this result's relevance score" than a strict AND -- so once the
-# freshness-first picker is looking 100 results deep instead of 10, a
-# barely-related-but-very-fresh article can beat a genuinely on-topic but
-# slightly older one.
-#
-# This is a second, independent check applied to the HEADLINE ONLY (no
-# summary is fetched at this stage): a candidate must contain at least one
-# of its section's keywords, case-insensitive, to be considered at all --
-# regardless of how fresh it is or how Google ranked it. Only sections
-# observed to actually need this are listed; a section not present here is
-# unfiltered, exactly as before -- Campaigns/AI+Policy/Legislative's own
-# queries are specific enough that this hasn't come up for them. Kept
-# deliberately broad (industry/topic vocabulary, not just the exact query
-# words) to minimize rejecting a genuinely on-topic story worded
-# differently than expected -- if a future run shows a good story getting
-# dropped here, that's a quick, log-visible fix (widen the list below),
-# the same way the false positives above were diagnosed from real run data
-# rather than guessed at.
-SECTION_RELEVANCE_KEYWORDS = {
-    'Media': (
-        'media', 'television', 'tv ', ' tv', 'cable news', 'hollywood',
-        'journalis', 'newsroom', 'broadcast', 'streaming', 'press freedom',
-        'news network', 'anchor', 'editor', 'publisher', 'newspaper',
-        'reporter', 'podcast', 'studio', 'film ', 'movie', 'entertainment',
-        'news outlet', 'news organization', 'internet', 'censor',
-        'platform', 'algorithm', 'misinformation', 'disinformation',
-        'social media', 'subscriber', 'advertising', 'ad revenue',
-        'content moderation', 'free press', 'correspondent', 'documentary',
-        'box office', 'ratings', 'viewership', 'paywall', 'layoffs',
-        'FCC', 'first amendment', 'propaganda', 'surveillance',
-    ),
-    'Energy': (
-        'energy', 'epa', 'climate', 'power plant', 'power grid', 'solar',
-        'renewable', 'wind farm', 'emissions', 'fossil fuel', ' oil ',
-        'natural gas', 'drilling', 'pipeline', 'nuclear', 'utility',
-        'utilities', 'coal', 'electricity', ' grid', 'battery', 'lithium',
-        'carbon', 'greenhouse', 'wildfire', 'drought', 'offshore wind',
-        'refinery', 'gasoline', 'diesel', 'clean energy', 'green energy',
-        'heat pump', 'ev ', 'electric vehicle',
-    ),
-}
+def _eastern_date(published: dt.datetime) -> dt.date:
+    return published.astimezone(EASTERN).date()
 
 
-def _is_relevant_to_section(headline: str, section: Optional[str]) -> bool:
-    """Whether a candidate headline contains at least one on-topic keyword
-    for `section`, per SECTION_RELEVANCE_KEYWORDS above. Returns True
-    (no filtering applied) for a section not listed there."""
-    if not section or section not in SECTION_RELEVANCE_KEYWORDS:
-        return True
-    text = f' {headline.lower()} '
-    return any(kw in text for kw in SECTION_RELEVANCE_KEYWORDS[section])
-
-
-def _fetch_topic_story(
-    query,
-    limit=15,
-    today: Optional[dt.date] = None,
-    used_urls: Optional[set] = None,
-    free_sources: str = FREE_SOURCES,
-    paywalled_sources: str = PAYWALLED_SOURCES,
-    section_name: Optional[str] = None,
-):
-    # Plain, unrestricted relevance search -- no `when:` operator. We
-    # previously tried to bias this toward recent results by layering
-    # `when:1d/3d/7d/14d` windowed searches on top, widening until one
-    # returned something. In practice those windowed queries were
-    # unreliable at the RSS level and would frequently return nothing at
-    # all, and with no fallback left after the last window, topics went
-    # silently empty. The plain search is the one query we know actually
-    # returns results consistently; freshness is enforced afterward by
-    # checking each entry's own published date (see _entry_published_date
-    # and MAX_STORY_AGE_DAYS), not by trying to filter at search time.
-    today = today or dt.date.today()
-    used_urls = used_urls or set()
-
-    def _exclude_used(dated_list, undated_list):
-        # Drop any candidate whose URL was already picked for an earlier
-        # section in this same day's brief -- without this, two topic
-        # queries that both genuinely match the same real story (e.g. an
-        # AI-regulation story hitting both "AI+Policy" and "Legislative")
-        # would show the identical headline twice in one email.
-        d = [c for c in dated_list if c[2] not in used_urls]
-        u = [c for c in undated_list if c[1] not in used_urls]
-        return d, u
-
-    def _filter_relevant(dated_list, undated_list):
-        # See SECTION_RELEVANCE_KEYWORDS above -- a no-op for any section
-        # not listed there.
-        d = [c for c in dated_list if _is_relevant_to_section(c[1], section_name)]
-        u = [c for c in undated_list if _is_relevant_to_section(c[0], section_name)]
-        dropped = (len(dated_list) - len(d)) + (len(undated_list) - len(u))
-        if dropped:
-            # Visible in the workflow log so a future "good story got
-            # excluded" report can be diagnosed the same way the false
-            # positives above were: from real counts, not a guess.
-            print(f'    [news_snapshot] {label} relevance filter: dropped {dropped}')
-        return d, u
-
-    def _has_fresh_enough(dated_list):
-        # Whether ANY accumulated dated candidate clears the outer
-        # MAX_FALLBACK_AGE_DAYS cap -- this, not "is the list non-empty,"
-        # is the right question for whether to keep escalating tiers. See
-        # the long comment above the stage cascade below for why: a stage
-        # returning old-but-real dated matches used to count as "found
-        # something" and block every later stage from ever being tried.
-        return any((today - c[0]).days <= MAX_FALLBACK_AGE_DAYS for c in dated_list)
-
-    # Shared across every tier in the selection step below (see
-    # MAX_OPINION_CHECKS_PER_STORY) -- a link already resolved-and-rejected
-    # as opinion in an earlier tier is skipped on sight in a later one
-    # instead of spending a second request on it, and the check budget is
-    # one pool for this whole call, not reset per tier.
-    opinion_rejected_links = set()
-    opinion_checks_used = [0]  # list so the closure below can mutate it
-
-    def _first_non_opinion(candidates, link_index):
-        """First candidate (in the given, already best-first order) whose
-        real URL isn't an opinion/column piece. Once the check budget for
-        this story is used up, remaining candidates are accepted without
-        further checking rather than silently returned to Tier 4 empty --
-        see MAX_OPINION_CHECKS_PER_STORY."""
-        for c in candidates:
-            link = c[link_index]
-            if link in opinion_rejected_links:
+# ─────────────────────────────────────────────
+# Fetching
+# ─────────────────────────────────────────────
+def _fetch_feed(outlet: str, url: str, now: dt.datetime, cache: dict, label: str = '') -> list:
+    """All timestamped, non-placeholder, non-opinion items from one feed that
+    are within MAX_AGE_HOURS. Cached per URL for the run (several sections
+    share feeds). Any failure returns [] -- one bad feed never breaks the
+    brief."""
+    if url in cache:
+        return cache[url]
+    entries, status, raw_count = [], None, 0
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=FEED_TIMEOUT_SECONDS)
+        status = resp.status_code
+        resp.raise_for_status()
+        parsed = feedparser.parse(resp.content)
+        raw_count = len(parsed.entries)
+        for e in parsed.entries:
+            title = _clean_html(getattr(e, 'title', ''))
+            link = getattr(e, 'link', '').strip()
+            published = _entry_datetime(e)
+            if not title or not link or published is None:
                 continue
-            if opinion_checks_used[0] >= MAX_OPINION_CHECKS_PER_STORY:
-                return c
-            opinion_checks_used[0] += 1
-            final_url = _resolve_final_url(link)
-            if final_url is None or not _is_opinion_url(final_url):
-                return c
-            opinion_rejected_links.add(link)
-            print(f'    [news_snapshot] {label} dropped opinion-section match: {final_url}')
+            if _is_generic_title(title) or _is_opinion_url(link):
+                continue
+            if _age_hours(published, now) > MAX_AGE_HOURS or _age_hours(published, now) < -2:
+                continue  # too old, or a bogus future timestamp
+            summary = _summary_from_description(
+                getattr(e, 'summary', '') or getattr(e, 'description', ''), title=title)
+            entries.append(_Entry(outlet, title, link, summary, published, url))
+    except Exception as exc:
+        print(f'    [news] {outlet} {label}: FAILED ({type(exc).__name__}: {exc}) status={status}')
+        cache[url] = []
+        return []
+    fresh = sum(1 for e in entries if _age_hours(e.published, now) <= FRESH_HOURS)
+    newest = min((_age_hours(e.published, now) for e in entries), default=None)
+    newest_txt = f'{newest:.0f}h' if newest is not None else '-'
+    print(f'    [news] {outlet} {label}: {raw_count} items, {fresh} within {FRESH_HOURS}h, '
+          f'{len(entries)} within {MAX_AGE_HOURS}h, newest {newest_txt} old')
+    cache[url] = entries
+    return entries
+
+
+def _fetch_backup(section: str, now: dt.datetime) -> list:
+    """Google News backup search for one section, same 48-hour rule. Links
+    are Google redirects, so the opinion check resolves the real URL for
+    the few candidates actually considered."""
+    sources = BACKUP_SOURCE_OVERRIDES.get(section, BACKUP_SOURCES)
+    query = f'{SECTION_BACKUP_QUERIES[section]} {sources}'
+    url = f'{GOOGLE_NEWS_BASE}?q={quote_plus(query)}&hl=en-US&gl=US&ceid=US:en'
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=FEED_TIMEOUT_SECONDS)
+        resp.raise_for_status()
+        parsed = feedparser.parse(resp.content)
+    except Exception as exc:
+        print(f'    [news] {section} backup search FAILED ({type(exc).__name__}: {exc})')
+        return []
+    entries = []
+    for e in parsed.entries:
+        raw_title = getattr(e, 'title', '').strip()
+        link = getattr(e, 'link', '').strip()
+        published = _entry_datetime(e)
+        if not raw_title or not link or published is None:
+            continue
+        if not (-2 <= _age_hours(published, now) <= MAX_AGE_HOURS):
+            continue
+        headline, outlet = _split_title_source(raw_title)
+        if _is_generic_title(headline):
+            continue
+        entries.append(_Entry(outlet, headline, link, '', published))
+    print(f'    [news] {section} backup search: {len(parsed.entries)} items, {len(entries)} within {MAX_AGE_HOURS}h')
+    return entries
+
+
+# ─────────────────────────────────────────────
+# Selection
+# ─────────────────────────────────────────────
+def _coverage(entry: _Entry, pool: list) -> int:
+    """Number of OTHER outlets in this run's feeds carrying the same story."""
+    mine = _tokens(entry.title)
+    if len(mine) < 2:
+        return 0
+    outlets = {other.outlet for other in pool
+               if other.outlet != entry.outlet and _same_story(mine, _tokens(other.title))}
+    return len(outlets)
+
+
+def _pick(candidates: list, pool: list, now: dt.datetime, beat_urls: set = frozenset()) -> Optional[tuple]:
+    """Best candidate, ranked by: within 24h first; then most-covered
+    (capped, so a huge story doesn't need endless coverage to win); then
+    from one of the section's own beat feeds; then newest.
+    Returns (entry, coverage) or None."""
+    if not candidates:
         return None
-
-    # Accumulated across every stage actually tried, rather than each
-    # stage replacing the last -- see the cascade comment below for why
-    # this changed from "replace" to "accumulate."
-    label = section_name or query[:20]
-    all_dated, all_undated = [], []
-    seen_urls = set()
-
-    def _merge(new_dated, new_undated):
-        for c in new_dated:
-            if c[2] not in seen_urls:
-                seen_urls.add(c[2])
-                all_dated.append(c)
-        for c in new_undated:
-            if c[1] not in seen_urls:
-                seen_urls.add(c[1])
-                all_undated.append(c)
-
-    # Stage 1: free/lightly-gated sources. Tried first because these
-    # outlets both publish on DC politics constantly (fixing staleness)
-    # and are sources Polly's own audience already trusts (fixing
-    # sourcing quality) -- see FREE_SOURCES above (or, for a section with
-    # an override in SECTION_SOURCE_OVERRIDES, that section's own free
-    # tier). A reader who clicks "Read More" here should almost always be
-    # able to actually read the story, not hit a paywall.
-    free_query = f'{query} {free_sources} {OPINION_EXCLUSION}'
-    dated, undated = _fetch_candidates(free_query, limit, debug_label=f'{label} stage1(free)')
-    dated, undated = _exclude_used(dated, undated)
-    dated, undated = _filter_relevant(dated, undated)
-    _merge(dated, undated)
-
-    # Stage 2/3 used to only run when the PRIOR stage came back with
-    # literally nothing at all -- not "nothing fresh enough," literally
-    # empty. That was the actual bug behind Media (and, on this same run,
-    # Energy and Legislative) coming back empty: Stage 1 can genuinely
-    # match real, dated articles for a topic that are nonetheless months
-    # or years old -- an evergreen explainer, a retrospective a search
-    # engine still ranks highly for the topic terms -- well before it
-    # matches anything from today's news. That's "not empty," so the old
-    # gate stopped right there and never gave Stage 2/3 a chance to look
-    # for something actually fresh. Confirmed with real run data on
-    # 2026-09-13: Media's Stage 1 dated candidates topped out at 356 days
-    # old, Legislative's at 39, Energy's similarly stale -- all comfortably
-    # "not empty," none anywhere near useful, and every one of those
-    # sections still ended up blank because Tier 2 below also rejects
-    # anything past MAX_FALLBACK_AGE_DAYS.
-    #
-    # The fix: escalate based on freshness (_has_fresh_enough, checked
-    # against the accumulated pool so far) instead of emptiness, and
-    # ACCUMULATE candidates across stages instead of each stage replacing
-    # the last (via _merge above) -- so if Stage 2/3 also can't find
-    # anything within MAX_FALLBACK_AGE_DAYS, Tier 2's "best available"
-    # fallback below still has Stage 1's original candidates to choose
-    # from instead of whatever the last-tried stage happened to return.
-    if not _has_fresh_enough(all_dated):
-        paywalled_query = f'{query} {paywalled_sources} {OPINION_EXCLUSION}'
-        dated, undated = _fetch_candidates(paywalled_query, limit, debug_label=f'{label} stage2(paywalled)')
-        dated, undated = _exclude_used(dated, undated)
-        dated, undated = _filter_relevant(dated, undated)
-        _merge(dated, undated)
-
-    if not _has_fresh_enough(all_dated):
-        unrestricted_query = f'{query} {OPINION_EXCLUSION}'
-        dated, undated = _fetch_candidates(unrestricted_query, limit, debug_label=f'{label} stage3(unrestricted)')
-        dated, undated = _exclude_used(dated, undated)
-        dated, undated = _filter_relevant(dated, undated)
-        _merge(dated, undated)
-
-    dated, undated = all_dated, all_undated
-
-    # Diagnostic only -- shows the FINAL accumulated pool (after every
-    # stage actually tried) so a repeat of "still empty" shows exactly how
-    # many candidates survived and how old the freshest one is, across all
-    # stages combined, not just whichever stage happened to run first.
-    if dated:
-        newest_age_days = (today - max(c[0] for c in dated)).days
-        oldest_age_days = (today - min(c[0] for c in dated)).days
-    else:
-        newest_age_days = oldest_age_days = None
-    print(
-        f'    [news_snapshot] {label} post-filter: dated={len(dated)} undated={len(undated)}'
-        f', newest_age_days={newest_age_days}, oldest_age_days={oldest_age_days}'
-        f', MAX_STORY_AGE_DAYS={MAX_STORY_AGE_DAYS}, MAX_FALLBACK_AGE_DAYS={MAX_FALLBACK_AGE_DAYS}'
-    )
-
-    # NOTE on selection strategy: we used to return the FIRST entry (in
-    # Google's relevance-ranked order) that passed the freshness check.
-    # But relevance ranking has no concept of recency -- Google can easily
-    # rank a 12-day-old deep-dive above a 2-day-old news item for the same
-    # query. Taking "first in list order" meant we could pick a stale
-    # story over a fresher one sitting a few slots lower, even though both
-    # were within the 14-day window. So instead we collect every entry we
-    # can extract a date from and pick by date, not by search-result order.
-
-    # Tier 1: newest entry within MAX_STORY_AGE_DAYS that isn't an opinion
-    # piece (see _first_non_opinion above). This is the normal, expected
-    # case -- fresh news exists and we picked the freshest of it.
-    fresh = [c for c in dated if (today - c[0]).days <= MAX_STORY_AGE_DAYS]
-    if fresh:
-        fresh_sorted = sorted(fresh, key=lambda c: c[0], reverse=True)
-        picked = _first_non_opinion(fresh_sorted, link_index=2)
-        if picked:
-            pub_date, raw_title, link = picked
-            headline, source = _split_title_source(raw_title)
-            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
-
-    # Tier 2: nothing usable within MAX_STORY_AGE_DAYS, but Google did
-    # return dated articles on this topic -- take the newest one that
-    # clears MAX_FALLBACK_AGE_DAYS and isn't an opinion piece. An older-
-    # than-ideal story is still more useful to a reader than a blank
-    # section, but only up to a real outer limit -- this cap exists
-    # specifically because a 139-day-old story once made it through here
-    # uncapped. Sorted newest-first, so the first entry past the cap means
-    # everything after it is older still -- no need to scan further.
-    if dated:
-        dated_sorted = sorted(dated, key=lambda c: c[0], reverse=True)
-        in_cap = [c for c in dated_sorted if (today - c[0]).days <= MAX_FALLBACK_AGE_DAYS]
-        picked = _first_non_opinion(in_cap, link_index=2)
-        if picked:
-            pub_date, raw_title, link = picked
-            headline, source = _split_title_source(raw_title)
-            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=pub_date)
-
-    # Tier 3: nothing had a parseable date at all (or every dated
-    # candidate was too old or an opinion piece) -- fall back to whatever
-    # Google ranked first by relevance among the undated entries that
-    # isn't an opinion piece. We can't verify how old it is, but returning
-    # it is still better than an empty section when the feed clearly
-    # returned real results.
-    if undated:
-        picked = _first_non_opinion(undated, link_index=1)
-        if picked:
-            raw_title, link = picked
-            headline, source = _split_title_source(raw_title)
-            return NewsItem(outlet=source, title=headline, url=link, summary='', published_date=None)
-
-    # Tier 4: nothing usable at all, from any source tier -- this is the
-    # only case that should still produce an empty section.
-    return None
+    scored = [(c, _coverage(c, pool)) for c in candidates]
+    scored.sort(key=lambda s: (_age_hours(s[0].published, now) <= FRESH_HOURS,
+                               min(s[1], 3), s[0].feed_url in beat_urls, s[0].published),
+                reverse=True)
+    return scored[0]
 
 
-def get_top_stories(per_outlet=100, today: Optional[dt.date] = None):
-    # per_outlet kept as a parameter for compatibility with generate_brief.py's
-    # existing --headlines-per-outlet flag; here it controls how many results
-    # deep we look per topic before giving up on that section. Raised from 15
-    # to 100 alongside that flag's own default -- see the long comment above
-    # --headlines-per-outlet in generate_brief.py for why a shallow cutoff
-    # here was silently causing Media/Legislative-style blank sections on
-    # broad, evergreen-leaning queries (Google News RSS ranks by relevance,
-    # not recency, so genuinely fresh results can rank past a low cutoff).
-    today = today or dt.date.today()
-    stories = []
+def _eligible(entries: list, section: str, excluded: set, picked_titles: list,
+              beat_urls: set = frozenset()) -> list:
+    """On-topic, not shown by this section recently, not already used
+    (same URL or same story) by another section today. De-duplicated by
+    URL (feeds overlap)."""
+    seen, out = set(), []
+    for e in entries:
+        if e.url in seen or e.url in excluded:
+            continue
+        seen.add(e.url)
+        if not _is_on_topic(e.title, section, e.summary if e.feed_url in beat_urls else ''):
+            continue
+        toks = _tokens(e.title)
+        if any(_same_story(toks, t) for t in picked_titles):
+            continue
+        out.append(e)
+    return out
 
-    # Cross-day story memory, scoped per section (see the module comment
-    # above RECENT_STORIES_PATH). Each section's own excluded set is
-    # computed fresh per iteration below from its own history only.
+
+def get_top_stories(per_outlet=100, today: Optional[dt.date] = None,
+                    now: Optional[dt.datetime] = None):
+    """One TopStory per section in SECTIONS order; item is None when the
+    section has nothing fresh (within MAX_AGE_HOURS) and on-topic -- the
+    template then leaves that section out. per_outlet is accepted for
+    compatibility with generate_brief.py and no longer used."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    today = today or now.astimezone(EASTERN).date()
     sections_data = _load_recent_stories()
+    cache: dict = {}
 
-    # Separate, NON-persisted set: prevents two sections in THIS SAME run
-    # from featuring the identical story (e.g. an AI-regulation story
-    # matching both AI+Policy and Legislative today). This is intentionally
-    # global across sections and intentionally reset every run -- unlike
-    # the per-section cross-day memory above, same-day cross-section
-    # duplication is the one case where "did some other section already
-    # use this" is exactly the right question to ask.
-    same_day_used = set()
+    # Fetch everything first: the coverage count compares each candidate
+    # against every outlet's headlines, not just its own section's.
+    by_section = {name: [e for outlet, url, _beat in SECTION_FEEDS[name]
+                         for e in _fetch_feed(outlet, url, now, cache, label=f'[{name}]')]
+                  for name, _ in SECTIONS}
+    beat_urls = {name: {url for _o, url, beat in SECTION_FEEDS[name] if beat}
+                 for name, _ in SECTIONS}
+    pool = [e for entries in cache.values() for e in entries]
 
-    for name, emoji, query in SECTION_QUERIES:
-        cross_day_excluded = _excluded_urls_for_section(sections_data, name, today)
-        used_urls = cross_day_excluded | same_day_used
-        free_src, paywalled_src = SECTION_SOURCE_OVERRIDES.get(name, (FREE_SOURCES, PAYWALLED_SOURCES))
-        try:
-            item = _fetch_topic_story(
-                query,
-                limit=per_outlet,
-                today=today,
-                used_urls=used_urls,
-                free_sources=free_src,
-                paywalled_sources=paywalled_src,
-                section_name=name,
-            )
-        except Exception as exc:
-            # A failed fetch and a genuinely empty topic both need to
-            # produce "(none found)" in the printed summary below and an
-            # empty section in the brief -- crashing the whole run over
-            # one bad topic query is worse than showing five sections
-            # instead of six. But swallowing the exception silently made
-            # this exact bug hard to diagnose: an empty Media section
-            # looked identical whether Google genuinely had nothing or
-            # something in the fetch itself broke. Printing here costs
-            # nothing (stdout, already captured in the workflow's own
-            # logs) and means the next time a section comes up empty,
-            # the log says which case it was instead of leaving it a
-            # mystery.
-            print(f'  [news_snapshot] {name} query raised {type(exc).__name__}: {exc}')
-            item = None
-        if item:
-            same_day_used.add(item.url)
-            sections_data.setdefault(name, {})[item.url] = today.isoformat()
+    # Log-only health check of not-yet-confirmed feeds (never used for picks,
+    # and kept out of `pool` so they can't affect coverage either).
+    pending_cache: dict = {}
+    for outlet, url in PENDING_FEEDS:
+        _fetch_feed(outlet, url, now, pending_cache,
+                    label=f'[pending check {urlparse(url).netloc}{urlparse(url).path}]')
+
+    stories, same_day_urls, picked_titles = [], set(), []
+    for name, emoji in SECTIONS:
+        excluded = _excluded_urls_for_section(sections_data, name, today) | same_day_urls
+        choice = _pick(_eligible(by_section[name], name, excluded, picked_titles, beat_urls[name]),
+                       pool, now, beat_urls[name])
+        source = 'feeds'
+        if choice is None:
+            backup = _eligible(_fetch_backup(name, now), name, excluded, picked_titles)
+            backup.sort(key=lambda e: e.published, reverse=True)
+            checks = 0
+            for e in backup:
+                if checks >= MAX_BACKUP_OPINION_CHECKS:
+                    break
+                checks += 1
+                final = _resolve_final_url(e.url)
+                if final is None or not _is_opinion_url(final):
+                    choice, source = (e, _coverage(e, pool)), 'backup search'
+                    break
+        item = None
+        if choice:
+            entry, cov = choice
+            item = NewsItem(outlet=entry.outlet, title=entry.title, url=entry.url,
+                            summary=entry.summary, published_date=_eastern_date(entry.published),
+                            coverage=cov)
+            same_day_urls.add(entry.url)
+            picked_titles.append(_tokens(entry.title))
+            sections_data.setdefault(name, {})[entry.url] = today.isoformat()
+            print(f'    [news] {name}: picked ({source}) {entry.outlet}, '
+                  f'{_age_hours(entry.published, now):.0f}h old, covered by {cov} other outlet(s)')
+        else:
+            print(f'    [news] {name}: nothing fresh and on-topic -- section left out today')
         stories.append(TopStory(section=name, emoji=emoji, item=item))
 
-    # Persist today's picks (plus everything carried over from the load
-    # above) for tomorrow's run to see. Pruning of anything past
-    # RECENT_STORIES_RETENTION_DAYS happens inside _save_recent_stories.
     _save_recent_stories(sections_data, today)
-
     return stories
 
 
-def _fetch_pr_trade_press_candidates(outlet: str, feed_url: str, require_keyword: bool) -> list:
-    """Fetch one PR trade-press RSS feed into a list of
-    (pub_date_or_None, title, link, outlet, summary) candidates. Unlike
-    _fetch_candidates (used for the Google News searches above), this reads
-    a real publication's own feed directly, so titles need no "Headline -
-    Source" splitting and summaries come straight from the entry itself."""
-    parsed = feedparser.parse(feed_url, request_headers=HEADERS)
-
-    print(
-        f'    [news_snapshot] PR trade press ({outlet}): {len(parsed.entries)} raw entries'
-        f', status={parsed.get("status")}, bozo={parsed.get("bozo")}'
-    )
-
-    candidates = []
-    for entry in parsed.entries:
-        raw_title = getattr(entry, 'title', '').strip()
-        link = getattr(entry, 'link', '').strip()
-        if not raw_title or not link:
-            continue
-        if require_keyword and not any(kw in raw_title.lower() for kw in PR_TRADE_PRESS_KEYWORDS):
-            continue
-        pub_date = _entry_published_date(entry)
-        raw_summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
-        summary = _summary_from_description(raw_summary)
-        candidates.append((pub_date, raw_title, link, outlet, summary))
-
-    return candidates
-
-
-def get_pr_industry_story(today: Optional[dt.date] = None) -> TopStory:
-    """Fetch the freshest PR/communications-industry trade-press item
-    (agency hires, promotions, account wins, mergers) for the newsletter's
-    dedicated PR & Comms section. Always returns a TopStory -- item is None
-    only if every configured feed came back genuinely empty or errored,
-    which given how often these feeds post (see the module comment above
-    PR_TRADE_PRESS_SECTION_NAME) should be rare.
-
-    Deliberately NOT folded into get_top_stories()/SECTION_QUERIES: this
-    keeps the PR section out of the list template.py's _pick_top_highlight()
-    scans, so it can never be chosen as the day's hero story -- it always
-    renders as its own fixed block instead (see render_brief in template.py).
-    """
-    today = today or dt.date.today()
-
+def get_pr_industry_story(today: Optional[dt.date] = None,
+                          now: Optional[dt.datetime] = None) -> TopStory:
+    """Newest PR/comms-industry trade-press item within MAX_AGE_HOURS
+    (agency hires, promotions, account wins, mergers). item is None if
+    neither feed has anything that fresh."""
+    now = now or dt.datetime.now(dt.timezone.utc)
+    today = today or now.astimezone(EASTERN).date()
     sections_data = _load_recent_stories()
     excluded = _excluded_urls_for_section(sections_data, PR_TRADE_PRESS_SECTION_NAME, today)
 
-    all_candidates = []
+    cache: dict = {}
+    candidates = []
     for outlet, feed_url, require_keyword in PR_TRADE_PRESS_SOURCES:
-        try:
-            all_candidates.extend(_fetch_pr_trade_press_candidates(outlet, feed_url, require_keyword))
-        except Exception as exc:
-            print(f'  [news_snapshot] PR trade press feed {outlet} raised {type(exc).__name__}: {exc}')
-
-    # Newest-dated first across both feeds combined; undated entries sort
-    # last rather than raising (None isn't orderable against a date).
-    all_candidates.sort(key=lambda c: c[0] or dt.date.min, reverse=True)
+        for e in _fetch_feed(outlet, feed_url, now, cache, label='[PR]'):
+            if require_keyword and not any(kw in f' {e.title.lower()} ' for kw in PR_TRADE_PRESS_KEYWORDS):
+                continue
+            if e.url not in excluded:
+                candidates.append(e)
+    candidates.sort(key=lambda e: e.published, reverse=True)
 
     item = None
-    for pub_date, raw_title, link, outlet, summary in all_candidates:
-        if link in excluded:
-            continue
-        # Same outer age cap as the six search-based sections (see
-        # MAX_FALLBACK_AGE_DAYS above) -- an old PR-industry item is still
-        # worse than a fresh one, even though staleness is far less likely
-        # here given how often these feeds post.
-        if pub_date is not None and (today - pub_date).days > MAX_FALLBACK_AGE_DAYS:
-            continue
-        item = NewsItem(outlet=outlet, title=raw_title, url=link, summary=summary, published_date=pub_date)
-        break
-
-    if item:
+    if candidates:
+        e = candidates[0]
+        item = NewsItem(outlet=e.outlet, title=e.title, url=e.url, summary=e.summary,
+                        published_date=_eastern_date(e.published))
         sections_data.setdefault(PR_TRADE_PRESS_SECTION_NAME, {})[item.url] = today.isoformat()
         _save_recent_stories(sections_data, today)
-
     return TopStory(section=PR_TRADE_PRESS_SECTION_NAME, emoji=PR_TRADE_PRESS_EMOJI, item=item)
+
+
+if __name__ == '__main__':
+    # Dry run: prints every feed's freshness line and each section's pick.
+    # Note: records the picks in .state/recent_stories.json like a real run.
+    for story in get_top_stories() + [get_pr_industry_story()]:
+        it = story.item
+        print(f'{story.section:22} {("(none)" if not it else f"{it.outlet}: {it.title}")}')
