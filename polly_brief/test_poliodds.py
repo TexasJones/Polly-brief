@@ -15,8 +15,11 @@ import poliodds_snapshot as po
 
 
 def _market(sub_title, last_price=None, prev_price=None, yes_bid=None, yes_ask=None,
-           prev_bid=None, prev_ask=None, volume=0, status="active"):
-    m = {"yes_sub_title": sub_title, "status": status, "volume_fp": volume}
+           prev_bid=None, prev_ask=None, volume=0, status="active", volume_24h=1_000):
+    # volume_24h defaults to "traded today" so older tests model a normally
+    # active market; the freshness tests below set it to 0 explicitly.
+    m = {"yes_sub_title": sub_title, "status": status, "volume_fp": volume,
+         "volume_24h_fp": volume_24h}
     if last_price is not None:
         m["last_price_dollars"] = last_price
     if prev_price is not None:
@@ -49,7 +52,9 @@ def fake_get_factory(event_responses: dict, poll_responses: dict = None, fail_ho
             resp.status_code = code
             if code == 404:
                 return resp
-            resp.json.return_value = {"markets": markets}
+            # Documented shape for with_nested_markets=true: markets nested
+            # inside "event" (top-level "markets" is deprecated).
+            resp.json.return_value = {"event": {"event_ticker": ticker, "markets": markets}}
             resp.raise_for_status.return_value = None
             return resp
         if "/polls" in url:
@@ -149,11 +154,11 @@ def test_generic_ballot_and_approval_averaging():
              "answers": [{"choice": "Democrat", "pct": 45}, {"choice": "Republican", "pct": 45}]},
         ],
         "approval": [
-            {"pollster": "Marist", "end_date": "2026-09-20", "subject": "Trump",
+            {"pollster": "Marist", "end_date": "2026-09-20", "subject": "Donald Trump",
              "answers": [{"choice": "Approve", "pct": 43}, {"choice": "Disapprove", "pct": 54}]},
-            {"pollster": "Quinnipiac", "end_date": "2026-09-18", "subject": "Trump",
+            {"pollster": "Quinnipiac", "end_date": "2026-09-18", "subject": "Donald Trump",
              "answers": [{"choice": "Approve", "pct": 41}, {"choice": "Disapprove", "pct": 56}]},
-            {"pollster": "YouGov", "end_date": "2026-09-19", "subject": "Trump",
+            {"pollster": "YouGov", "end_date": "2026-09-19", "subject": "Donald Trump",
              "answers": [{"choice": "Approve", "pct": 44}, {"choice": "Disapprove", "pct": 53}]},
         ],
     }
@@ -180,6 +185,102 @@ def test_too_few_polls_returns_none_not_a_fake_average():
     print("PASS: below MIN_POLLS_FOR_AVERAGE correctly returns None instead of a misleading average")
 
 
+def test_lone_minority_outcome_is_not_shown_as_leader():
+    lone_low = [_market("Democratic Party", last_price=0.20, prev_price=0.22, volume=50_000)]
+    lone_high = [_market("Republican Party", last_price=0.80, prev_price=0.78, volume=50_000)]
+    assert po._line_from_markets("XX Senate", lone_low, "u") is None, \
+        "a single 20% outcome must never be labeled the leader"
+    line = po._line_from_markets("XX Senate", lone_high, "u")
+    assert line.leader == "REP" and line.leader_pct == 80 and line.change_pts == 2
+    print("PASS: lone sub-50% outcome skipped, lone majority outcome kept")
+
+
+def test_approval_ignores_other_subjects_and_stale_polls():
+    polls = {"approval": [
+        {"pollster": "Marist", "end_date": "2026-09-20", "subject": "Donald Trump",
+         "answers": [{"choice": "Approve", "pct": 43}, {"choice": "Disapprove", "pct": 54}]},
+        {"pollster": "Quinnipiac", "end_date": "2026-09-18", "subject": "Donald Trump",
+         "answers": [{"choice": "Approve", "pct": 41}, {"choice": "Disapprove", "pct": 56}]},
+        {"pollster": "YouGov", "end_date": "2026-09-19", "subject": "Donald Trump",
+         "answers": [{"choice": "Approve", "pct": 44}, {"choice": "Disapprove", "pct": 53}]},
+        # Must be excluded: wrong subject, and a stale poll the server "forgot" to filter
+        {"pollster": "Gallup", "end_date": "2026-09-20", "subject": "Congress",
+         "answers": [{"choice": "Approve", "pct": 15}, {"choice": "Disapprove", "pct": 80}]},
+        {"pollster": "Emerson", "end_date": "2026-03-01", "subject": "Donald Trump",
+         "answers": [{"choice": "Approve", "pct": 20}, {"choice": "Disapprove", "pct": 75}]},
+    ]}
+    with patch.object(po.requests.Session, "get", side_effect=fake_get_factory({}, polls, fail_hosts=("kalshi",))):
+        with po.requests.Session() as session:
+            approval = po._approval(session, dt.date(2026, 9, 11))
+    assert approval.value == "43%" and "3 polls" in approval.detail, (approval.value, approval.detail)
+    assert approval.label == "Trump approval"
+    print("PASS: approval excludes Congress-approval and stale polls")
+
+
+def test_ticker_list_and_urls_regressions():
+    assert "KY" not in po.SENATE_RACE_CODES and "LA" not in po.SENATE_RACE_CODES
+    assert po.HOUSE_CONTROL_URL.endswith("/controls/house-winner/controlh-2026")
+    assert len(set(po.SENATE_RACE_CODES)) == len(po.SENATE_RACE_CODES), "duplicate race code"
+    print("PASS: KY/LA collision stays fixed, House URL is the verified path, no duplicate codes")
+
+
+def test_attribution_only_credits_sources_shown():
+    sys.path.insert(0, "polly_brief")
+    import template
+    polls_only = po.PoliOdds(polls=[po.PollAverage("Generic ballot", "D +1.7", "avg of 6 polls")])
+    html = template._poliodds_section(polls_only)
+    assert "Kalshi" not in html and "VoteHub" in html
+    odds_only = po.PoliOdds(house=po.OddsLine("House", "DEM", 90, 2, 90, 8, 1e6, po.HOUSE_CONTROL_URL))
+    html = template._poliodds_section(odds_only)
+    assert "Kalshi" in html and "VoteHub" not in html
+    print("PASS: footer credits only the sources actually shown")
+
+
+def test_stale_last_price_is_never_shown():
+    # Last trade was at 60%, but nothing has traded in 24h and the live
+    # quotes now sit at 70/72 -- the brief must show 71, not the stale 60.
+    stale_but_quoted = [
+        _market("Republican Party", last_price=0.60, prev_price=0.60, yes_bid=0.70, yes_ask=0.72,
+                prev_bid=0.66, prev_ask=0.68, volume=50_000, volume_24h=0),
+        _market("Democratic Party", last_price=0.40, prev_price=0.40, yes_bid=0.28, yes_ask=0.30,
+                prev_bid=0.32, prev_ask=0.34, volume=50_000, volume_24h=0),
+    ]
+    line = po._line_from_markets("XX Senate", stale_but_quoted, "u")
+    assert line.leader == "REP" and line.leader_pct == 71, (line.leader, line.leader_pct)
+    assert line.change_pts == 4, line.change_pts  # 71 now vs 67 midpoint yesterday, like-for-like
+
+    # Stale last trade AND a meaningless 5c/95c quote -> no trustworthy
+    # current number at all, so the race is dropped, not shown stale.
+    stale_wide = [
+        _market("Republican Party", last_price=0.60, yes_bid=0.05, yes_ask=0.95, volume=50_000, volume_24h=0),
+        _market("Democratic Party", last_price=0.40, yes_bid=0.05, yes_ask=0.95, volume=50_000, volume_24h=0),
+    ]
+    assert po._line_from_markets("XX Senate", stale_wide, "u") is None
+    print("PASS: stale last trade replaced by live quote; unquotable stale market dropped")
+
+
+def test_polls_older_than_a_week_are_ignored():
+    today = dt.date(2026, 9, 25)
+    since = today - dt.timedelta(days=po.POLL_WINDOW_DAYS)
+    assert po.POLL_WINDOW_DAYS == 7
+    polls = {"generic-ballot": [
+        {"pollster": "Marist", "end_date": "2026-09-23",
+         "answers": [{"choice": "Democrat", "pct": 47}, {"choice": "Republican", "pct": 43}]},
+        {"pollster": "YouGov", "end_date": "2026-09-21",
+         "answers": [{"choice": "Democrat", "pct": 45}, {"choice": "Republican", "pct": 45}]},
+        {"pollster": "Quinnipiac", "end_date": "2026-09-18",  # exactly 7 days -- still in
+         "answers": [{"choice": "Democrat", "pct": 46}, {"choice": "Republican", "pct": 44}]},
+        {"pollster": "Emerson", "end_date": "2026-09-12",  # 13 days old -- out
+         "answers": [{"choice": "Democrat", "pct": 30}, {"choice": "Republican", "pct": 60}]},
+    ]}
+    with patch.object(po.requests.Session, "get", side_effect=fake_get_factory({}, polls, fail_hosts=("kalshi",))):
+        with po.requests.Session() as session:
+            ballot = po._generic_ballot(session, since)
+    assert ballot.detail == "avg of 3 polls, last 7 days", ballot.detail
+    assert ballot.value == "D +2.0", ballot.value
+    print("PASS: polls older than 7 days excluded; detail says 'last 7 days'")
+
+
 if __name__ == "__main__":
     test_normal_house_and_senate_with_change()
     test_thin_race_excluded_from_mover_and_tightest()
@@ -187,4 +288,10 @@ if __name__ == "__main__":
     test_total_kalshi_outage_returns_none_not_exception()
     test_generic_ballot_and_approval_averaging()
     test_too_few_polls_returns_none_not_a_fake_average()
+    test_lone_minority_outcome_is_not_shown_as_leader()
+    test_approval_ignores_other_subjects_and_stale_polls()
+    test_ticker_list_and_urls_regressions()
+    test_attribution_only_credits_sources_shown()
+    test_stale_last_price_is_never_shown()
+    test_polls_older_than_a_week_are_ignored()
     print("\nAll tests passed.")

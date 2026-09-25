@@ -6,7 +6,8 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from jobs_snapshot import HiringPulse, JobPosting, get_hiring_pulse
 from news_snapshot import NewsItem, TopStory, get_top_stories, get_pr_industry_story
-from poliodds_snapshot import PoliOdds, OddsLine, PollAverage, get_poliodds
+from poliodds_snapshot import (PoliOdds, OddsLine, PollAverage, get_poliodds,
+                               HOUSE_CONTROL_URL, SENATE_CONTROL_URL, TIGHT_RACES_SHOWN)
 from template import render_brief
 
 # GitHub Pages base for this repo (Settings -> Pages: main branch, /docs
@@ -32,18 +33,19 @@ def _sample_data():
         JobPosting('Deputy Political Director', 'Campaign', 'Arizona', 'https://www.thepolly.co/jobs/sample-2', dt.date.today()),
     ]
     poliodds = PoliOdds(
-        house=OddsLine('House', 'DEM', 90, 2, 90, 8, 2_000_000, 'https://kalshi.com/markets/controlh'),
-        senate=OddsLine('Senate', 'DEM', 64, 4, 64, 36, 1_000_000,
-                        'https://kalshi.com/markets/controls/senate-winner/controls-2026'),
+        house=OddsLine('House', 'DEM', 90, 2, 90, 8, 2_000_000, HOUSE_CONTROL_URL),
+        senate=OddsLine('Senate', 'DEM', 64, 4, 64, 36, 1_000_000, SENATE_CONTROL_URL),
         spotlight=OddsLine('NC Senate', 'REP', 53, 5, 47, 53, 900_000,
                            'https://kalshi.com/markets/senatenc/senatenc-26'),
         spotlight_kind='Biggest mover',
+        # Sliced by TIGHT_RACES_SHOWN exactly like the live path, so --sample
+        # previews the layout readers actually get (0 = the lean version).
         tight_races=[
             OddsLine('ME Senate', 'DEM', 55, 1, 55, 43, 400_000, 'https://kalshi.com/markets/senateme/senateme-26'),
             OddsLine('TX Senate', 'REP', 58, -1, 40, 58, 600_000, 'https://kalshi.com/markets/senatetx/senatetx-26'),
-        ],
-        polls=[PollAverage('Generic ballot', 'D +1.7', 'avg of 6 polls'),
-               PollAverage('Trump approval', '43%', 'net -12 · avg of 5 polls')],
+        ][:TIGHT_RACES_SHOWN],
+        polls=[PollAverage('Generic ballot', 'D +1.7', 'avg of 6 polls, last 7 days'),
+               PollAverage('Trump approval', '43%', 'net -12 · avg of 5 polls, last 7 days')],
     )
     return pulse, stories, pr_story, jobs, poliodds
 

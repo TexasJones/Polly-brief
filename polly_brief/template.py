@@ -385,16 +385,19 @@ def _poliodds_section(odds: PoliOdds) -> str:
         )
         parts.append(f'<div style="font-size: 12px; margin: 4px 0 14px 0;">{poll_items}</div>')
 
+    # Credit only the sources actually shown today: on a day Kalshi is down
+    # but VoteHub isn't, the footer must not say "Odds via Kalshi" over a
+    # section that has no odds in it.
     muted = _c('MUTED', '#767676')
-    attribution = (
-        f'<div style="font-size: 11px; color: {muted};">'
-        f'Odds via <a href="https://kalshi.com" target="_blank" rel="noopener noreferrer" '
-        f'style="color:{muted};">Kalshi</a>'
-        + (f' &middot; Polling via <a href="{VOTEHUB_WEB}" target="_blank" rel="noopener noreferrer" '
-           f'style="color:{muted};">VoteHub</a> (CC BY 4.0)' if odds.polls else '')
-        + ' &middot; updated daily</div>'
-    )
-    parts.append(attribution)
+    credits = []
+    if odds.has_odds:
+        credits.append(f'Odds via <a href="https://kalshi.com" target="_blank" rel="noopener noreferrer" '
+                       f'style="color:{muted};">Kalshi</a>')
+    if odds.polls:
+        credits.append(f'Polling via <a href="{VOTEHUB_WEB}" target="_blank" rel="noopener noreferrer" '
+                       f'style="color:{muted};">VoteHub</a> (CC BY 4.0)')
+    credits.append('updated daily')
+    parts.append(f'<div style="font-size: 11px; color: {muted};">{" &middot; ".join(credits)}</div>')
 
     return ''.join(parts)
 

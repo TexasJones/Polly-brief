@@ -18,7 +18,12 @@ meant to be consumed this way (no scraping, no terms-of-service gray area):
     required, which template.py renders in the section footer). Supplies
     the generic congressional ballot and presidential approval. VoteHub
     returns individual polls, not averages, so this module averages the
-    most recent poll per pollster over the last POLL_WINDOW_DAYS days.
+    most recent poll per pollster over the last POLL_WINDOW_DAYS (7) days.
+
+No old data: Kalshi prices are only used if the market traded in the last
+24 hours (else the live bid/ask quote, else skipped -- see _prices()), and
+polls older than a week are ignored. Nothing is cached between runs; every
+brief pulls fresh numbers the morning it sends.
 
 Deliberately NOT used:
   * RealClearPolling -- no official API; the only way in is scraping, and
@@ -114,10 +119,25 @@ MOVER_MIN_POINTS = 2
 TIGHT_RACES_SHOWN = 0
 # Stop hammering Kalshi if it's clearly down, rather than timing out 37x.
 MAX_CONSECUTIVE_FAILURES = 5
+# No stale prices: see _prices(). A market with no trades in the last 24h
+# falls back to its live bid/ask midpoint, but only if the spread is at
+# most this wide (10 cents = 10 points); otherwise it isn't shown at all.
+MAX_QUOTE_SPREAD = 0.10
 
-POLL_WINDOW_DAYS = 14
+# No stale polls: only polls that finished fieldwork in the last week
+# count. If fewer than MIN_POLLS_FOR_AVERAGE pollsters released one in that
+# window, that poll line is left out for the day rather than padded with
+# older polls. (Was 14; tightened to 7 at Chris's request -- no old data.)
+POLL_WINDOW_DAYS = 7
 MIN_POLLS_FOR_AVERAGE = 3  # never present one or two polls as an "average"
-APPROVAL_SUBJECT = "Trump"
+# VoteHub's documented subject values for approval polls are "Congress",
+# "Donald Trump" and "Supreme Court" (from its /subjects docs) -- so the
+# server-side filter has to use the full name. The client-side filter in
+# _approval() matches on APPROVAL_MATCH as a second line of defence, so
+# Congress or Supreme Court approval can never be averaged in by mistake.
+APPROVAL_SUBJECT = "Donald Trump"
+APPROVAL_MATCH = "trump"
+APPROVAL_LABEL = "Trump approval"
 
 
 @dataclass
@@ -142,7 +162,7 @@ class OddsLine:
 class PollAverage:
     label: str      # "Generic ballot", "Trump approval"
     value: str      # "D +2.4", "43% approve"
-    detail: str     # "avg of 9 polls, last 14 days"
+    detail: str     # "avg of 5 polls, last 7 days"
 
 
 @dataclass
@@ -185,19 +205,48 @@ def _dollars(market: dict, base: str) -> Optional[float]:
     return cents / 100.0 if cents is not None else None
 
 
-def _chance(market: dict, previous: bool = False) -> Optional[float]:
-    """Implied probability: last traded price, or the bid/ask midpoint if
-    it has never traded. `previous=True` reads the same fields as of 24
-    hours ago, so the change is always like-for-like."""
-    prefix = "previous_" if previous else ""
-    last = _dollars(market, "previous_price" if previous else "last_price")
-    if last is not None and last > 0:
-        return last
+def _volume_24h(market: dict) -> Optional[float]:
+    """Contracts traded in the last 24 hours (Kalshi's `volume_24h_fp`),
+    or None if the field isn't there."""
+    for key in ("volume_24h_fp", "volume_24h"):
+        value = _to_float(market.get(key))
+        if value is not None:
+            return value
+    return None
+
+
+def _midpoint(market: dict, prefix: str = "") -> Optional[float]:
+    """Midpoint of the standing yes bid/ask. Current quotes are live by
+    definition, but a wide spread (say 5c bid / 95c ask) says nothing about
+    the real odds, so anything wider than MAX_QUOTE_SPREAD is refused."""
     bid = _dollars(market, f"{prefix}yes_bid")
     ask = _dollars(market, f"{prefix}yes_ask")
-    if bid is not None and ask is not None and 0 < bid <= ask:
-        return (bid + ask) / 2
-    return None
+    if bid is None or ask is None or not (0 < bid <= ask) or ask - bid > MAX_QUOTE_SPREAD:
+        return None
+    return (bid + ask) / 2
+
+
+def _prices(market: dict) -> tuple[Optional[float], Optional[float]]:
+    """(current, 24-hours-ago) implied probability -- or (None, None) when
+    there's no CURRENT number we trust, so the market is skipped.
+
+    Freshness rule: a market's "last price" is simply its most recent trade,
+    whenever that was -- in a quiet race that can be days or weeks old and
+    still look current. So the last trade is only used when Kalshi confirms
+    the market actually traded in the last 24 hours. Otherwise the live
+    bid/ask midpoint is used, and if the spread is too wide to mean
+    anything, the market is dropped rather than shown with a stale number.
+    The 24h-ago value always comes from the same kind of price as the
+    current one, so the change arrow is like-for-like."""
+    if (_volume_24h(market) or 0) > 0:
+        last = _dollars(market, "last_price")
+        if last is not None and last > 0:
+            prev = _dollars(market, "previous_price")
+            return last, (prev if prev is not None and prev > 0 else None)
+    mid = _midpoint(market)
+    if mid is not None:
+        return mid, _midpoint(market, "previous_")
+    return None, None
 
 
 def _volume(market: dict) -> float:
@@ -270,16 +319,26 @@ def _line_from_markets(label: str, markets: list[dict], url: str) -> Optional[Od
         if not _is_live(market):
             continue
         key = _outcome_key(market)
-        now = _chance(market)
+        now, prev = _prices(market)
         if key is None or now is None or key in outcomes:
             continue
-        outcomes[key] = (now, _chance(market, previous=True), _volume(market))
+        outcomes[key] = (now, prev, _volume(market))
     if not outcomes:
         return None
 
     leader_key, (leader_now, leader_prev, _) = max(outcomes.items(), key=lambda kv: kv[1][0])
+    # If only ONE outcome came back (a single yes/no market, or the other
+    # side's market paused), "highest of one" isn't a leader: a lone
+    # "Democratic party" market at 20% would otherwise be shown as
+    # "DEM 20%" leading. The other side can't be safely inferred either --
+    # it might be an independent (e.g. Nebraska), not the other party --
+    # so a lone sub-50% outcome is skipped rather than mislabeled.
+    if len(outcomes) == 1 and leader_now < 0.5:
+        return None
     leader_pct = round(leader_now * 100)
-    change = (leader_pct - round(leader_prev * 100)) if leader_prev else None
+    # `is not None`, not truthiness: _prices() happens never to return 0.0
+    # today, but this shouldn't silently depend on that.
+    change = (leader_pct - round(leader_prev * 100)) if leader_prev is not None else None
 
     def pct(key: str) -> Optional[int]:
         return round(outcomes[key][0] * 100) if key in outcomes else None
@@ -352,7 +411,16 @@ def _fetch_polls(session: requests.Session, poll_type: str, since: dt.date,
         return []
     if isinstance(data, dict):
         data = data.get("polls") or data.get("data") or []
-    return [p for p in data if isinstance(p, dict)]
+    if not isinstance(data, list):
+        return []
+    # from_date is documented as filtering server-side, but re-check here
+    # anyway: if it were ever ignored, a pollster whose last poll was months
+    # ago would otherwise be averaged in as if it were current. ISO dates
+    # (with or without a time part) compare correctly as strings. Undated
+    # polls are dropped -- their freshness can't be confirmed.
+    cutoff = since.isoformat()
+    return [p for p in data
+            if isinstance(p, dict) and str(p.get("end_date") or "")[:10] >= cutoff]
 
 
 def _latest_per_pollster(polls: list[dict]) -> list[dict]:
@@ -389,14 +457,18 @@ def _generic_ballot(session: requests.Session, since: dt.date) -> Optional[PollA
         return None
     avg = sum(margins) / len(margins)
     value = "Tied" if abs(avg) < 0.05 else f"{'D' if avg > 0 else 'R'} +{abs(avg):.1f}"
-    return PollAverage("Generic ballot", value, f"avg of {len(margins)} polls")
+    return PollAverage("Generic ballot", value, f"avg of {len(margins)} polls, last {POLL_WINDOW_DAYS} days")
 
 
 def _approval(session: requests.Session, since: dt.date) -> Optional[PollAverage]:
-    polls = _fetch_polls(session, "approval", since, subject=APPROVAL_SUBJECT)
-    if not polls:  # subject naming may differ -- filter client-side instead
-        polls = [p for p in _fetch_polls(session, "approval", since)
-                 if APPROVAL_SUBJECT.lower() in str(p.get("subject") or "").lower()]
+    def is_subject(poll: dict) -> bool:
+        return APPROVAL_MATCH in str(poll.get("subject") or "").lower()
+
+    # Always filter client-side, even when the server-side subject filter
+    # was used -- never average Congress/Supreme Court approval in.
+    polls = [p for p in _fetch_polls(session, "approval", since, subject=APPROVAL_SUBJECT) if is_subject(p)]
+    if not polls:  # subject naming may differ -- fetch unfiltered, filter here
+        polls = [p for p in _fetch_polls(session, "approval", since) if is_subject(p)]
     approves, nets = [], []
     for poll in _latest_per_pollster(polls):
         approve = _answer_pct(poll, "approve", exclude=("disapprove",))
@@ -409,8 +481,8 @@ def _approval(session: requests.Session, since: dt.date) -> Optional[PollAverage
     approve_avg = sum(approves) / len(approves)
     net_avg = sum(nets) / len(nets)
     sign = "+" if net_avg >= 0 else "−"
-    return PollAverage(f"{APPROVAL_SUBJECT} approval", f"{approve_avg:.0f}%",
-                       f"net {sign}{abs(net_avg):.0f} · avg of {len(approves)} polls")
+    return PollAverage(APPROVAL_LABEL, f"{approve_avg:.0f}%",
+                       f"net {sign}{abs(net_avg):.0f} · avg of {len(approves)} polls, last {POLL_WINDOW_DAYS} days")
 
 
 # --- Entry point -----------------------------------------------------------
