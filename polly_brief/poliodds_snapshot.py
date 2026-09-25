@@ -61,7 +61,12 @@ REQUEST_SPACING_SECONDS = 0.05  # polite pacing across ~37 Kalshi calls
 # --- What we watch ---------------------------------------------------------
 HOUSE_CONTROL_EVENT = "CONTROLH-2026"
 SENATE_CONTROL_EVENT = "CONTROLS-2026"
-HOUSE_CONTROL_URL = f"{KALSHI_WEB}/controlh"
+# Both use Kalshi's full "controls/{chamber}-winner/{ticker}" path rather
+# than a shorter guessed slug -- this exact path was directly confirmed
+# live for both chambers (not just inferred from the ticker naming
+# pattern), so it's the one link we know resolves correctly instead of
+# one confirmed path plus one unverified shortcut.
+HOUSE_CONTROL_URL = f"{KALSHI_WEB}/controls/house-winner/controlh-2026"
 SENATE_CONTROL_URL = f"{KALSHI_WEB}/controls/senate-winner/controls-2026"
 
 # Every 2026 Senate seat: the Class 2 seats plus the Ohio and Florida
@@ -70,9 +75,24 @@ SENATE_CONTROL_URL = f"{KALSHI_WEB}/controls/senate-winner/controls-2026"
 # skipped, so a wrong or retired code costs one wasted request, not a
 # broken section. After Nov 3 these resolve and fall away on their own;
 # swap this list (and the two control events above) for the next cycle.
+#
+# KY and LA are deliberately NOT in this list, and that's a fix, not an
+# omission: Kalshi's ticker for Kentucky's race is (confirmed directly)
+# "SENATELA-26" -- reusing "LA" for Kentucky, not Louisiana -- while
+# Louisiana's real race uses an entirely different scheme,
+# "KXSENATELA-26NOV", that this template can't produce at all. Templating
+# "SENATELA-26" from a "LA" = Louisiana assumption doesn't 404 the way a
+# wrong code safely does elsewhere in this list -- it successfully
+# fetches and would silently show Kentucky's real odds mislabeled as
+# "LA Senate", which is worse than a missing race. Rather than guess at
+# a special case for two states out of 35 based on one fetch, both are
+# left out until their tickers are confirmed directly against Kalshi's
+# live API (this sandbox can't reach it -- see the chat). Every other
+# code below was cross-checked against its expected state name and
+# lined up correctly; these two were the only exception found.
 SENATE_RACE_CODES = (
-    "AK", "AL", "AR", "CO", "DE", "FLS", "GA", "IA", "ID", "IL", "KS", "KY",
-    "LA", "MA", "ME", "MI", "MN", "MS", "MT", "NC", "NE", "NH", "NJ", "NM",
+    "AK", "AL", "AR", "CO", "DE", "FLS", "GA", "IA", "ID", "IL", "KS",
+    "MA", "ME", "MI", "MN", "MS", "MT", "NC", "NE", "NH", "NJ", "NM",
     "OHS", "OK", "OR", "RI", "SC", "SD", "TN", "TX", "VA", "WV", "WY",
 )
 SENATE_RACE_EVENT = "SENATE{code}-26"
