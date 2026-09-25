@@ -237,6 +237,15 @@ def _party_color(key: str) -> str:
     return PARTY_COLORS.get(key, DEFAULT_PARTY_COLOR)
 
 
+PARTY_ABBR = {"DEM": "D", "REP": "R", "IND": "Ind"}
+
+
+def _party_abbr(key: str) -> str:
+    """"D" / "R" / "Ind", or a candidate surname (title-cased) for an
+    outcome Kalshi didn't label with a party."""
+    return PARTY_ABBR.get(key, (key or '').title())
+
+
 def _odds_change_label(change_pts: Optional[int]) -> str:
     """'▲ 2pts vs yesterday' / '▼ 3pts vs yesterday' / '' when
     unknown or flat -- Kalshi's own previous_price_dollars fields are what
@@ -280,9 +289,13 @@ def _spotlight_card(line: OddsLine, kind: str) -> str:
     bg = _party_color(line.leader)
     ink = _c('INK', '#161616')
     muted = _c('MUTED', '#767676')
-    dem = f'D {line.dem_pct}%' if line.dem_pct is not None else ''
-    rep = f'R {line.rep_pct}%' if line.rep_pct is not None else ''
-    both = ' &middot; '.join(p for p in (dem, rep) if p)
+    # Leader vs runner-up, not a fixed "D vs R": in a race like Nebraska the
+    # real contest is Republican vs independent, and a D/R line would show
+    # "D 0% · R 73%" and hide the actual challenger.
+    head = f'{_esc(_party_abbr(line.leader))} {line.leader_pct}%'
+    runner = (f'{_esc(_party_abbr(line.runner_up))} {line.runner_up_pct}%'
+              if line.runner_up and line.runner_up_pct is not None else '')
+    both = ' &middot; '.join(p for p in (head, runner) if p)
     change = _odds_change_label(line.change_pts)
 
     # The whole card is one link (not just the race name) -- same reasoning
@@ -299,12 +312,11 @@ def _spotlight_card(line: OddsLine, kind: str) -> str:
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
         f'<td valign="middle">'
         f'<div style="color: {ink}; font-size: 16px; font-weight: 700;">{_esc(line.label)}</div>'
-        # `both` is built only from internally-formatted party letters and
-        # integers (never user/network-supplied text) plus a raw &middot;
-        # entity -- _esc() would double-escape that entity into literal
-        # "&amp;middot;" text, so it's inserted as-is like the other
-        # already-safe &middot; joins elsewhere in this file (e.g.
-        # _featured_job_block's `meta`).
+        # `both` is joined with a raw &middot; entity, so it's inserted
+        # as-is -- _esc() on the whole string would double-escape the
+        # entity into literal "&amp;middot;" text. Each piece that could
+        # come from Kalshi (the party/name labels) was already _esc()'d
+        # individually above, before the join.
         f'<div style="font-size: 13px; color: {muted}; margin-top: 2px;">{both}'
         f'{" &middot; " + _esc(change) if change else ""}</div>'
         f'</td>'

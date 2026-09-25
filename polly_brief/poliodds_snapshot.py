@@ -61,7 +61,7 @@ HEADERS = {
     "User-Agent": "PollyBrief/1.0 (+https://thepolly.co)",
 }
 TIMEOUT_SECONDS = 8
-REQUEST_SPACING_SECONDS = 0.05  # polite pacing across ~37 Kalshi calls
+REQUEST_SPACING_SECONDS = 0.05  # polite pacing across ~36 Kalshi calls
 
 # --- What we watch ---------------------------------------------------------
 HOUSE_CONTROL_EVENT = "CONTROLH-2026"
@@ -81,26 +81,21 @@ SENATE_CONTROL_URL = f"{KALSHI_WEB}/controls/senate-winner/controls-2026"
 # broken section. After Nov 3 these resolve and fall away on their own;
 # swap this list (and the two control events above) for the next cycle.
 #
-# KY and LA are deliberately NOT in this list, and that's a fix, not an
-# omission: Kalshi's ticker for Kentucky's race is (confirmed directly)
-# "SENATELA-26" -- reusing "LA" for Kentucky, not Louisiana -- while
-# Louisiana's real race uses an entirely different scheme,
-# "KXSENATELA-26NOV", that this template can't produce at all. Templating
-# "SENATELA-26" from a "LA" = Louisiana assumption doesn't 404 the way a
-# wrong code safely does elsewhere in this list -- it successfully
-# fetches and would silently show Kentucky's real odds mislabeled as
-# "LA Senate", which is worse than a missing race. Rather than guess at
-# a special case for two states out of 35 based on one fetch, both are
-# left out until their tickers are confirmed directly against Kalshi's
-# live API (this sandbox can't reach it -- see the chat). Every other
-# code below was cross-checked against its expected state name and
-# lined up correctly; these two were the only exception found.
+# Every code below was checked against Kalshi's live API on 2026-09-25:
+# each event's own title names the expected state ("Iowa Senate winner?",
+# etc.). The one exception is Kentucky -- Kalshi files it under
+# "SENATELA-26" (its title really is "Kentucky Senate winner?", and
+# "SENATEKY-26" returns 404), so Kentucky is mapped explicitly in
+# SENATE_EVENT_OVERRIDES. Louisiana is left out: its race uses a different
+# scheme ("KXSENATELA-26NOV") that hasn't been checked, and templating
+# "SENATELA-26" for it would fetch KENTUCKY's odds and label them "LA".
 SENATE_RACE_CODES = (
-    "AK", "AL", "AR", "CO", "DE", "FLS", "GA", "IA", "ID", "IL", "KS",
+    "AK", "AL", "AR", "CO", "DE", "FLS", "GA", "IA", "ID", "IL", "KS", "KY",
     "MA", "ME", "MI", "MN", "MS", "MT", "NC", "NE", "NH", "NJ", "NM",
     "OHS", "OK", "OR", "RI", "SC", "SD", "TN", "TX", "VA", "WV", "WY",
 )
 SENATE_RACE_EVENT = "SENATE{code}-26"
+SENATE_EVENT_OVERRIDES = {"KY": "SENATELA-26"}
 
 # --- Selection tuning ------------------------------------------------------
 # Thin markets can swing 10+ points on a few hundred dollars, which would
@@ -117,7 +112,7 @@ MOVER_MIN_POINTS = 2
 # this back up later to bring the extra rows back is a one-line change,
 # not a re-implementation.
 TIGHT_RACES_SHOWN = 0
-# Stop hammering Kalshi if it's clearly down, rather than timing out 37x.
+# Stop hammering Kalshi if it's clearly down, rather than timing out 36x.
 MAX_CONSECUTIVE_FAILURES = 5
 # No stale prices: see _prices(). A market with no trades in the last 24h
 # falls back to its live bid/ask midpoint, but only if the spread is at
@@ -151,6 +146,11 @@ class OddsLine:
     rep_pct: Optional[int]
     volume: float              # contracts traded (liquidity signal)
     url: str
+    # Second-place outcome. Not always the other major party: in Nebraska
+    # it's independent Dan Osborn (~30%) while the Democrat is under 1%, so
+    # the brief shows leader vs runner-up rather than a fixed "D vs R".
+    runner_up: Optional[str] = None
+    runner_up_pct: Optional[int] = None
 
     @property
     def closeness(self) -> int:
@@ -258,20 +258,38 @@ def _volume(market: dict) -> float:
 
 
 def _outcome_key(market: dict) -> Optional[str]:
-    name = (market.get("yes_sub_title") or market.get("subtitle")
-            or market.get("title") or "").strip()
-    lowered = name.lower()
-    if not name:
-        return None
-    if "democrat" in lowered:
+    """Party of one outcome market: "DEM", "REP", "IND", or (last resort)
+    a short candidate name.
+
+    Checked against Kalshi's live 2026 Senate data (2026-09-25): most race
+    markets label the outcome by CANDIDATE in yes_sub_title ("Ashley
+    Hinson", "Jon Ossoff"), and only a few by party ("Democratic party"),
+    so yes_sub_title alone can't be trusted for party. Party comes from:
+      1. the ticker's final segment when it's exactly D or R
+         ("SENATEIA-26-R"). Exact match only: independents get their own
+         suffixes -- "-IND" (Montana), but also "-DOSB" (Dan Osborn,
+         Nebraska) and "-TACH" (Todd Achilles, Idaho) -- so a "starts with
+         D" test would call Osborn a Democrat.
+      2. otherwise the words in `subtitle` / `yes_sub_title`, which carry
+         the party for every live market seen ("Republican party:: ...",
+         "Dan Osborn:: Independent", "Democratic (DFL) party").
+    """
+    suffix = str(market.get("ticker") or "").rsplit("-", 1)[-1].upper()
+    if suffix == "D":
         return "DEM"
-    if "republican" in lowered:
+    if suffix == "R":
         return "REP"
-    if "independent" in lowered:
+    text = " ".join(str(market.get(k) or "") for k in ("subtitle", "yes_sub_title")).lower()
+    if "democrat" in text:
+        return "DEM"
+    if "republican" in text:
+        return "REP"
+    if "independent" in text:
         return "IND"
-    # Candidate-named outcome (e.g. an independent listed by name) --
-    # keep it, shortened, so a non-party leader is never silently dropped.
-    return name.split()[-1].upper()[:12]
+    name = str(market.get("yes_sub_title") or market.get("title") or "").strip()
+    # Unlabeled outcome -- keep it under a short name so a leader is never
+    # silently dropped.
+    return name.split()[-1].upper()[:12] if name else None
 
 
 def _is_live(market: dict) -> bool:
@@ -343,10 +361,15 @@ def _line_from_markets(label: str, markets: list[dict], url: str) -> Optional[Od
     def pct(key: str) -> Optional[int]:
         return round(outcomes[key][0] * 100) if key in outcomes else None
 
+    others = sorted(((k, v[0]) for k, v in outcomes.items() if k != leader_key),
+                    key=lambda kv: kv[1], reverse=True)
+    runner_up, runner_up_pct = (others[0][0], round(others[0][1] * 100)) if others else (None, None)
+
     return OddsLine(
         label=label, leader=leader_key, leader_pct=leader_pct, change_pts=change,
         dem_pct=pct("DEM"), rep_pct=pct("REP"),
         volume=sum(v for _, _, v in outcomes.values()), url=url,
+        runner_up=runner_up, runner_up_pct=runner_up_pct,
     )
 
 
@@ -369,7 +392,7 @@ def _fetch_odds(client: _KalshiClient) -> PoliOdds:
         if client.gave_up:
             print("    [poliodds] Kalshi unreachable -- skipping remaining races")
             break
-        event = SENATE_RACE_EVENT.format(code=code)
+        event = SENATE_EVENT_OVERRIDES.get(code) or SENATE_RACE_EVENT.format(code=code)
         markets = client.event_markets(event)
         if not markets:
             continue
