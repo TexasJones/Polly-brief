@@ -379,9 +379,12 @@ def _poliodds_section(odds: PoliOdds) -> str:
     if odds.polls:
         ink = _c('INK', '#161616')
         muted = _c('MUTED', '#767676')
-        poll_items = ' &nbsp;&middot;&nbsp; '.join(
-            f'<strong style="color:{ink};">{_esc(p.label)}:</strong> {_esc(p.value)} '
-            f'<span style="color:{muted};">({_esc(p.detail)})</span>' for p in odds.polls
+        # One poll per line: run together on a single line, the two items
+        # wrapped mid-phrase ("avg of 5 / polls") at normal email widths.
+        poll_items = ''.join(
+            f'<div style="padding: 2px 0;"><strong style="color:{ink};">{_esc(p.label)}:</strong> '
+            f'{_esc(p.value)} <span style="color:{muted};">({_esc(p.detail)})</span></div>'
+            for p in odds.polls
         )
         parts.append(f'<div style="font-size: 12px; margin: 4px 0 14px 0;">{poll_items}</div>')
 
