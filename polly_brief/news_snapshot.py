@@ -40,6 +40,7 @@ from __future__ import annotations
 import datetime as dt
 import json
 import re
+import time
 from dataclasses import dataclass
 from html import unescape
 from pathlib import Path
@@ -55,6 +56,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0 (compatible; PollyBriefBot/1.0; +https://w
 GOOGLE_NEWS_BASE = 'https://news.google.com/rss/search'
 EASTERN = ZoneInfo('America/New_York')
 FEED_TIMEOUT_SECONDS = 10
+RETRY_PAUSE_SECONDS = 2
 
 # ─────────────────────────────────────────────
 # Freshness
@@ -83,8 +85,10 @@ SECTIONS = [
 # Politics, NBC Politics, Semafor, ...) must match on the headline itself.
 #
 # ACTIVE feeds only: every one was checked on 2026-09-25 to exist and post
-# fresh items daily. Feeds that couldn't be checked from Claude's sandbox
-# live in PENDING_FEEDS below until a GitHub run confirms them.
+# fresh items daily. Politico (politics, congress, energy, technology) and
+# CNBC were confirmed by the first GitHub run's pending check the same day
+# and promoted here. Politico's economy feed was dropped: that run found
+# only 3 items, none within 48 hours.
 _HILL = 'https://thehill.com'
 _NPR_POLITICS = 'https://feeds.npr.org/1014/rss.xml'
 _NBC_POLITICS = 'https://feeds.nbcnews.com/nbcnews/public/politics'
@@ -101,6 +105,7 @@ SECTION_FEEDS = {
         ('ABC News', _ABC_POLITICS, False),
         ('NPR', _NPR_POLITICS, False),
         ('Roll Call', _ROLL_CALL, False),
+        ('Politico', 'https://rss.politico.com/politics-news.xml', False),
     ],
     'Media': [
         ('The Hill', f'{_HILL}/homenews/media/feed/', True),
@@ -111,6 +116,7 @@ SECTION_FEEDS = {
     ],
     'AI+Policy': [
         ('The Hill', f'{_HILL}/policy/technology/feed/', True),
+        ('Politico', 'https://rss.politico.com/technology.xml', True),
         ('FedScoop', 'https://fedscoop.com/feed/', False),
         ('Nextgov', 'https://www.nextgov.com/rss/all/', False),
         ('NPR', 'https://feeds.npr.org/1019/rss.xml', False),
@@ -120,6 +126,7 @@ SECTION_FEEDS = {
     'Energy': [
         ('The Hill', f'{_HILL}/policy/energy-environment/feed/', True),
         ('Utility Dive', 'https://www.utilitydive.com/feeds/news/', True),
+        ('Politico', 'https://rss.politico.com/energy.xml', True),
         ('Canary Media', 'https://www.canarymedia.com/rss.rss', True),
         ('Inside Climate News', 'https://insideclimatenews.org/feed/', True),
         ('Grist', 'https://grist.org/feed/', False),
@@ -129,6 +136,7 @@ SECTION_FEEDS = {
         ('NPR', 'https://feeds.npr.org/1017/rss.xml', True),
         ('CBS News', 'https://www.cbsnews.com/latest/rss/moneywatch', True),
         ('NBC News', 'https://feeds.nbcnews.com/nbcnews/public/business', True),
+        ('CNBC', 'https://www.cnbc.com/id/20910258/device/rss/rss.html', True),
         ('Fortune', 'https://fortune.com/feed/fortune-feeds/?id=3230629', False),
         ('Semafor', _SEMAFOR, False),
     ],
@@ -136,6 +144,7 @@ SECTION_FEEDS = {
         ('Roll Call', _ROLL_CALL, True),
         ('The Hill', f'{_HILL}/homenews/house/feed/', True),
         ('The Hill', f'{_HILL}/homenews/senate/feed/', True),
+        ('Politico', 'https://rss.politico.com/congress.xml', True),
         ('NPR', _NPR_POLITICS, False),
         ('NBC News', _NBC_POLITICS, False),
         ('CBS News', _CBS_POLITICS, False),
@@ -148,12 +157,6 @@ SECTION_FEEDS = {
 # with item counts, or FAILED -- but their stories are never used. Once a
 # log shows one is OK, move it into SECTION_FEEDS above (section, beat).
 PENDING_FEEDS = [
-    ('Politico', 'https://rss.politico.com/politics-news.xml'),   # Campaigns, general
-    ('Politico', 'https://rss.politico.com/congress.xml'),        # Legislative, beat
-    ('Politico', 'https://rss.politico.com/energy.xml'),          # Energy, beat
-    ('Politico', 'https://rss.politico.com/economy.xml'),         # Economy, beat
-    ('Politico', 'https://rss.politico.com/technology.xml'),      # AI+Policy, beat
-    ('CNBC', 'https://www.cnbc.com/id/20910258/device/rss/rss.html'),  # Economy, beat
     ('The Verge', 'https://www.theverge.com/rss/policy/index.xml'),    # AI+Policy, beat
     ('Mediaite', 'https://www.mediaite.com/feed/'),               # Media, beat
 ]
@@ -511,6 +514,18 @@ def _eastern_date(published: dt.datetime) -> dt.date:
 # ─────────────────────────────────────────────
 # Fetching
 # ─────────────────────────────────────────────
+def _get_with_retry(url: str):
+    """GET with one retry after a short pause on a connection error or
+    timeout -- the first live run lost NPR's technology feed to a one-off
+    "connection reset by peer" while NPR's other feeds loaded fine. HTTP
+    errors (404, 403) aren't retried; they won't fix themselves in a second."""
+    try:
+        return requests.get(url, headers=HEADERS, timeout=FEED_TIMEOUT_SECONDS)
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        time.sleep(RETRY_PAUSE_SECONDS)
+        return requests.get(url, headers=HEADERS, timeout=FEED_TIMEOUT_SECONDS)
+
+
 def _fetch_feed(outlet: str, url: str, now: dt.datetime, cache: dict, label: str = '') -> list:
     """All timestamped, non-placeholder, non-opinion items from one feed that
     are within MAX_AGE_HOURS. Cached per URL for the run (several sections
@@ -520,7 +535,7 @@ def _fetch_feed(outlet: str, url: str, now: dt.datetime, cache: dict, label: str
         return cache[url]
     entries, status, raw_count = [], None, 0
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=FEED_TIMEOUT_SECONDS)
+        resp = _get_with_retry(url)
         status = resp.status_code
         resp.raise_for_status()
         parsed = feedparser.parse(resp.content)
