@@ -280,8 +280,17 @@ def _control_card(line: OddsLine, first: bool = True) -> str:
     here than 'did that just move'."""
     bg = _party_color(line.leader)
     change = _odds_change_label(line.change_pts)
-    change_html = (f'<div style="font-size: 11px; font-weight: 700; '
-                   f'color: rgba(255,255,255,0.85); margin-top: 6px;">{_esc(change)}</div>') if change else ''
+    # Always emit this line, even when nothing moved, so House and Senate
+    # cards stay the same height. A flat market reads "unch."; unknown
+    # (no previous price) keeps a blank line of the same height.
+    if change:
+        change_text = _esc(change)
+    elif line.change_pts == 0:
+        change_text = '&ndash; unch. vs yesterday'
+    else:
+        change_text = '&nbsp;'
+    change_html = (f'<div style="font-size: 11px; font-weight: 700; line-height: 14px; '
+                   f'color: rgba(255,255,255,0.85); margin-top: 6px;">{change_text}</div>')
 
     return (f'<td width="50%" class="polly-col" style="{_pair_cell_padding(first)} vertical-align: top;">'
             f'<a href="{_esc(line.url)}" target="_blank" rel="noopener noreferrer" '
