@@ -69,6 +69,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -109,6 +110,33 @@ FRESHNESS_OVERRIDES_DAYS: dict[str, int] = {
 # scraper's LOCATION_TYPE_LABELS, but feeds drift) is simply not counted
 # rather than crashing the run — see build_hiring_pulse().
 LOCATION_TYPES = ("Remote", "Hybrid", "Onsite")
+
+# Featured-job relevance screen. The scraper's own TITLE_BLOCKLIST is the
+# right long-term home for these terms (they're not political-jobs), but
+# the brief shouldn't headline one even if the feed lets it through -- e.g.
+# an ACLU "Service Desk Technician II" once made it into Jobs Worth
+# Looking At. Applies to Featured only; counts still reflect the feed.
+FEATURED_TITLE_BLOCKLIST = (
+    "service desk", "help desk", "helpdesk", "desktop support", "technician",
+    "sysadmin", "systems administrator", "system administrator",
+    "network administrator", "it support",
+)
+FEATURED_TITLE_BLOCKLIST_RE = re.compile(r"\bIT\b")  # case-sensitive: the department, not the word "it"
+
+# Titles that are just a level with no function ("Associate"). Not excluded
+# -- just ranked below any title that says what the job actually is.
+VAGUE_TITLES = {
+    "associate", "assistant", "coordinator", "analyst", "specialist",
+    "manager", "director", "officer", "intern", "fellow",
+}
+
+# Titles worth boosting while a general election is on: field, organizing,
+# campaigns, comms, and policy/legislative work.
+FEATURED_BOOST_TERMS = (
+    "campaign", "field", "organiz", "mobiliz", "voter", "election",
+    "political", "legislative", "government affairs", "public affairs",
+    "policy", "advocacy", "communications", "press", "spokes",
+)
 
 
 @dataclass
@@ -183,11 +211,26 @@ def _parse_feed_xml(xml_bytes: bytes) -> list[JobPosting]:
     return jobs
 
 
-def fetch_all_jobs(feed_url: str = FEED_URL, session: Optional[requests.Session] = None) -> list[JobPosting]:
+def _parse_feed_generated(xml_bytes: bytes) -> Optional[str]:
+    """The scraper stamps <jobs generated="..."> on every refresh. Used to
+    tell 'the feed hasn't refreshed since the last brief' apart from 'the
+    feed refreshed and nothing was new'."""
+    try:
+        return ET.fromstring(xml_bytes).get("generated")
+    except ET.ParseError:
+        return None
+
+
+def fetch_feed(feed_url: str = FEED_URL, session: Optional[requests.Session] = None
+               ) -> tuple[list[JobPosting], Optional[str]]:
     sess = session or requests.Session()
     resp = sess.get(feed_url, timeout=20)
     resp.raise_for_status()
-    return _parse_feed_xml(resp.content)
+    return _parse_feed_xml(resp.content), _parse_feed_generated(resp.content)
+
+
+def fetch_all_jobs(feed_url: str = FEED_URL, session: Optional[requests.Session] = None) -> list[JobPosting]:
+    return fetch_feed(feed_url, session)[0]
 
 
 def _job_key(job: JobPosting) -> str:
@@ -196,24 +239,34 @@ def _job_key(job: JobPosting) -> str:
     return job.url or f"{job.company}::{job.title}"
 
 
-def _load_seen_urls(path: Path = SNAPSHOT_PATH) -> set[str]:
+def _load_snapshot(path: Path = SNAPSHOT_PATH) -> dict:
     if not path.exists():
-        return set()
+        return {}
     try:
         data = json.loads(path.read_text())
-        return set(data.get("seen_urls", []))
+        return data if isinstance(data, dict) else {}
     except (json.JSONDecodeError, OSError):
         # Corrupt or unreadable snapshot shouldn't crash the whole run —
         # worst case everything looks "new" once, which is recoverable.
-        return set()
+        return {}
 
 
-def _save_seen_urls(urls: set[str], path: Path = SNAPSHOT_PATH) -> None:
+def _load_seen_urls(path: Path = SNAPSHOT_PATH) -> set[str]:
+    return set(_load_snapshot(path).get("seen_urls", []))
+
+
+def _save_seen_urls(urls: set[str], path: Path = SNAPSHOT_PATH,
+                    feed_generated: Optional[str] = None, new_count: Optional[int] = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({
+    data = {
         "seen_urls": sorted(urls),
         "updated_at": dt.date.today().isoformat(),
-    }, indent=2))
+    }
+    if feed_generated:
+        data["feed_generated"] = feed_generated
+    if new_count is not None:
+        data["new_count"] = new_count
+    path.write_text(json.dumps(data, indent=2))
 
 
 def compute_age_days(date_posted: Optional[dt.date], today: dt.date) -> Optional[int]:
@@ -253,9 +306,28 @@ def _compute_location_mix(live_jobs: list[JobPosting]) -> dict[str, int]:
     return {label: counts.get(label, 0) for label in LOCATION_TYPES}
 
 
+def _featured_eligible(job: JobPosting) -> bool:
+    t = job.title.lower()
+    if any(term in t for term in FEATURED_TITLE_BLOCKLIST):
+        return False
+    return not FEATURED_TITLE_BLOCKLIST_RE.search(job.title)
+
+
+def _featured_tier(job: JobPosting) -> int:
+    """0 = boosted (field/campaign/comms/policy), 1 = normal, 2 = vague
+    bare-level title. Within a tier, newest first."""
+    t = job.title.lower().strip(" .,-")
+    if t in VAGUE_TITLES:
+        return 2
+    if any(term in t for term in FEATURED_BOOST_TERMS):
+        return 0
+    return 1
+
+
 def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employers: int = 5,
                         num_categories: int = 5, today: Optional[dt.date] = None,
-                        snapshot_path: Path = SNAPSHOT_PATH) -> HiringPulse:
+                        snapshot_path: Path = SNAPSHOT_PATH,
+                        feed_generated: Optional[str] = None) -> HiringPulse:
     today = today or dt.date.today()
 
     # Classify every job before doing anything else with the list.
@@ -275,16 +347,25 @@ def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employ
     # doesn't get treated as brand new just because it dropped off the
     # "seen" list while it was excluded from live_jobs.
     current_urls = {_job_key(j) for j in jobs}
-    previously_seen = _load_seen_urls(snapshot_path)
+    snapshot = _load_snapshot(snapshot_path)
+    previously_seen = set(snapshot.get("seen_urls", []))
 
-    # First run ever (no snapshot file yet): don't claim every job is "new,"
-    # that's noise, not signal. Treat it as a baseline instead.
-    if previously_seen:
+    # "New" is measured per feed refresh, not per brief run. If the feed's
+    # generated stamp matches the one already recorded, the scraper hasn't
+    # refreshed since the last run (the brief can fire before the scraper's
+    # daily update, or be re-run manually), so re-report that refresh's count
+    # instead of diffing the feed against itself and showing a false 0.
+    if (feed_generated and snapshot.get("feed_generated") == feed_generated
+            and "new_count" in snapshot):
+        new_today = int(snapshot["new_count"])
+    elif previously_seen:
         new_today = sum(1 for j in live_jobs if _job_key(j) not in previously_seen)
     else:
+        # First run ever (no snapshot file yet): don't claim every job is
+        # "new," that's noise, not signal. Treat it as a baseline instead.
         new_today = 0
 
-    _save_seen_urls(current_urls, snapshot_path)
+    _save_seen_urls(current_urls, snapshot_path, feed_generated=feed_generated, new_count=new_today)
 
     top_employers = Counter(j.company for j in live_jobs).most_common(num_employers)
     top_categories = Counter(j.category for j in live_jobs if j.category).most_common(num_categories)
@@ -294,9 +375,8 @@ def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employ
     # the whole "Featured Jobs" block. No point leading the newsletter with
     # a 3-week-old posting just because it happened to sort first.
     sorted_jobs = sorted(
-        (j for j in live_jobs if j.status == "fresh"),
-        key=lambda j: j.date_posted or dt.date.min,
-        reverse=True,
+        (j for j in live_jobs if j.status == "fresh" and _featured_eligible(j)),
+        key=lambda j: (_featured_tier(j), -(j.date_posted or dt.date.min).toordinal()),
     )
     featured, used_companies = [], set()
     for j in sorted_jobs:
@@ -318,8 +398,8 @@ def build_hiring_pulse(jobs: list[JobPosting], num_featured: int = 4, num_employ
 
 
 def get_hiring_pulse(feed_url: str = FEED_URL) -> HiringPulse:
-    jobs = fetch_all_jobs(feed_url=feed_url)
-    return build_hiring_pulse(jobs)
+    jobs, feed_generated = fetch_feed(feed_url=feed_url)
+    return build_hiring_pulse(jobs, feed_generated=feed_generated)
 
 
 if __name__ == "__main__":
