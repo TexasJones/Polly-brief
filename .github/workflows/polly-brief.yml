@@ -29,10 +29,40 @@ on:
         options:
           - 'false'
           - 'true'
+      allow_paused_day:
+        description: 'Run even on a paused weekday (see PAUSED_WEEKDAYS)?'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 permissions:
   contents: write
 jobs:
+  # Days with no send. ISO weekday numbers in Central time (1=Mon ... 7=Sun),
+  # space-separated. To pause weekends too, set "6 7"; to send every day, "".
+  # polly-brief.yml and watchdog.yml both read this same value -- keep them
+  # in sync, or the watchdog will "rescue" a day this workflow skipped.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.day.outputs.skip }}
+    env:
+      PAUSED_WEEKDAYS: "7"
+    steps:
+      - id: day
+        run: |
+          DOW=$(TZ=America/Chicago date +%u)
+          SKIP=false
+          if [[ " $PAUSED_WEEKDAYS " == *" $DOW "* && "${{ github.event.inputs.allow_paused_day }}" != "true" ]]; then
+            SKIP=true
+            echo "Paused weekday ($DOW in Central time) -- skipping this run."
+          fi
+          echo "skip=$SKIP" >> "$GITHUB_OUTPUT"
   build:
+    needs: gate
+    if: ${{ needs.gate.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     env:
       TEST_MODE: ${{ github.event.inputs.test_mode || 'false' }}

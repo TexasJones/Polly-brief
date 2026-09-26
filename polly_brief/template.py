@@ -700,6 +700,35 @@ def _view_in_browser_link(view_url: str) -> str:
     )
 
 
+SUBSCRIBE_URL = ('https://www.thepolly.co/?utm_source=brief&utm_medium=email'
+                 '&utm_campaign=subscribe')
+
+
+def _subscribe_link() -> str:
+    """Small 'forwarded to you?' line under the date. Anyone who got the
+    brief from a friend has no other way to find the signup form, since the
+    email itself carries no subscribe path."""
+    muted = _c('MUTED', '#64748B')
+    return (
+        f'<div style="margin-top: 4px; font-size: 12px; color: {muted};">'
+        f'Forwarded to you? '
+        f'<a href="{_esc(SUBSCRIBE_URL)}" target="_blank" rel="noopener noreferrer" '
+        f'style="color: {muted}; text-decoration: underline; font-weight: 700;">'
+        f'Subscribe free &rarr;</a></div>'
+    )
+
+
+def _share_link() -> str:
+    """Footer share prompt: a mailto: that opens the reader's own mail app
+    with a pre-written note and the signup link, so passing it on is one
+    tap. Works without any tracking or sharing service."""
+    from urllib.parse import quote
+    subject = quote('The Polly Brief: politics & public affairs jobs and news')
+    body = quote('Thought you would like this daily brief on politics, public affairs '
+                 'and jobs. You can subscribe free here: ' + SUBSCRIBE_URL)
+    return f'mailto:?subject={subject}&body={body}'
+
+
 def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs: list[JobPosting],
                  pr_story: Optional[TopStory] = None,
                  quote_text: str = None, quote_source: str = None, today: dt.date = None,
@@ -878,6 +907,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<div style="font-size: 12px; color: {muted}; margin-top: 10px; letter-spacing: 0.3px; font-weight: 600;">{_esc(date_label)}</div>',
         f'<div style="font-size: 12px; color: {muted}; margin-top: 4px;">{_esc(read_time_label)}</div>',
         (_view_in_browser_link(view_url) if view_url else ''),
+        _subscribe_link(),
         '</td></tr>',
         _top_highlight_block(top_stories, today),
         _divider(),
@@ -932,7 +962,11 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         '</div></td></tr>',
         quote_section,
         '<tr><td class="polly-pad" style="padding: 24px 40px 16px 40px; text-align: center">',
-        f'<a href="https://thepolly.co" target="_blank" rel="noopener noreferrer" style="color: {muted}; text-decoration: none; font-size: 12px; font-weight: 600;">Know someone job hunting in politics? Invite them to Polly →</a>',
+        f'<div style="font-size: 13px; font-weight: 700; color: {ink}; margin-bottom: 10px;">Know someone job hunting in politics?</div>',
+        f'<a href="{_esc(_share_link())}" style="display: inline-block; border: 1.5px solid {ink}; '
+        f'border-radius: 6px; padding: 9px 18px; color: {ink}; text-decoration: none; '
+        f'font-size: 12px; font-weight: 800;">Share The Polly Brief &rarr;</a>',
+        f'<div style="font-size: 11px; color: {muted}; margin-top: 8px;">Or just forward this email.</div>',
         '</td></tr>',
         '<tr><td class="polly-pad" style="padding: 16px 40px 36px 40px">',
         f'<div style="border-top: 1px solid {hairline}; padding-top: 18px; text-align: center">',
