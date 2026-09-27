@@ -930,6 +930,14 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         _subheading_label("Top Hiring Organizations"),
         f'<table role="presentation" cellpadding="0" cellspacing="0">{employer_rows}</table></td>',
         '</tr></table></td></tr>',
+        # Jobs Worth Looking At sits right under the Hiring Pulse: hiring is
+        # what sets this brief apart from a generic news roundup, so the
+        # jobs lead and the news follows.
+        _divider(),
+        '<tr><td class="polly-pad" style="padding: 0 40px">',
+        f'{_section_heading("🔥", "Jobs Worth Looking At")}',
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}{jobs_cta}</table>',
+        '</td></tr>',
         # PoliOdds Watch -- dropped entirely (no heading, no divider) when
         # there's nothing usable, same "no blank sections" treatment as
         # PR & Comms Industry and the six news sections. odds.has_content
@@ -948,11 +956,6 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{story_rows}</table>',
         '</td></tr>',
         pr_story_section,
-        _divider(),
-        '<tr><td class="polly-pad" style="padding: 0 40px">',
-        f'{_section_heading("🔥", "Jobs Worth Looking At")}',
-        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">{job_rows}{jobs_cta}</table>',
-        '</td></tr>',
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
         f'<div style="background-color: #0F172A; border-radius: 12px; padding: 24px; text-align: center">',
