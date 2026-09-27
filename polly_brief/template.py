@@ -103,7 +103,7 @@ def _mobile_style_block() -> str:
         '  .polly-card { width: 100% !important; }'
         '  .polly-pad { padding-left: 20px !important; padding-right: 20px !important; }'
         '  .polly-col { display: block !important; width: 100% !important; '
-        'padding-right: 0 !important; padding-left: 0 !important; padding-bottom: 12px !important; }'
+        'padding-right: 0 !important; padding-left: 0 !important; padding-bottom: 8px !important; }'
         '}'
         '</style>'
     )
@@ -531,7 +531,7 @@ def _story_block(story: TopStory, today: dt.date, show_badge: bool = True) -> st
     headline_css = _style('headline_style', fallback=f"font-size: 16px; font-weight: 700; color: {ink}; line-height: 1.3;")
     link_css = _style('link_style', color, fallback=f"color: {color}; text-decoration: none; font-weight: 700;")
 
-    return (f'<tr><td style="padding-bottom: 16px;">{badge_row}'
+    return (f'<tr><td style="padding-bottom: 4px;">{badge_row}'
             f'<div style="{headline_css}">{_esc(item.title)}</div>'
             f'{summary_html}'
             f'{time_ago_html}'
@@ -880,7 +880,7 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     )
 
     parts = [
-        '<!DOCTYPE html><html><head>',
+        '<!DOCTYPE html><html lang="en"><head>',
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
         '<title>The Polly Brief</title>',
@@ -958,10 +958,10 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         pr_story_section,
         _divider(),
         '<tr><td class="polly-pad" style="padding: 0 40px">',
-        f'<div style="background-color: #0F172A; border-radius: 12px; padding: 24px; text-align: center">',
+        '<div style="background-color: #0F172A; border-radius: 12px; padding: 24px; text-align: center">',
         f'{_section_heading("📅", "Election Countdown", color=white, gap=8)}',
         f'<div style="font-size: 44px; font-weight: 900; color: {white}; font-family: {headline_font}; letter-spacing: -1px; line-height: 1;">{days_left}</div>',
-        f'<div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px; font-weight: 700;">Days Until Election Day</div>',
+        '<div style="font-size: 11px; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 8px; font-weight: 700;">Days Until Election Day</div>',
         '</div></td></tr>',
         quote_section,
         '<tr><td class="polly-pad" style="padding: 24px 40px 16px 40px; text-align: center">',
