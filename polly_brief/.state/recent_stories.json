@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://news.google.com/rss/articles/CBMiiwFBVV95cUxNOTdfdjh1b2UyTjIyUTRoaTVhOEViSk8wb2J0VkxUejFJakFObzc3aFQwUFNtNFFjd01BcEhZY2NWWjIxdHZpcHBXN3NrOUJRVm93a2JISUlHQ2R2NnlQSHpoS0RDc0F5ODJnSFBfOUxJaEZDczZBRVF0YkJfajJLVDFXVzVQc0phbnJZ?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMikAFBVV95cUxOSF9lYldBdmVwamhKUUozSTkyWWhzajlxZFpVU2R5OWNaeFpnMW52N25LZk53MjM0d1hZNHhzNEhWbTZ1WFAza2Y4dnlsZ3huZTYxeERLUVMzQXduYjJqU0VySmhySU1uUVVZbnpQa1ZwWFA0NTE4YmRTbDZkWHdOcmVaMkV0RE02bXNvWE14SmvSAZYBQVVfeXFMUHZibTVKZmJDQ2c3eUMzejd1NE92TW1LUF9PU1QxZjVMUjZjZnJfMkJqXzJMLW1FaDI1QzZ6Z0l3QXpvQ0ZjMFlqcktIa2dlQkk5UzJ3M2pCN25HdG16LTN2bVZGZVdkRjU5bHNweTBjRmRSemhRWV8xNUJsZHpCSWNZSE9odGtSWWM2amwyd2wyWF9DUzd3?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMioAFBVV95cUxQelAtSzlWbmo3Smo5YTNla1BSdjlJamdheVlzZ0FfRUdTMU5fVkh1SURzZTRCSDhjc19tZVdpckZnNDJoZzc3YlhoRkI1VFhIcUlXZVZsVnRUWXpaUWZadUhwUllkS0JzaEE1TmIxWjlRdDVZVGNUaXhlMUZIME5yMDhLRkNmUGE3M0x6Q0p4ME93TlFwSFVtT0Ryb01FTkxi?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMickFVX3lxTE4yZTRLZVl0NHB4Rm1uZ2JFM1Z1bVJ3YnNtN2FObTFHUVJiNGoxRnYweFFkTjdaSXN1dWVEYnRvVlVHdXhrY3I4VVJoV2lRV2g5OHQ0YkdKcWJPeEpKQl9oMXZyVDRIckdtbHhMc3ZHVk80QQ?oc=5": "2026-09-19",
@@ -22,10 +21,10 @@
       "https://www.nbcnews.com/politics/2026-election/gop-super-pac-pauses-spending-north-carolina-senate-race-shift-kansas-rcna601134": "2026-10-03",
       "https://www.politico.com/news/2026/10/05/paxton-campaign-dc-message-01106548": "2026-10-05",
       "https://www.politico.com/news/2026/10/05/obama-michigan-rally-el-sayed-01107087": "2026-10-06",
-      "https://thehill.com/homenews/campaign/6132984-maine-senate-debate-collins-jackson/": "2026-10-07"
+      "https://thehill.com/homenews/campaign/6132984-maine-senate-debate-collins-jackson/": "2026-10-07",
+      "https://www.cbsnews.com/live-updates/iran-war-nuclear-donald-trump-vance-rubio-strait-of-hormuz/": "2026-10-08"
     },
     "AI+Policy": {
-      "https://news.google.com/rss/articles/CBMijAFBVV95cUxOamxjbEFrZWJYd1MzR25BSHVfYWtZMFFZeVlUNVZoTnhwVjZYd1o2cHZrNWttanppNHBPV1NkNmdGWElUU2hyczFGcTN3UDhRYWZrODBlYnlaaDVLNktDQUdYSDJ5Q1cxdE5RRTFodFJ5UmRadm9LSVkxWVY1Nm1qX0taZTBBMHNOYlRVQw?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMigAFBVV95cUxPLThxcnc3TnBHbHdma0R5dThYTGt5djh2SHJTQ2s3aWltWW1LOUVRSUZNYUh2Rkw3WjVneEZaQ19VbzR5Q19CUE4yTC1qcEJDV2VTWEVzTURKV1c4dDdrRFItMnlJVHlLbHd6STBpM01QOGFkSjVickJZWm9DNW1haQ?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQS21GNXByWjV1aVJlVHJZRDRHakdCQXdGekJialBnakxVcnVfOGk4N0RzbnQ5ZTFPU2o5RnNRTVN4Z1FIbVdzMmFCSWNnZDF4alpKdzByejJIeDVjalBSSXR0VjlrT3hmNTBjMzJQV0E0cWtMc1Rwdk0wT2JEQUNpX2IwLWZFRk91?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMinAFBVV95cUxOVFpJSnRiVG5vbTNvcmd4RlFQdkFTMUxTQ0RvcVg3TTBuMGF5OEtHWlViYkNrREx4Z1R6OGRXSUNSU3NPYXUwMFZSZTBGV0V5UTVXWXJ5VmxzRWdlQ1I4WVc3VURhV3V3bzFKTkF4WHZCQTJET0dONEJaSkNUeTBCOHJBb3p1R3ZRbEJaUXpYNC05MlJhaEdQV1l5eHc?oc=5": "2026-09-19",
@@ -46,10 +45,10 @@
       "https://thehill.com/policy/technology/6126145-amazon-investment-data-center-communities-energy-water-costs/": "2026-10-03",
       "https://thehill.com/homenews/administration/6128176-trump-creates-super-intelligence-force/": "2026-10-05",
       "https://thehill.com/policy/technology/6129103-tech-oversight-project-democrats-ai-data-centers/": "2026-10-06",
-      "https://www.politico.com/news/2026/10/07/inside-ai-safetys-hottest-club-01109753": "2026-10-07"
+      "https://www.politico.com/news/2026/10/07/inside-ai-safetys-hottest-club-01109753": "2026-10-07",
+      "https://thehill.com/policy/technology/6134371-cantwell-unveils-ai-regulation-framework/": "2026-10-08"
     },
     "Energy": {
-      "https://news.google.com/rss/articles/CBMixwFBVV95cUxPRFpRekRBTTl1OGpLUWpicU9WTy0wT3ZVUzVYX0NDWEUtZGRCQzBROGV1ODNKVFJKZ18zTEpRY3owNGNwUm5wUU9aNWFCSVlSNEljQkd5aW8zWnhnUXlQU2pOTWlqZkhhN21WdUZPLW1CeTJzWWQxeGloMFZ6NlpIcUctajhvbVJQYTh0VWhIdDJSVWw1Ri1JTHJkRGpsekNnRm1lUWhUaGQzNEw1c25oenRwOGFscmdxWGFxTTJ1aUh5NTI3cW44?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMihwFBVV95cUxNVkN4RW8telJIZWoyZFpjeTFMUTdLWlVXbW5MbWRDQldvN3lpVkhDUXpGMXlrSW1nWWxkSmdpdm51ZldCaW5XNWlYcU9OTXJnaGVNZW55Q0d6a3BpMjhVMGh1MEhvRHlsY3FpemdSakdDZWJtaWUzeVlhczl3ZXAxR2dSSTdOTWfSAYwBQVVfeXFMUG1leUQ1Q1JYWmRaTkluUnZ1SFRmQW5obGgxT0g3RGpZVWdBQ1NmVGdGOWdMOWhBSTZxU2g5SUVIc1ViWTk0RDdsZDU1OXA0dFpWVFg1NWVqYVFYVERzdmJzUE01UE01dDNDcVNpcVlfX1NSSUpLSW82S1Q3T05vNFZNQ3ZWVVZSaXUzSm0?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMioAFBVV95cUxPNHVpT0wwaFFyRzNYRGdQMXFmN2ZXczhSV2NHXzVHNm1YSkVhVFIwWGc4R1dQWVJ1VzBMMkNYc0Y3QXBNWmZVaG9mVUdSRkpZYjJHV1FDejRKaVIwSlBsaTBFLVNHaHZFWU0zWkxZZ1hQM253QjR3WWt5MWRjRXlXMlh0WDFwYVBINDlDNF9DMW51dXM2VTBOSnRHanFGUDVa0gGmAUFVX3lxTE9HeWNmY1ZNUWZjM1V1Vl9Ha2RSVVBWSnlmUmdoeTdCWWE4NFNhNWJtSzB2Y042dko3OHZEYndSX2hqOTZlS2RYTHVrMEJkMlE4Ri1QWHRVMTlrblNlZndSYUpIY0ZkZklOazJPSzBTMkg2U3loQWlaSEwtNnpEaERrVmhUUzVObWpmLWJoa0JIdWNmTWlKbTlsT19LTW5QcHV0SzRKdEE?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMihwFBVV95cUxQdmlrZmNiSTBEMWJwTWQ5T001Y1BBTjRyYXpmSEc0bXBhYllualhpM19TTFptWG8tX1JlOVBjTTVnVzZjVzhHcDZhMVU2bkdUZlZBcXozUDU4RmpmWHlYd2RQX1JZZE1Eb0pyMlBQWEZmWE43NER3NlF3Wm5STjdyQUVDRTl0cVHSAYwBQVVfeXFMTXZBbDdXLVlkQUN2WXFNbGpUTWdJaGxiZEc5d3Zhc09yZ3lRYmdhclp1NTRpNmtQU25QazdEZFktcUxoS2ZlVUpSNF9PUnhIZEdpcGNKd0gxZFlwTXZNRk1uZGtMM2dKeXpsLWR3UjBnMmlORWNtR2xGZXplZDFrUkdfdTFhZE5CNlM4dTU?oc=5": "2026-09-19",
@@ -70,10 +69,10 @@
       "https://www.politico.com/news/2026/10/02/trump-rules-out-diesel-export-ban-after-europe-agrees-to-tap-stockpiles-01105569": "2026-10-03",
       "https://thehill.com/policy/energy-environment/6127165-supreme-climate-change-suncor-v-boulder/": "2026-10-05",
       "https://insideclimatenews.org/news/05102026/supreme-court-suncor-v-boulder-oil-case/": "2026-10-06",
-      "https://www.politico.com/news/2026/10/06/trucking-trump-diesel-executive-order-01108995": "2026-10-07"
+      "https://www.politico.com/news/2026/10/06/trucking-trump-diesel-executive-order-01108995": "2026-10-07",
+      "https://thehill.com/newsletters/the-gavel/the-gavel-live-briefing/6133666-supreme-court-first-week-climate-lawsuit-colorado-live-discussion/": "2026-10-08"
     },
     "Economy": {
-      "https://news.google.com/rss/articles/CBMiggFBVV95cUxNc3JLU293QUd6VGRYTDNKTUMzWXgwR1RmTmIxU3NmbW0xUG5mU21YR1FkcWhyd0VTR1JRVEppSHJFVjJyUDdybnlPZzZzWVRjeTI1ZXh1cHRCNTh2Uk16Zzh4dVF6OUVFOTVwWGI1SGtKakVueUdUay1oMkN0YXBSOFZR0gGHAUFVX3lxTFBfMHdxZi1FaDRwcURzaU5EM2RJLXdkTnUzR0hhN2NSZU9XazZGV2dzZ1ZMQURBQmRtdkZJNlJuNjFiY2JETXBBbkZERHd4bkVaa0tzWENQLWduWk9TS0VCUEZoUHlyUmhvc00wS0RNRUVaODM0b3ZKVmZ2aUV3OHhYS3gxYkVRdw?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMihwFBVV95cUxPOG9zdlBuaHNQd2lNQjg3dVFaZ2lmOURaN1JuUlYtMXI1ck82cXZnc2U3WHByRThBMlZ1WmRpNE5WYlUxRUNob1pwUC03ZWx2Zm1WUEdoQUVVTjFmZjJrN3RtZGxOOW05Mlpuakp4d3BjODIzckVwN0JIQi1YRWMzcHh5dnlwbUnSAYwBQVVfeXFMTjM1c3RIWm5WVHB3OVZyNmctUmVWcDlzV2VQTEVBYkZkT3VucmFZenh0ajkzVDM2TGRURGlpNU15R0ZTcVpMMjF1LTM5SGxZbWxqWklKUzRuM0FOVUx3RWltT29uOV9nUmdEWEwzcUNXREhsV2h6dW03YXQ4TFN4TDdfeFAwTGtaYmxiZnc?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQQkFOamJPNUZLS29jVWVUU1ljUGtJQlJHekktWGxXakUtN2lCY3R2SHRNN1dlbVJLTHA5SkZzZXZINXNVNVdGanV2VE1jNlM4dEV6Qmt5MWF5ZDkweDlodXFiWVF3c0xMaUtUeWZCeThPRXQ0MU5NWXdHUFFPWkpFNUdtR05DRDB2clV3MGRGWl9FeGQxSGdIWVNRZ19LcFV4ZURSd0NaSzc?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMilwFBVV95cUxNanRyTXM4ZE00RFhRWlRSYXlhNUx5cGxxRENEUTFSZmlyUU1rNmFGcmpQdVdleGtBNkRoRVZYVkY3ZEY1UU9McXZsQ0ZBNFllQWR2RXhSU0xsc0dCcDVIWUVOeUNZNU9xcTd3MHNJVE5fUE9KMHhxM2tGQ3NDam1CVnJxT0M4MEp3ZllkNEZnRmxWS19JOVBj?oc=5": "2026-09-19",
@@ -94,10 +93,10 @@
       "https://www.npr.org/2026/10/02/nx-s1-5989140/jobs-labor-wages-federal-reserve": "2026-10-03",
       "https://www.cnbc.com/2026/10/05/aging-population-moodys-public-finances.html": "2026-10-05",
       "https://www.semafor.com/article/10/05/2026/trump-to-sign-executive-order-aimed-at-curbing-diesel-prices": "2026-10-06",
-      "https://www.npr.org/sections/planet-money/2026/10/07/g-s1-146828/who-will-win-the-2026-nobel-prize-in-economics": "2026-10-07"
+      "https://www.npr.org/sections/planet-money/2026/10/07/g-s1-146828/who-will-win-the-2026-nobel-prize-in-economics": "2026-10-07",
+      "https://thehill.com/business/6135206-fed-officials-project-future-increases/": "2026-10-08"
     },
     "Legislative": {
-      "https://news.google.com/rss/articles/CBMiuAFBVV95cUxQYjBYSjlFOUNIN0diYVJaM2VIUnpDUWJEdWd1VHdRZWVFeVFMLXVPVE9PaW8weEE3RWxOY01aaWxjSWczeG45M1dpUFp0RlJLMXBmMjhtbmdwRGRqV1BBQTFYRm4zdTVNYWh1Yy1TWFFFRUNhLUxzR1FPVzJxeGI4djhSM3k3cnhiWnM4dkVkaF9sRWZUcEM4ZlRieWhGTDgtZ2pmdmFrYzlGZk5kMlZmZHN1ZHdrYWx1?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMilAFBVV95cUxNY3psUVQxOWJDUzNsa0VlWC1CckdidThVbUFVQm1fUWhYQlFwZGhTcDJYM1ZkMTU2X1czM0JqaWFtTFFqNHZMdWVsdmVRRjZJLVVCNmV0dGxvRERpTGlXZktXNGM3aTNUMDFuS21OOFRFR0dZZ0gyeUVMb0Vkc0dPRTJOdktDVVZkTVV0R0p4Q1M1TzhZ?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMipwFBVV95cUxPLVdGRmJnS1VNMjdFY0NzQTV0RE5XTlZDYnh6NGhjMTRaOEhFQW5Fb01ZNzQxU0UxR3BWVGg2SWtnVGUwUDhEU0lsZWFfRWJUaWdJMzBDaWdOcGpUc0U5a0dvMUNNdU5ka0xUQmVqOXpLSWdKbWRyaHJLYlJqZzZYSDA2eG1kc0cwSUZnUU4xUk5uUThldC1GWGJrTC1NSDl0TV8zZ0F4OA?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMijAFBVV95cUxOeGFiV2NRYVctamFPVV9uMmFmaFRpSjhrbHliTVhFTlpzOFRkbC1uUWxfdTJVOUM3UkpEcG1JT1NVc0FxSmJTbWpMREF6THRqRUpyQmx5TlA5WUctR2JTSXlmdS1GbGp4NVRvZ3p6c2UtQnVIUmJjWHcxdlpmc0FvTGNINEs2cmwyejFRTA?oc=5": "2026-09-19",
@@ -118,10 +117,10 @@
       "https://abcnews.com/Politics/wireStory/iowa-lawmakers-vote-raising-tax-incentive-cap-15b-136940416": "2026-10-03",
       "https://thehill.com/homenews/senate/6128990-john-kennedy-donald-trump-tom-cotton-phone-number-share-criticism/": "2026-10-05",
       "https://rollcall.com/2026/10/05/disgraced-former-speaker-hastert-dies/": "2026-10-06",
-      "https://www.politico.com/news/2026/10/07/senate-supreme-court-lame-duck-01109203": "2026-10-07"
+      "https://www.politico.com/news/2026/10/07/senate-supreme-court-lame-duck-01109203": "2026-10-07",
+      "https://thehill.com/homenews/campaign/6133806-rogers-calls-end-us-canada-trade-war/": "2026-10-08"
     },
     "Media": {
-      "https://news.google.com/rss/articles/CBMirgFBVV95cUxORFV4ZUNJRS1pRDZRU3JLVllVdTFnd2JIN3otUU01NExWUVJhY2J0T0pPai01MkZJN0dxUC1lVGxIcjZWYjlOSGNNWHpLTExPSnlNdEtZbzFTVWp3dEtyLXhCN25ibl9nTG9vRDZ0SFlhSmVrdjJHV3Rhc3pEM2FoelZRYnlkVm5IVHVITFp6eWhPRllwVGxPXzRqN1pBUW1hMDFvUDZmTS1ESXpKOGc?oc=5": "2026-09-16",
       "https://news.google.com/rss/articles/CBMisgFBVV95cUxPLVRMYnBXWi1ZUjQ5RnBORjVqR3lrNHBPWTNRV0E5ZkJCY0ZndERNbUpZVm9Nek81R3Awak14XzUyRXJQSnhEdmdud3QyV0xwUl9xZ0FSZ21tNlhneUhxNkRJUkpDU2tjNnRHS0Y4N3NUZTRldVAtVkVkLWRmODhjRkdDTHgxUjY0SGFjTTMtUVFJT045QmJpQmhOMFdEVnNzT2hCRGlvQXkwVU44NS1CMUd3?oc=5": "2026-09-17",
       "https://news.google.com/rss/articles/CBMimAFBVV95cUxQYURKd2FSRjN1NFNuelVJSUk3dVNra1lUaG9aMm1qQlFwY2xQNFdGMGN4ZktFa2J2aFNZVlFjQmhLRWZLcFptMnU2T0NXSzZCdXBKR21rR0FKcHlBRFpoWTkySjJHSmRMYndjWExyNGZJbzNDR0dLOWozSUlkLWk3dGhCUG1fNVdCZ2hlVEM4SlpWa1BCOGtVNA?oc=5": "2026-09-18",
       "https://news.google.com/rss/articles/CBMiuwFBVV95cUxOV3BoY3lyLTV4NmQwNjBMOGZKVHEtNDlXMGhTcGFyNnJXdDBUMnRPV3BIQlpwLTBrMzZoNldFekQ5SjRhc0VJWkR3Q1MxaTE2Nl9NUGtUdmFwcnVlNGlBZlV6UF9uVldMQTRpU29kWl91eklscGJhMjBMbEcwOHBoaVJNRGp2Y1ZzMjVJSUNkOGZCRTRYNVhUV0JpcGdNZXdsQW1ZZTB1TVl1Q3NXQW92bEJtaUdISG1wRXQ0?oc=5": "2026-09-20",
@@ -141,7 +140,8 @@
       "https://thehill.com/business/6126321-paramount-warner-bros-merger-name-reveal/": "2026-10-03",
       "https://www.mediaite.com/media/news/justice-alito-calls-out-concerted-effort-to-intimidate-the-court-shortly-after-fox-anchor-confronts-him-on-trumps-attacks-against-his-colleagues/": "2026-10-05",
       "https://thehill.com/homenews/media/6129163-karoline-leavitt-joining-fox-news/": "2026-10-06",
-      "https://thehill.com/homenews/media/6131227-paramount-warner-brothers-discovery-merger-closed/": "2026-10-07"
+      "https://thehill.com/homenews/media/6131227-paramount-warner-brothers-discovery-merger-closed/": "2026-10-07",
+      "https://www.poynter.org/reporting-editing/2026/washington-post-floods-above-atmospheric-rivers/": "2026-10-08"
     },
     "PR & Comms Industry": {
       "https://www.provokemedia.com/latest/article/folgate-launches-executive-communications-practice-with-hannah-vaughan-jones": "2026-09-21",
@@ -160,7 +160,8 @@
       "https://www.prweek.com/article/1971631/tidy-cats-taps-kumail-nanjiani-jordan-howlett-true-crime-parody-special-litter-unit": "2026-10-03",
       "https://www.provokemedia.com/podcast/article/sabre-showcase-podcast-in-the-age-of-ai-icelandair-keeps-it-real": "2026-10-05",
       "https://www.provokemedia.com/latest/article/melissa-zukerman-confirmed-as-cco-at-newly-merged-skydance": "2026-10-06",
-      "https://www.provokemedia.com/latest/article/ccos-rethink-communications-functions-as-their-remits-grow": "2026-10-07"
+      "https://www.provokemedia.com/latest/article/ccos-rethink-communications-functions-as-their-remits-grow": "2026-10-07",
+      "https://www.provokemedia.com/latest/article/sacred-cows-why-agencies-are-afraid-to-tell-clients-the-truth": "2026-10-08"
     }
   }
 }
