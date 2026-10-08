@@ -313,11 +313,21 @@ def _featured_eligible(job: JobPosting) -> bool:
     return not FEATURED_TITLE_BLOCKLIST_RE.search(job.title)
 
 
+# Catches "Advocacy ... Outreach Intern", "KIP Spring 2027 - Government
+# Affairs Intern - ...", etc. -- VAGUE_TITLES only demotes a title that is
+# JUST "Intern" and nothing else, which real postings almost never are, so
+# internships with a boost term in them (e.g. "government affairs") were
+# landing in tier 0, the SAME tier as full-time roles. Checked before the
+# boost terms, so an internship is always tier 2 regardless of what else
+# its title says -- newsletter readers are professionals, not students.
+INTERN_TITLE_RE = re.compile(r"\bintern(s|ship)?\b", re.IGNORECASE)
+
+
 def _featured_tier(job: JobPosting) -> int:
     """0 = boosted (field/campaign/comms/policy), 1 = normal, 2 = vague
-    bare-level title. Within a tier, newest first."""
+    bare-level title or an internship. Within a tier, newest first."""
     t = job.title.lower().strip(" .,-")
-    if t in VAGUE_TITLES:
+    if t in VAGUE_TITLES or INTERN_TITLE_RE.search(t):
         return 2
     if any(term in t for term in FEATURED_BOOST_TERMS):
         return 0

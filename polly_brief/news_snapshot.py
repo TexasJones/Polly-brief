@@ -728,6 +728,13 @@ def get_pr_industry_story(today: Optional[dt.date] = None,
         for e in _fetch_feed(outlet, feed_url, now, cache, label='[PR]'):
             if require_keyword and not any(kw in f' {e.title.lower()} ' for kw in PR_TRADE_PRESS_KEYWORDS):
                 continue
+            # Same opinion/column filter get_top_stories() applies (see
+            # _is_opinion_url) -- this section never called it, so a
+            # bylined contributed column could win just by being newest.
+            # The brief reports news; an opinion piece presented as
+            # "today's news" reads as taking a side.
+            if _is_opinion_url(e.url):
+                continue
             if e.url not in excluded:
                 candidates.append(e)
     candidates.sort(key=lambda e: e.published, reverse=True)
