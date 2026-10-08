@@ -39,6 +39,17 @@ TOPIC_COLORS = {
     'Energy': '#9F620E',
     'Economy': '#15803D',
     'Legislative': '#A8324A',
+    # PR & Comms Industry is rendered as its own fixed section (see
+    # template.py's pr_story_section), not part of the rotating six
+    # above, but it's still one of the reader-facing section labels in
+    # Top Stories -- it was previously a plain black-text heading with no
+    # pill, which broke the pattern every other section sets (colored
+    # badge = section tag) right when the reader has learned to expect
+    # one. Picked a distinct rose/magenta, 6.04:1 contrast vs white text
+    # (same WCAG AA check as the rest of this dict), far enough in hue
+    # from Legislative's brick-red (#A8324A) and Media's purple
+    # (#8E44AD) to stay visually distinct from both.
+    'PR & Comms': '#BE185D',
 }
 
 
