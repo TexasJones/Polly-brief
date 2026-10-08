@@ -813,10 +813,11 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
     # sections got, not the old italic "No story matched" placeholder.
     pr_story_section = ''
     if pr_story and pr_story.item:
+        pr_color = _topic_color('PR & Comms')
         pr_story_section = (
             _divider() +
             '<tr><td class="polly-pad" style="padding: 0 40px">' +
-            _section_heading("📢", "PR & Comms Industry") +
+            f'<div style="margin-bottom: 14px">{_topic_badge("📢", "PR & Comms Industry", pr_color)}</div>' +
             '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' +
             _story_block(pr_story, today, show_badge=False) +
             '</table></td></tr>'
@@ -975,7 +976,13 @@ def render_brief(pulse: HiringPulse, top_stories: list[TopStory], featured_jobs:
         f'<div style="border-top: 1px solid {hairline}; padding-top: 18px; text-align: center">',
         f'<div style="font-size: 12px; font-weight: 700; color: {ink};">'
         f'{_bird_img(18, alt="")} '
-        f'<span style="vertical-align:middle;">Powered by Pollyai</span>'
+        # Was "Powered by Pollyai" -- the only place in the email that
+        # named the company "Pollyai" rather than "The Polly"/"ThePolly.co"
+        # (header says "The Polly Brief", the jobs CTA says "Explore all
+        # jobs on ThePolly.co"). A reader skimming just the footer had no
+        # visual link between this line and the brand they'd been reading
+        # the whole email. Naming it the same as the jobs CTA bridges the two.
+        f'<span style="vertical-align:middle;">Powered by The Polly &middot; thepolly.co</span>'
         f'</div>',
         f'<div style="font-size: 11px; color: {muted}; margin-top: 2px">The Talent Marketplace for Politics &amp; Public Affairs</div>',
         f'<div style="font-size: 11px; color: {muted}; margin-top: 10px">All rights reserved</div>',
