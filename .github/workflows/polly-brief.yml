@@ -41,7 +41,9 @@ permissions:
   contents: write
 jobs:
   # Days with no send. ISO weekday numbers in Central time (1=Mon ... 7=Sun),
-  # space-separated. To pause weekends too, set "6 7"; to send every day, "".
+  # space-separated. Currently Mon-Thu only (Fri/Sat/Sun paused) -- the AI
+  # Policy Brief (separate repo, TexasJones/AI-Policy-Brief) runs Friday
+  # instead, so the two newsletters don't land the same morning.
   # polly-brief.yml and watchdog.yml both read this same value -- keep them
   # in sync, or the watchdog will "rescue" a day this workflow skipped.
   gate:
@@ -49,7 +51,7 @@ jobs:
     outputs:
       skip: ${{ steps.day.outputs.skip }}
     env:
-      PAUSED_WEEKDAYS: "7"
+      PAUSED_WEEKDAYS: "5 6 7"
     steps:
       - id: day
         run: |
