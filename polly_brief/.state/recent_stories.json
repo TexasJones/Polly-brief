@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://rollcall.com/2026/09/28/midterms-looming-trump-opts-for-football-golf-and-a-late-dinner-with-dario-amodei/": "2026-09-29",
       "https://news.ballotpedia.org/2026/09/29/u-s-supreme-court-allows-use-of-expanded-save-system-ahead-of-the-november-elections-2/": "2026-09-30",
       "https://thehill.com/homenews/campaign/6121089-raman-bass-la-mayoral-forum-dsa/": "2026-10-01",
       "https://thehill.com/homenews/campaign/6124602-young-candidates-generation-z-congressional-runs/": "2026-10-02",
@@ -16,10 +15,10 @@
       "https://thehill.com/homenews/campaign/6147032-trump-pardons-alaska-diesel-mechanics/": "2026-10-14",
       "https://thehill.com/homenews/campaign/6149718-conley-lawler-debate-clash/": "2026-10-15",
       "https://www.cbsnews.com/news/trump-endorses-israel-prime-minister-benjamin-netanyahu-reelection/": "2026-10-19",
-      "https://abcnews.com/Politics/wireStory/jd-vance-declines-endorse-netanyahu-reelection-focusing-midterms-137401417": "2026-10-20"
+      "https://abcnews.com/Politics/wireStory/jd-vance-declines-endorse-netanyahu-reelection-focusing-midterms-137401417": "2026-10-20",
+      "https://thehill.com/homenews/campaign/6161654-ramaswamy-attack-ad-amy-acton/": "2026-10-21"
     },
     "AI+Policy": {
-      "https://www.semafor.com/article/09/28/2026/nvidia-unveils-tools-to-keep-rogue-ai-agents-in-check": "2026-09-29",
       "https://thehill.com/homenews/administration/6117728-trump-launches-ai-government-website/": "2026-09-30",
       "https://www.nbcnews.com/politics/congress/senate-democrats-block-sen-husted-led-bill-data-centers-calling-toothl-rcna600269": "2026-10-01",
       "https://thehill.com/policy/technology/6123796-trump-tech-leaders-pledge-ai-safety/": "2026-10-02",
@@ -34,10 +33,10 @@
       "https://thehill.com/policy/technology/6146643-open-ai-spying-fbi-doj/": "2026-10-14",
       "https://www.semafor.com/article/10/14/2026/openai-employee-arrested-over-office-bugging": "2026-10-15",
       "https://www.theverge.com/policy/1013113/democrats-ai-midterms": "2026-10-19",
-      "https://thehill.com/policy/technology/6159116-dhs-bans-chinese-deepseek-ai/": "2026-10-20"
+      "https://thehill.com/policy/technology/6159116-dhs-bans-chinese-deepseek-ai/": "2026-10-20",
+      "https://www.politico.com/news/2026/10/21/anthropic-bill-ai-risk-threshold-01128458": "2026-10-21"
     },
     "Energy": {
-      "https://insideclimatenews.org/news/28092026/alitos-recusal-from-climate-case-too-little-too-late/": "2026-09-29",
       "https://www.canarymedia.com/articles/green-steel/mesabi-metallics-steel-mill-iowa": "2026-09-30",
       "https://www.canarymedia.com/articles/corporate-procurement/meta-large-solar-purchase-texas": "2026-10-01",
       "https://www.canarymedia.com/articles/clean-fleets/diesel-prices-electric-truck-sales": "2026-10-02",
@@ -52,10 +51,10 @@
       "https://thehill.com/policy/energy-environment/6146426-trump-attacks-offshore-wind-energy/": "2026-10-14",
       "https://thehill.com/policy/energy-environment/6149510-diesel-deal-trump-russia-ukraine-gas-prices/": "2026-10-15",
       "https://www.utilitydive.com/spons/uncover-the-utility-outcomes-you-can-influence-with-your-customer-portal/832823/": "2026-10-19",
-      "https://insideclimatenews.org/news/20102026/trump-administration-promises-new-methane-rules/": "2026-10-20"
+      "https://insideclimatenews.org/news/20102026/trump-administration-promises-new-methane-rules/": "2026-10-20",
+      "https://thehill.com/blogs/in-the-know/6160240-jon-stewart-trump-russia-sanctions-diesel-deal-daily-show/": "2026-10-21"
     },
     "Economy": {
-      "https://thehill.com/homenews/administration/6116841-donald-trump-mark-carney-us-canadian-tariffs/": "2026-09-29",
       "https://www.cbsnews.com/news/us-ban-canadian-imports-almost-1-billion-dollars-takes-effect/": "2026-09-30",
       "https://www.cbsnews.com/news/federal-reserve-renovations-inspector-general-report/": "2026-10-01",
       "https://www.nbcnews.com/business/energy/trump-diesel-reserves-europe-ban-rcna600967": "2026-10-02",
@@ -70,10 +69,10 @@
       "https://thehill.com/business/6146632-bank-america-treasury-fine/": "2026-10-14",
       "https://thehill.com/business/6149573-cook-challenges-trump-inquiry-bias/": "2026-10-15",
       "https://www.cnbc.com/2026/10/19/ai-job-losses-women-automation-risk.html": "2026-10-19",
-      "https://fortune.com/2026/10/20/stocks-sell-off-globally-crisis-grips-france-saudi-arabia-cancels-davos-in-the-desert/": "2026-10-20"
+      "https://fortune.com/2026/10/20/stocks-sell-off-globally-crisis-grips-france-saudi-arabia-cancels-davos-in-the-desert/": "2026-10-20",
+      "https://thehill.com/homenews/state-watch/6161285-spanberger-demands-utility-rate-pause/": "2026-10-21"
     },
     "Legislative": {
-      "https://thehill.com/homenews/senate/6115892-senate-passes-protect-college-sports-act/": "2026-09-29",
       "https://www.nbcnews.com/politics/congress/senator-eric-schmitt-jack-smith-basketball-perjury-rcna600546": "2026-09-30",
       "https://www.politico.com/live-updates/2026/09/30/congress/senate-stock-trading-vote-01099912": "2026-10-01",
       "https://thehill.com/policy/defense/6124198-senate-reacts-pentagon-purge/": "2026-10-02",
@@ -88,10 +87,10 @@
       "https://www.politico.com/live-updates/2026/10/13/congress/trump-russia-oil-deal-senate-opposition-01116618": "2026-10-14",
       "https://thehill.com/homenews/senate/6150025-thom-tillis-pentagon-ig-ukraine-starlink-limits/": "2026-10-15",
       "https://www.npr.org/2026/10/18/nx-s1-6007363/congress-reacts-to-executive-order-exempting-russia-from-economic-sanctions": "2026-10-19",
-      "https://thehill.com/homenews/senate/6158966-trump-waives-russia-sanctions/": "2026-10-20"
+      "https://thehill.com/homenews/senate/6158966-trump-waives-russia-sanctions/": "2026-10-20",
+      "https://thehill.com/homenews/house/6160610-democrats-plan-trump-investigations/": "2026-10-21"
     },
     "Media": {
-      "https://www.mediaite.com/media/tv/cnn-airs-compilation-of-republican-senators-railing-against-trumps-taxpayer-funded-ads/": "2026-09-29",
       "https://www.mediaite.com/media/tv/cnns-elie-honig-rips-republicans-for-whiffing-on-very-effective-and-fair-criticisms-of-jack-smith-at-hearing/": "2026-09-30",
       "https://www.mediaite.com/media/news/white-house-drops-cnn-from-scheduled-press-pool-duty-for-trumps-texas-oklahoma-trip/": "2026-10-01",
       "https://www.mediaite.com/politics/news-anchor-says-republican-ditched-show-after-embarrassing-viral-gaffe-senator-schmitt-was-supposed-to-appear-on-this-program/": "2026-10-02",
@@ -106,10 +105,10 @@
       "https://thehill.com/regulation/court-battles/6147113-judge-extends-block-trump-media-ban/": "2026-10-14",
       "https://www.mediaite.com/media/news/wh-press-secretary-katie-zacharia-tries-and-fails-to-explain-away-china-law-credentials-question-to-nyt/": "2026-10-15",
       "https://www.poynter.org/ethics-trust/2026/should-journalists-repeat-offensive-language-public-officials/": "2026-10-19",
-      "https://www.mediaite.com/media/news/trump-drops-trash-island-photo-dump-in-late-night-dig-at-golf-course-case-judge/": "2026-10-20"
+      "https://www.mediaite.com/media/news/trump-drops-trash-island-photo-dump-in-late-night-dig-at-golf-course-case-judge/": "2026-10-20",
+      "https://www.poynter.org/local-news/2026/indianapolis-media-mugshots-in-tv-newscasts/": "2026-10-21"
     },
     "PR & Comms Industry": {
-      "https://www.prweek.com/article/1971107/neurocrine-biosciences-selects-ruder-finn-communications-aor": "2026-09-29",
       "https://www.prweek.com/article/1971288/american-egg-board-appoints-edelman-crack-open-new-creator-strategy": "2026-09-30",
       "https://www.provokemedia.com/latest/article/gci-health-names-eric-helgesen-global-head-of-ai-and-innovation": "2026-10-01",
       "https://www.prweek.com/article/1971516/alphabets-wing-names-jessica-appelgren-communications-director": "2026-10-02",
@@ -124,7 +123,8 @@
       "https://www.provokemedia.com/latest/article/obama-campaign-manager-jim-messina-launches-fortius-global": "2026-10-14",
       "https://www.provokemedia.com/latest/article/fgs-report-public-trust-in-ai-lags-other-technologies": "2026-10-15",
       "https://www.provokemedia.com/latest/article/burson-buchanan-names-louise-mason-rutherford-uk-head": "2026-10-19",
-      "https://www.provokemedia.com/latest/article/tom-mcalister-joins-h-advisors-to-lead-us-corporate-reputation-work": "2026-10-20"
+      "https://www.provokemedia.com/latest/article/tom-mcalister-joins-h-advisors-to-lead-us-corporate-reputation-work": "2026-10-20",
+      "https://www.provokemedia.com/latest/article/punchy-picks-ready10-for-hot-electrolytes-launch": "2026-10-21"
     }
   }
 }
