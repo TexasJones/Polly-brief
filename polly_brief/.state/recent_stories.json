@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://www.politico.com/news/2026/10/05/obama-michigan-rally-el-sayed-01107087": "2026-10-06",
       "https://thehill.com/homenews/campaign/6132984-maine-senate-debate-collins-jackson/": "2026-10-07",
       "https://www.cbsnews.com/live-updates/iran-war-nuclear-donald-trump-vance-rubio-strait-of-hormuz/": "2026-10-08",
       "https://thehill.com/video-clips/6136870-watch-live-nexstar-wood-tv-live-coverage-michigan-senate-debate-el-sayed-rogers/": "2026-10-09",
@@ -14,10 +13,10 @@
       "https://thehill.com/homenews/campaign/6161654-ramaswamy-attack-ad-amy-acton/": "2026-10-21",
       "https://thehill.com/homenews/campaign/6164323-marshall-hamilton-clash-in-battleground-kansas-senate-debate-4-takeaways/": "2026-10-22",
       "https://www.nbcnews.com/politics/2026-election/mary-peltola-delays-campaign-events-minor-injury-car-crash-alaska-rcna605556": "2026-10-26",
-      "https://thehill.com/homenews/administration/6173577-trump-voter-fraud-reward-announcement/": "2026-10-27"
+      "https://thehill.com/homenews/administration/6173577-trump-voter-fraud-reward-announcement/": "2026-10-27",
+      "https://thehill.com/homenews/campaign/6176856-trump-talarico-texas-senate-rallies/": "2026-10-28"
     },
     "AI+Policy": {
-      "https://thehill.com/policy/technology/6129103-tech-oversight-project-democrats-ai-data-centers/": "2026-10-06",
       "https://www.politico.com/news/2026/10/07/inside-ai-safetys-hottest-club-01109753": "2026-10-07",
       "https://thehill.com/policy/technology/6134371-cantwell-unveils-ai-regulation-framework/": "2026-10-08",
       "https://www.politico.com/news/2026/10/08/tech-firms-pledge-2-4-billion-in-computing-power-to-trumps-genesis-mission-01111708": "2026-10-09",
@@ -30,10 +29,10 @@
       "https://www.politico.com/news/2026/10/21/anthropic-bill-ai-risk-threshold-01128458": "2026-10-21",
       "https://www.politico.com/news/2026/10/21/new-mexico-meta-cambridge-analytica-judgment-01130539": "2026-10-22",
       "https://www.semafor.com/article/10/26/2026/investors-ready-for-week-of-big-tech-and-central-bank-announcements": "2026-10-26",
-      "https://thehill.com/policy/technology/6171816-anthropic-files-for-ai-ipo/": "2026-10-27"
+      "https://thehill.com/policy/technology/6171816-anthropic-files-for-ai-ipo/": "2026-10-27",
+      "https://www.theverge.com/ai-artificial-intelligence/1018676/data-center-midterm-election-energy-water-texas": "2026-10-28"
     },
     "Energy": {
-      "https://insideclimatenews.org/news/05102026/supreme-court-suncor-v-boulder-oil-case/": "2026-10-06",
       "https://www.politico.com/news/2026/10/06/trucking-trump-diesel-executive-order-01108995": "2026-10-07",
       "https://thehill.com/newsletters/the-gavel/the-gavel-live-briefing/6133666-supreme-court-first-week-climate-lawsuit-colorado-live-discussion/": "2026-10-08",
       "https://www.utilitydive.com/news/massachusetts-clean-energy-funds-winter-heating-oil/832521/": "2026-10-09",
@@ -46,10 +45,10 @@
       "https://thehill.com/blogs/in-the-know/6160240-jon-stewart-trump-russia-sanctions-diesel-deal-daily-show/": "2026-10-21",
       "https://www.canarymedia.com/articles/virtual-power-plants/google-plans-big-virtual-power-plant-in-energy-strapped-pjm-grid": "2026-10-22",
       "https://insideclimatenews.org/news/26102026/inside-climate-podcast-midterm-elections/": "2026-10-26",
-      "https://www.politico.com/news/2026/10/26/raskin-warns-oil-industry-trumps-russian-diesel-deal-01135380": "2026-10-27"
+      "https://www.politico.com/news/2026/10/26/raskin-warns-oil-industry-trumps-russian-diesel-deal-01135380": "2026-10-27",
+      "https://insideclimatenews.org/news/28102026/antarctic-sea-ice-decline-triggers-ocean-changes/": "2026-10-28"
     },
     "Economy": {
-      "https://www.semafor.com/article/10/05/2026/trump-to-sign-executive-order-aimed-at-curbing-diesel-prices": "2026-10-06",
       "https://www.npr.org/sections/planet-money/2026/10/07/g-s1-146828/who-will-win-the-2026-nobel-prize-in-economics": "2026-10-07",
       "https://thehill.com/business/6135206-fed-officials-project-future-increases/": "2026-10-08",
       "https://www.cbsnews.com/news/nfl-supreme-court-prediction-market-case/": "2026-10-09",
@@ -62,10 +61,10 @@
       "https://thehill.com/homenews/state-watch/6161285-spanberger-demands-utility-rate-pause/": "2026-10-21",
       "https://www.cbsnews.com/news/elon-musk-tesla-spacex-merger/": "2026-10-22",
       "https://thehill.com/homenews/state-watch/6169590-trump-economy-election-headwinds/": "2026-10-26",
-      "https://www.semafor.com/article/10/27/2026/markets-tumble-on-incumbent-lulas-election-victory-in-brazil": "2026-10-27"
+      "https://www.semafor.com/article/10/27/2026/markets-tumble-on-incumbent-lulas-election-victory-in-brazil": "2026-10-27",
+      "https://thehill.com/business/6175539-fed-to-decide-interest-rates-midterms/": "2026-10-28"
     },
     "Legislative": {
-      "https://rollcall.com/2026/10/05/disgraced-former-speaker-hastert-dies/": "2026-10-06",
       "https://www.politico.com/news/2026/10/07/senate-supreme-court-lame-duck-01109203": "2026-10-07",
       "https://thehill.com/homenews/campaign/6133806-rogers-calls-end-us-canada-trade-war/": "2026-10-08",
       "https://www.politico.com/live-updates/2026/10/08/congress/aipac-and-the-michigan-senate-race-01113266": "2026-10-09",
@@ -78,10 +77,10 @@
       "https://thehill.com/homenews/house/6160610-democrats-plan-trump-investigations/": "2026-10-21",
       "https://thehill.com/homenews/campaign/6164307-michigan-senate-debate-el-sayed-rogers-takeaways/": "2026-10-22",
       "https://thehill.com/policy/technology/6170785-schiff-calls-hegseth-testimony/": "2026-10-26",
-      "https://thehill.com/homenews/house/6172897-house-democrats-trump-epstein-special-counsel/": "2026-10-27"
+      "https://thehill.com/homenews/house/6172897-house-democrats-trump-epstein-special-counsel/": "2026-10-27",
+      "https://www.nbcnews.com/politics/justice-department/grand-jury-declines-indict-former-trump-aide-cassidy-hutchinson-jan-6-rcna603233": "2026-10-28"
     },
     "Media": {
-      "https://thehill.com/homenews/media/6129163-karoline-leavitt-joining-fox-news/": "2026-10-06",
       "https://thehill.com/homenews/media/6131227-paramount-warner-brothers-discovery-merger-closed/": "2026-10-07",
       "https://www.poynter.org/reporting-editing/2026/washington-post-floods-above-atmospheric-rivers/": "2026-10-08",
       "https://thehill.com/regulation/court-battles/6136177-trump-administration-supreme-court-television-ad-rates/": "2026-10-09",
@@ -94,10 +93,10 @@
       "https://www.poynter.org/local-news/2026/indianapolis-media-mugshots-in-tv-newscasts/": "2026-10-21",
       "https://www.niemanlab.org/2026/10/the-wall-street-journals-new-ai-tool-doppler-forecasts-the-issues-that-will-shape-the-midterm-elections/": "2026-10-22",
       "https://pressgazette.co.uk/news/clickout-media-makes-journalists-redundant-but-bylines-revived-with-ai/": "2026-10-26",
-      "https://www.poynter.org/news-release/2026/poynter-announces-2026-power-of-diverse-voices-cohort-celebrating-10-years-of-amplified-opinion-writing/": "2026-10-27"
+      "https://www.poynter.org/news-release/2026/poynter-announces-2026-power-of-diverse-voices-cohort-celebrating-10-years-of-amplified-opinion-writing/": "2026-10-27",
+      "https://www.mediaite.com/media/news/mike-johnson-irked-by-reporter-asking-if-gop-will-peacefully-transfer-power-little-silly-you-have-to-ask/": "2026-10-28"
     },
     "PR & Comms Industry": {
-      "https://www.provokemedia.com/latest/article/melissa-zukerman-confirmed-as-cco-at-newly-merged-skydance": "2026-10-06",
       "https://www.provokemedia.com/latest/article/ccos-rethink-communications-functions-as-their-remits-grow": "2026-10-07",
       "https://www.provokemedia.com/latest/article/sacred-cows-why-agencies-are-afraid-to-tell-clients-the-truth": "2026-10-08",
       "https://www.provokemedia.com/latest/article/apco-names-kelly-williamson-chief-client-officer": "2026-10-09",
@@ -110,7 +109,8 @@
       "https://www.provokemedia.com/latest/article/punchy-picks-ready10-for-hot-electrolytes-launch": "2026-10-21",
       "https://www.provokemedia.com/latest/article/finn-partners-wins-expanded-belize-tourism-board-remit": "2026-10-22",
       "https://www.provokemedia.com/latest/article/grayling-group-names-tanya-joseph-uk-ceo": "2026-10-26",
-      "https://www.provokemedia.com/latest/article/provokeglobal-reputation-is-a-contact-sport": "2026-10-27"
+      "https://www.provokemedia.com/latest/article/provokeglobal-reputation-is-a-contact-sport": "2026-10-27",
+      "https://www.provokemedia.com/latest/article/provokeglobal-why-the-cco-s-influence-walks-out-the-door": "2026-10-28"
     }
   }
 }
