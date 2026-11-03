@@ -13,6 +13,7 @@ on:
   workflow_dispatch:
 permissions:
   actions: write
+  contents: read
 
 jobs:
   check:
@@ -22,6 +23,7 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           # Paused weekdays (keep in sync with PAUSED_WEEKDAYS in
           # polly-brief.yml): no send is expected, so nothing to rescue.
@@ -33,7 +35,7 @@ jobs:
             exit 0
           fi
           TODAY=$(date -u +%Y-%m-%d)
-          echo "Checking for a Generate Polly Brief run on $TODAY (UTC)..."
+          echo "Checking for a Generate Polly Brief run in the last 20 hours (UTC date now: $TODAY)..."
 
           # Pull the last 20 runs of that specific workflow. 20 is
           # comfortably more than one day's worth even counting manual
@@ -59,8 +61,8 @@ jobs:
           # genuinely executes the real pipeline, so job-level
           # .conclusion == "success" is trustworthy again on its own --
           # no need for the extra per-run API calls that added.
-          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
-          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq '[.workflow_runs[] | select(((now - (.created_at | fromdateiso8601)) < 72000) and .conclusion == "success")] | length')
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq '[.workflow_runs[] | select((now - (.created_at | fromdateiso8601)) < 72000)] | length')
 
           echo "Successful runs found for today: $SUCCESS_COUNT"
           echo "Any runs (including failed) found for today: $ANY_COUNT"
@@ -72,6 +74,7 @@ jobs:
         if: steps.check.outputs.success_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           echo "Nothing succeeded today. Auto-triggering Generate Polly Brief workflow..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
@@ -89,6 +92,7 @@ jobs:
         id: recheck
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           # Paused weekdays (keep in sync with PAUSED_WEEKDAYS in
           # polly-brief.yml): no send is expected, so nothing to rescue.
@@ -100,11 +104,11 @@ jobs:
             exit 0
           fi
           TODAY=$(date -u +%Y-%m-%d)
-          echo "Rechecking for a Generate Polly Brief run on $TODAY (UTC)..."
+          echo "Rechecking for a Generate Polly Brief run in the last 20 hours (UTC date now: $TODAY)..."
 
           RUNS_JSON=$(gh api "repos/${{ github.repository }}/actions/workflows/polly-brief.yml/runs?per_page=20")
-          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select((.created_at | startswith(\"$TODAY\")) and .conclusion == \"success\")] | length")
-          ANY_COUNT=$(echo "$RUNS_JSON" | jq "[.workflow_runs[] | select(.created_at | startswith(\"$TODAY\"))] | length")
+          SUCCESS_COUNT=$(echo "$RUNS_JSON" | jq '[.workflow_runs[] | select(((now - (.created_at | fromdateiso8601)) < 72000) and .conclusion == "success")] | length')
+          ANY_COUNT=$(echo "$RUNS_JSON" | jq '[.workflow_runs[] | select((now - (.created_at | fromdateiso8601)) < 72000)] | length')
 
           echo "Successful runs found for today: $SUCCESS_COUNT"
           echo "Any runs (including failed) found for today: $ANY_COUNT"
@@ -115,6 +119,7 @@ jobs:
         if: steps.recheck.outputs.success_count == '0'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
         run: |
           echo "Still nothing successful today. Final auto-trigger..."
           gh workflow run polly-brief.yml -f test_mode=false -f publish_only=false
