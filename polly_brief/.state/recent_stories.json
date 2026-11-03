@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://thehill.com/homenews/campaign/6141971-sc-senate-debate-graham-andrews/": "2026-10-12",
       "https://www.today.com/video/democrats-target-republican-held-majorities-in-key-states-271483973856": "2026-10-13",
       "https://thehill.com/homenews/campaign/6147032-trump-pardons-alaska-diesel-mechanics/": "2026-10-14",
       "https://thehill.com/homenews/campaign/6149718-conley-lawler-debate-clash/": "2026-10-15",
@@ -13,10 +12,10 @@
       "https://thehill.com/homenews/administration/6173577-trump-voter-fraud-reward-announcement/": "2026-10-27",
       "https://thehill.com/homenews/campaign/6176856-trump-talarico-texas-senate-rallies/": "2026-10-28",
       "https://www.cbsnews.com/news/judge-rejects-trump-california-mail-ballots/": "2026-10-29",
-      "https://www.cbsnews.com/news/haley-stevens-mike-rogers-together-church-abdul-el-sayed-michigan-senate/": "2026-11-02"
+      "https://www.cbsnews.com/news/haley-stevens-mike-rogers-together-church-abdul-el-sayed-michigan-senate/": "2026-11-02",
+      "https://www.today.com/video/what-s-the-impact-of-haley-stevens-endorsement-of-mike-rogers-272750149924": "2026-11-03"
     },
     "AI+Policy": {
-      "https://www.theverge.com/ai-artificial-intelligence/1009406/silicon-valley-is-falling-in-line-with-trumps-attempt-to-rename-ai": "2026-10-12",
       "https://www.politico.com/news/2026/10/13/new-democrat-pac-hits-gop-on-ai-in-tight-midterm-races-01116365": "2026-10-13",
       "https://thehill.com/policy/technology/6146643-open-ai-spying-fbi-doj/": "2026-10-14",
       "https://www.semafor.com/article/10/14/2026/openai-employee-arrested-over-office-bugging": "2026-10-15",
@@ -28,10 +27,10 @@
       "https://thehill.com/policy/technology/6171816-anthropic-files-for-ai-ipo/": "2026-10-27",
       "https://www.theverge.com/ai-artificial-intelligence/1018676/data-center-midterm-election-energy-water-texas": "2026-10-28",
       "https://www.politico.com/news/2026/10/29/lawrence-barrett-michigan-tech-data-centers-01139189": "2026-10-29",
-      "https://www.politico.com/news/2026/11/02/openai-is-already-pitching-2028-hopefuls-on-how-to-talk-about-ai-01144821": "2026-11-02"
+      "https://www.politico.com/news/2026/11/02/openai-is-already-pitching-2028-hopefuls-on-how-to-talk-about-ai-01144821": "2026-11-02",
+      "https://thehill.com/policy/technology/6190399-ai-firms-election-day-readiness/": "2026-11-03"
     },
     "Energy": {
-      "https://thehill.com/policy/energy-environment/6141263-bipartisan-backlash-russian-fuel/": "2026-10-12",
       "https://thehill.com/policy/international/6142689-russia-targets-ukraine-energy-ceasefire/": "2026-10-13",
       "https://thehill.com/policy/energy-environment/6146426-trump-attacks-offshore-wind-energy/": "2026-10-14",
       "https://thehill.com/policy/energy-environment/6149510-diesel-deal-trump-russia-ukraine-gas-prices/": "2026-10-15",
@@ -43,10 +42,10 @@
       "https://www.politico.com/news/2026/10/26/raskin-warns-oil-industry-trumps-russian-diesel-deal-01135380": "2026-10-27",
       "https://insideclimatenews.org/news/28102026/antarctic-sea-ice-decline-triggers-ocean-changes/": "2026-10-28",
       "https://insideclimatenews.org/news/29102026/new-york-gas-pipeline-gubernatorial-election/": "2026-10-29",
-      "https://www.utilitydive.com/spons/utilities-need-to-become-project-developers-are-they-ready/831847/": "2026-11-02"
+      "https://www.utilitydive.com/spons/utilities-need-to-become-project-developers-are-they-ready/831847/": "2026-11-02",
+      "https://www.politico.com/news/2026/11/03/renewable-energy-environmentalists-permitting-split-01143886": "2026-11-03"
     },
     "Economy": {
-      "https://www.cnbc.com/2026/10/12/nobel-economics-prize-winner-woodford-hall.html": "2026-10-12",
       "https://www.npr.org/sections/planet-money/2026/10/13/g-s1-147816/what-ice-cream-has-to-do-with-this-years-nobel-prize-in-economics": "2026-10-13",
       "https://thehill.com/business/6146632-bank-america-treasury-fine/": "2026-10-14",
       "https://thehill.com/business/6149573-cook-challenges-trump-inquiry-bias/": "2026-10-15",
@@ -58,10 +57,10 @@
       "https://www.semafor.com/article/10/27/2026/markets-tumble-on-incumbent-lulas-election-victory-in-brazil": "2026-10-27",
       "https://thehill.com/business/6175539-fed-to-decide-interest-rates-midterms/": "2026-10-28",
       "https://www.cbsnews.com/news/federal-reserve-holds-interest-rates-steady-inflation/": "2026-10-29",
-      "https://www.semafor.com/article/11/01/2026/north-korea-blamed-for-crypto-heist": "2026-11-02"
+      "https://www.semafor.com/article/11/01/2026/north-korea-blamed-for-crypto-heist": "2026-11-02",
+      "https://www.cbsnews.com/news/binance-customers-withdraw-billions-crypto-hack/": "2026-11-03"
     },
     "Legislative": {
-      "https://thehill.com/homenews/campaign/6139667-north-carolina-roy-cooper-democrats-midterm-elections/": "2026-10-12",
       "https://www.politico.com/live-updates/2026/10/13/congress/mary-peltola-raises-17-million-alaska-01116382": "2026-10-13",
       "https://www.politico.com/live-updates/2026/10/13/congress/trump-russia-oil-deal-senate-opposition-01116618": "2026-10-14",
       "https://thehill.com/homenews/senate/6150025-thom-tillis-pentagon-ig-ukraine-starlink-limits/": "2026-10-15",
@@ -73,10 +72,10 @@
       "https://thehill.com/homenews/house/6172897-house-democrats-trump-epstein-special-counsel/": "2026-10-27",
       "https://www.nbcnews.com/politics/justice-department/grand-jury-declines-indict-former-trump-aide-cassidy-hutchinson-jan-6-rcna603233": "2026-10-28",
       "https://thehill.com/homenews/senate/6178270-peltola-denies-sullivan-recruitment-alaska-senate-report/": "2026-10-29",
-      "https://thehill.com/regulation/court-battles/6186982-judge-dismisses-trump-alaska-lawsuit/": "2026-11-02"
+      "https://thehill.com/regulation/court-battles/6186982-judge-dismisses-trump-alaska-lawsuit/": "2026-11-02",
+      "https://www.npr.org/2026/11/03/g-s1-151305/2026-midterms-house-races-to-watch": "2026-11-03"
     },
     "Media": {
-      "https://www.poynter.org/business-work/2026/pablo-torre-finds-out-sports-journalism/": "2026-10-12",
       "https://www.mediaite.com/online/media-world-floored-by-wsjs-ken-paxton-dubai-party-bombshell-whoa-wow-oy/": "2026-10-13",
       "https://thehill.com/regulation/court-battles/6147113-judge-extends-block-trump-media-ban/": "2026-10-14",
       "https://www.mediaite.com/media/news/wh-press-secretary-katie-zacharia-tries-and-fails-to-explain-away-china-law-credentials-question-to-nyt/": "2026-10-15",
@@ -88,10 +87,10 @@
       "https://www.poynter.org/news-release/2026/poynter-announces-2026-power-of-diverse-voices-cohort-celebrating-10-years-of-amplified-opinion-writing/": "2026-10-27",
       "https://www.mediaite.com/media/news/mike-johnson-irked-by-reporter-asking-if-gop-will-peacefully-transfer-power-little-silly-you-have-to-ask/": "2026-10-28",
       "https://pressgazette.co.uk/news/norwegian-media-companies-take-meta-to-court-over-ai-scraping-terms/": "2026-10-29",
-      "https://www.poynter.org/reporting-editing/2026/haley-stevens-endorses-mike-rogers-michigan-senate-race/": "2026-11-02"
+      "https://www.poynter.org/reporting-editing/2026/haley-stevens-endorses-mike-rogers-michigan-senate-race/": "2026-11-02",
+      "https://www.poynter.org/educators-students/2026/student-journalists-election-coverage-2026-midterms/": "2026-11-03"
     },
     "PR & Comms Industry": {
-      "https://www.provokemedia.com/latest/article/tom-malcolm-returns-to-burson-as-uk-chief-growth-officer": "2026-10-12",
       "https://www.provokemedia.com/latest/article/folgate-launches-business-of-sport-advisory-practice": "2026-10-13",
       "https://www.provokemedia.com/latest/article/obama-campaign-manager-jim-messina-launches-fortius-global": "2026-10-14",
       "https://www.provokemedia.com/latest/article/fgs-report-public-trust-in-ai-lags-other-technologies": "2026-10-15",
@@ -103,7 +102,8 @@
       "https://www.provokemedia.com/latest/article/provokeglobal-reputation-is-a-contact-sport": "2026-10-27",
       "https://www.provokemedia.com/latest/article/provokeglobal-why-the-cco-s-influence-walks-out-the-door": "2026-10-28",
       "https://www.provokemedia.com/latest/article/vodafone-corporate-affairs-chief-joakim-reiter-leaving-for-ert-role": "2026-10-29",
-      "https://www.provokemedia.com/latest/article/sourcecode-hires-florian-hohenauer-to-lead-german-expansion": "2026-11-02"
+      "https://www.provokemedia.com/latest/article/sourcecode-hires-florian-hohenauer-to-lead-german-expansion": "2026-11-02",
+      "https://www.provokemedia.com/latest/article/hopscotch-launches-brussels-based-public-engagament-unit": "2026-11-03"
     }
   }
 }
