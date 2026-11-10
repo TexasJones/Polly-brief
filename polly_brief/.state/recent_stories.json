@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://www.cbsnews.com/news/trump-endorses-israel-prime-minister-benjamin-netanyahu-reelection/": "2026-10-19",
       "https://abcnews.com/Politics/wireStory/jd-vance-declines-endorse-netanyahu-reelection-focusing-midterms-137401417": "2026-10-20",
       "https://thehill.com/homenews/campaign/6161654-ramaswamy-attack-ad-amy-acton/": "2026-10-21",
       "https://thehill.com/homenews/campaign/6164323-marshall-hamilton-clash-in-battleground-kansas-senate-debate-4-takeaways/": "2026-10-22",
@@ -13,10 +12,10 @@
       "https://www.today.com/video/what-s-the-impact-of-haley-stevens-endorsement-of-mike-rogers-272750149924": "2026-11-03",
       "https://www.cbsnews.com/news/texas-2026-senate-james-talarico-ken-paxton/": "2026-11-04",
       "https://www.today.com/video/voters-on-construction-of-ai-data-centers-not-in-my-backyard-272911429511": "2026-11-05",
-      "https://thehill.com/homenews/administration/6207449-donald-trump-jd-vance-iran-war-gop-midterm-losses/": "2026-11-09"
+      "https://thehill.com/homenews/administration/6207449-donald-trump-jd-vance-iran-war-gop-midterm-losses/": "2026-11-09",
+      "https://www.cbsnews.com/live-updates/congress-today-senate-house-leadership-elections/": "2026-11-10"
     },
     "AI+Policy": {
-      "https://www.theverge.com/policy/1013113/democrats-ai-midterms": "2026-10-19",
       "https://thehill.com/policy/technology/6159116-dhs-bans-chinese-deepseek-ai/": "2026-10-20",
       "https://www.politico.com/news/2026/10/21/anthropic-bill-ai-risk-threshold-01128458": "2026-10-21",
       "https://www.politico.com/news/2026/10/21/new-mexico-meta-cambridge-analytica-judgment-01130539": "2026-10-22",
@@ -28,10 +27,10 @@
       "https://thehill.com/policy/technology/6190399-ai-firms-election-day-readiness/": "2026-11-03",
       "https://thehill.com/policy/technology/6192039-openai-hires-dan-driscoll/": "2026-11-04",
       "https://thehill.com/policy/technology/6197847-democrats-big-tech-ai-regulations-2026-midterm-wins/": "2026-11-05",
-      "https://thehill.com/policy/technology/6206971-nvidia-investigates-jensen-huang/": "2026-11-09"
+      "https://thehill.com/policy/technology/6206971-nvidia-investigates-jensen-huang/": "2026-11-09",
+      "https://www.theverge.com/ai-artificial-intelligence/1030328/what-could-china-get-from-jensen-huang": "2026-11-10"
     },
     "Energy": {
-      "https://www.utilitydive.com/spons/uncover-the-utility-outcomes-you-can-influence-with-your-customer-portal/832823/": "2026-10-19",
       "https://insideclimatenews.org/news/20102026/trump-administration-promises-new-methane-rules/": "2026-10-20",
       "https://thehill.com/blogs/in-the-know/6160240-jon-stewart-trump-russia-sanctions-diesel-deal-daily-show/": "2026-10-21",
       "https://www.canarymedia.com/articles/virtual-power-plants/google-plans-big-virtual-power-plant-in-energy-strapped-pjm-grid": "2026-10-22",
@@ -43,10 +42,10 @@
       "https://www.politico.com/news/2026/11/03/renewable-energy-environmentalists-permitting-split-01143886": "2026-11-03",
       "https://thehill.com/policy/energy-environment/6193013-election-day-record-gas-prices/": "2026-11-04",
       "https://www.politico.com/news/2026/11/04/democrats-victory-course-through-global-energy-markets-01149278": "2026-11-05",
-      "https://www.politico.com/news/2026/11/08/climate-cop-antalya-un-energy-turkey-01155429": "2026-11-09"
+      "https://www.politico.com/news/2026/11/08/climate-cop-antalya-un-energy-turkey-01155429": "2026-11-09",
+      "https://insideclimatenews.org/news/10112026/30-years-of-climate-talks-lack-of-progress/": "2026-11-10"
     },
     "Economy": {
-      "https://www.cnbc.com/2026/10/19/ai-job-losses-women-automation-risk.html": "2026-10-19",
       "https://fortune.com/2026/10/20/stocks-sell-off-globally-crisis-grips-france-saudi-arabia-cancels-davos-in-the-desert/": "2026-10-20",
       "https://thehill.com/homenews/state-watch/6161285-spanberger-demands-utility-rate-pause/": "2026-10-21",
       "https://www.cbsnews.com/news/elon-musk-tesla-spacex-merger/": "2026-10-22",
@@ -58,10 +57,10 @@
       "https://www.cbsnews.com/news/binance-customers-withdraw-billions-crypto-hack/": "2026-11-03",
       "https://www.today.com/video/what-midterm-election-results-could-mean-for-consumer-prices-272833093884": "2026-11-04",
       "https://www.semafor.com/article/11/04/2026/prediction-markets-win-big-on-election-night": "2026-11-05",
-      "https://www.today.com/video/what-the-midterm-shake-up-means-for-wall-street-273121861709": "2026-11-09"
+      "https://www.today.com/video/what-the-midterm-shake-up-means-for-wall-street-273121861709": "2026-11-09",
+      "https://www.cbsnews.com/news/california-proposition-40-billionaire-wealth-tax-rejected-cbs-projects/": "2026-11-10"
     },
     "Legislative": {
-      "https://www.npr.org/2026/10/18/nx-s1-6007363/congress-reacts-to-executive-order-exempting-russia-from-economic-sanctions": "2026-10-19",
       "https://thehill.com/homenews/senate/6158966-trump-waives-russia-sanctions/": "2026-10-20",
       "https://thehill.com/homenews/house/6160610-democrats-plan-trump-investigations/": "2026-10-21",
       "https://thehill.com/homenews/campaign/6164307-michigan-senate-debate-el-sayed-rogers-takeaways/": "2026-10-22",
@@ -73,10 +72,10 @@
       "https://www.npr.org/2026/11/03/g-s1-151305/2026-midterms-house-races-to-watch": "2026-11-03",
       "https://thehill.com/homenews/campaign/6192294-el-sayed-wins-michigan-senate/": "2026-11-04",
       "https://www.politico.com/live-updates/2026/11/04/congress/mike-johnson-steps-aside-01148698": "2026-11-05",
-      "https://thehill.com/the-120/6205327-jeffries-democrat-house-majority-tests/": "2026-11-09"
+      "https://thehill.com/the-120/6205327-jeffries-democrat-house-majority-tests/": "2026-11-09",
+      "https://rollcall.com/2026/11/09/massie-moves-to-force-hegseth-impeachment-vote/": "2026-11-10"
     },
     "Media": {
-      "https://www.poynter.org/ethics-trust/2026/should-journalists-repeat-offensive-language-public-officials/": "2026-10-19",
       "https://www.mediaite.com/media/news/trump-drops-trash-island-photo-dump-in-late-night-dig-at-golf-course-case-judge/": "2026-10-20",
       "https://www.poynter.org/local-news/2026/indianapolis-media-mugshots-in-tv-newscasts/": "2026-10-21",
       "https://www.niemanlab.org/2026/10/the-wall-street-journals-new-ai-tool-doppler-forecasts-the-issues-that-will-shape-the-midterm-elections/": "2026-10-22",
@@ -88,10 +87,10 @@
       "https://www.poynter.org/educators-students/2026/student-journalists-election-coverage-2026-midterms/": "2026-11-03",
       "https://thehill.com/homenews/media/6195699-hannity-blames-iran-war-gop-losses/": "2026-11-04",
       "https://www.niemanlab.org/2026/11/the-new-york-times-stays-on-track-to-reach-15-million-subscribers-by-the-end-of-2027/": "2026-11-05",
-      "https://thehill.com/blogs/in-the-know/6207095-katie-miller-pauses-podcast-after-husband-named-white-house-chief-of-staff/": "2026-11-09"
+      "https://thehill.com/blogs/in-the-know/6207095-katie-miller-pauses-podcast-after-husband-named-white-house-chief-of-staff/": "2026-11-09",
+      "https://www.niemanlab.org/2026/11/its-either-this-or-death-frankly-canada-renews-the-local-journalism-initiative-and-extends-journalism-tax-credit/": "2026-11-10"
     },
     "PR & Comms Industry": {
-      "https://www.provokemedia.com/latest/article/burson-buchanan-names-louise-mason-rutherford-uk-head": "2026-10-19",
       "https://www.provokemedia.com/latest/article/tom-mcalister-joins-h-advisors-to-lead-us-corporate-reputation-work": "2026-10-20",
       "https://www.provokemedia.com/latest/article/punchy-picks-ready10-for-hot-electrolytes-launch": "2026-10-21",
       "https://www.provokemedia.com/latest/article/finn-partners-wins-expanded-belize-tourism-board-remit": "2026-10-22",
@@ -103,7 +102,8 @@
       "https://www.provokemedia.com/latest/article/hopscotch-launches-brussels-based-public-engagament-unit": "2026-11-03",
       "https://www.provokemedia.com/latest/article/giles-fraser-and-sarah-scales-step-down-from-brands2life-leadership": "2026-11-04",
       "https://www.provokemedia.com/latest/article/edelman-names-andrew-simon-canada-ceo": "2026-11-05",
-      "https://www.provokemedia.com/latest/article/provoke-media-extends-africa-anz-menat-sabre-deadline-until-november-20": "2026-11-09"
+      "https://www.provokemedia.com/latest/article/provoke-media-extends-africa-anz-menat-sabre-deadline-until-november-20": "2026-11-09",
+      "https://www.provokemedia.com/latest/article/influence-100-insights-2026-lego-and-edelman-draw-praise-as-openai-faces-criticism": "2026-11-10"
     }
   }
 }
