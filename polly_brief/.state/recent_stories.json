@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://thehill.com/homenews/campaign/6164323-marshall-hamilton-clash-in-battleground-kansas-senate-debate-4-takeaways/": "2026-10-22",
       "https://www.nbcnews.com/politics/2026-election/mary-peltola-delays-campaign-events-minor-injury-car-crash-alaska-rcna605556": "2026-10-26",
       "https://thehill.com/homenews/administration/6173577-trump-voter-fraud-reward-announcement/": "2026-10-27",
       "https://thehill.com/homenews/campaign/6176856-trump-talarico-texas-senate-rallies/": "2026-10-28",
@@ -13,10 +12,10 @@
       "https://thehill.com/homenews/administration/6207449-donald-trump-jd-vance-iran-war-gop-midterm-losses/": "2026-11-09",
       "https://www.cbsnews.com/live-updates/congress-today-senate-house-leadership-elections/": "2026-11-10",
       "https://thehill.com/homenews/campaign/6194420-calvert-wins-ca-40th-district/": "2026-11-11",
-      "https://thehill.com/homenews/campaign/6214689-colom-leads-hyde-smith/": "2026-11-12"
+      "https://thehill.com/homenews/campaign/6214689-colom-leads-hyde-smith/": "2026-11-12",
+      "https://news.ballotpedia.org/2026/11/16/campaigns-submit-signatures-for-2027-maine-sex-based-sports-eligibility-initiative-and-2028-massachusetts-abortion-referendum/": "2026-11-16"
     },
     "AI+Policy": {
-      "https://www.politico.com/news/2026/10/21/new-mexico-meta-cambridge-analytica-judgment-01130539": "2026-10-22",
       "https://www.semafor.com/article/10/26/2026/investors-ready-for-week-of-big-tech-and-central-bank-announcements": "2026-10-26",
       "https://thehill.com/policy/technology/6171816-anthropic-files-for-ai-ipo/": "2026-10-27",
       "https://www.theverge.com/ai-artificial-intelligence/1018676/data-center-midterm-election-energy-water-texas": "2026-10-28",
@@ -28,10 +27,10 @@
       "https://thehill.com/policy/technology/6206971-nvidia-investigates-jensen-huang/": "2026-11-09",
       "https://www.theverge.com/ai-artificial-intelligence/1030328/what-could-china-get-from-jensen-huang": "2026-11-10",
       "https://www.politico.com/news/2026/11/11/jensen-huang-washington-problem-01160374": "2026-11-11",
-      "https://thehill.com/homenews/senate/6215009-senator-cramer-calls-nvidia-ceo-resignation/": "2026-11-12"
+      "https://thehill.com/homenews/senate/6215009-senator-cramer-calls-nvidia-ceo-resignation/": "2026-11-12",
+      "https://www.theverge.com/ai-artificial-intelligence/1031740/jensen-huang-nvidia-scandal-isnt-slowing-down": "2026-11-16"
     },
     "Energy": {
-      "https://www.canarymedia.com/articles/virtual-power-plants/google-plans-big-virtual-power-plant-in-energy-strapped-pjm-grid": "2026-10-22",
       "https://insideclimatenews.org/news/26102026/inside-climate-podcast-midterm-elections/": "2026-10-26",
       "https://www.politico.com/news/2026/10/26/raskin-warns-oil-industry-trumps-russian-diesel-deal-01135380": "2026-10-27",
       "https://insideclimatenews.org/news/28102026/antarctic-sea-ice-decline-triggers-ocean-changes/": "2026-10-28",
@@ -43,10 +42,10 @@
       "https://www.politico.com/news/2026/11/08/climate-cop-antalya-un-energy-turkey-01155429": "2026-11-09",
       "https://insideclimatenews.org/news/10112026/30-years-of-climate-talks-lack-of-progress/": "2026-11-10",
       "https://insideclimatenews.org/news/11112026/georgia-alta-refrigeration-suing-epa-over-greenhouse-gas-rules/": "2026-11-11",
-      "https://insideclimatenews.org/news/12112026/pennsylvania-democrat-trifecta-clean-energy-affordability/": "2026-11-12"
+      "https://insideclimatenews.org/news/12112026/pennsylvania-democrat-trifecta-clean-energy-affordability/": "2026-11-12",
+      "https://www.utilitydive.com/spons/utilities-dont-need-cheaper-vendors-they-need-to-stop-guessing/874537/": "2026-11-16"
     },
     "Economy": {
-      "https://www.cbsnews.com/news/elon-musk-tesla-spacex-merger/": "2026-10-22",
       "https://thehill.com/homenews/state-watch/6169590-trump-economy-election-headwinds/": "2026-10-26",
       "https://www.semafor.com/article/10/27/2026/markets-tumble-on-incumbent-lulas-election-victory-in-brazil": "2026-10-27",
       "https://thehill.com/business/6175539-fed-to-decide-interest-rates-midterms/": "2026-10-28",
@@ -58,10 +57,10 @@
       "https://www.today.com/video/what-the-midterm-shake-up-means-for-wall-street-273121861709": "2026-11-09",
       "https://www.cbsnews.com/news/california-proposition-40-billionaire-wealth-tax-rejected-cbs-projects/": "2026-11-10",
       "https://www.cnbc.com/2026/11/10/cpi-inflation-report-october-2026.html": "2026-11-11",
-      "https://thehill.com/homenews/administration/6213592-bessent-moves-military-base/": "2026-11-12"
+      "https://thehill.com/homenews/administration/6213592-bessent-moves-military-base/": "2026-11-12",
+      "https://fortune.com/2026/11/16/nvidia-stock-jensen-huang-return-odds-musk/": "2026-11-16"
     },
     "Legislative": {
-      "https://thehill.com/homenews/campaign/6164307-michigan-senate-debate-el-sayed-rogers-takeaways/": "2026-10-22",
       "https://thehill.com/policy/technology/6170785-schiff-calls-hegseth-testimony/": "2026-10-26",
       "https://thehill.com/homenews/house/6172897-house-democrats-trump-epstein-special-counsel/": "2026-10-27",
       "https://www.nbcnews.com/politics/justice-department/grand-jury-declines-indict-former-trump-aide-cassidy-hutchinson-jan-6-rcna603233": "2026-10-28",
@@ -73,10 +72,10 @@
       "https://thehill.com/the-120/6205327-jeffries-democrat-house-majority-tests/": "2026-11-09",
       "https://rollcall.com/2026/11/09/massie-moves-to-force-hegseth-impeachment-vote/": "2026-11-10",
       "https://thehill.com/homenews/administration/6209586-live-updates-trump-hegseth-impeachment-iran-war-midterms-gop-leadership-elections/": "2026-11-11",
-      "https://rollcall.com/2026/11/11/scott-colom-wins-mississippi-senate-election/": "2026-11-12"
+      "https://rollcall.com/2026/11/11/scott-colom-wins-mississippi-senate-election/": "2026-11-12",
+      "https://thehill.com/homenews/house/6219857-democrats-clash-funding-iran/": "2026-11-16"
     },
     "Media": {
-      "https://www.niemanlab.org/2026/10/the-wall-street-journals-new-ai-tool-doppler-forecasts-the-issues-that-will-shape-the-midterm-elections/": "2026-10-22",
       "https://pressgazette.co.uk/news/clickout-media-makes-journalists-redundant-but-bylines-revived-with-ai/": "2026-10-26",
       "https://www.poynter.org/news-release/2026/poynter-announces-2026-power-of-diverse-voices-cohort-celebrating-10-years-of-amplified-opinion-writing/": "2026-10-27",
       "https://www.mediaite.com/media/news/mike-johnson-irked-by-reporter-asking-if-gop-will-peacefully-transfer-power-little-silly-you-have-to-ask/": "2026-10-28",
@@ -88,10 +87,10 @@
       "https://thehill.com/blogs/in-the-know/6207095-katie-miller-pauses-podcast-after-husband-named-white-house-chief-of-staff/": "2026-11-09",
       "https://www.niemanlab.org/2026/11/its-either-this-or-death-frankly-canada-renews-the-local-journalism-initiative-and-extends-journalism-tax-credit/": "2026-11-10",
       "https://www.mediaite.com/media/tv/look-out-melania-kimmel-roasts-pretty-pete-hegseths-gushing-praise-of-trump-at-impeachment-presser/": "2026-11-11",
-      "https://www.mediaite.com/politics/i-saw-you-right-here-with-minutes-to-spare-tmz-dc-reporter-grills-house-dem-who-blamed-traffic-for-missing-hegseth-vote/": "2026-11-12"
+      "https://www.mediaite.com/politics/i-saw-you-right-here-with-minutes-to-spare-tmz-dc-reporter-grills-house-dem-who-blamed-traffic-for-missing-hegseth-vote/": "2026-11-12",
+      "https://www.poynter.org/business-work/2026/ohio-investigation-dangerous-dog-laws-averys-law/": "2026-11-16"
     },
     "PR & Comms Industry": {
-      "https://www.provokemedia.com/latest/article/finn-partners-wins-expanded-belize-tourism-board-remit": "2026-10-22",
       "https://www.provokemedia.com/latest/article/grayling-group-names-tanya-joseph-uk-ceo": "2026-10-26",
       "https://www.provokemedia.com/latest/article/provokeglobal-reputation-is-a-contact-sport": "2026-10-27",
       "https://www.provokemedia.com/latest/article/provokeglobal-why-the-cco-s-influence-walks-out-the-door": "2026-10-28",
@@ -103,7 +102,8 @@
       "https://www.provokemedia.com/latest/article/provoke-media-extends-africa-anz-menat-sabre-deadline-until-november-20": "2026-11-09",
       "https://www.provokemedia.com/latest/article/influence-100-insights-2026-lego-and-edelman-draw-praise-as-openai-faces-criticism": "2026-11-10",
       "https://www.prweek.com/article/1974917/nvidia-ceo-jensen-huang-hired-heller-year-scandal-emerged": "2026-11-11",
-      "https://www.provokemedia.com/podcast/article/provoke-podcast-andrew-bleeker-on-lessons-to-be-learned-from-the-midterms": "2026-11-12"
+      "https://www.provokemedia.com/podcast/article/provoke-podcast-andrew-bleeker-on-lessons-to-be-learned-from-the-midterms": "2026-11-12",
+      "https://www.provokemedia.com/latest/article/danaher-s-jo%C3%A3o-belo-moves-to-mars-snacking-to-lead-corporate-affairs": "2026-11-16"
     }
   }
 }
