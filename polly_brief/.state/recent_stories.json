@@ -1,7 +1,6 @@
 {
   "sections": {
     "Campaigns": {
-      "https://thehill.com/homenews/campaign/6176856-trump-talarico-texas-senate-rallies/": "2026-10-28",
       "https://www.cbsnews.com/news/judge-rejects-trump-california-mail-ballots/": "2026-10-29",
       "https://www.cbsnews.com/news/haley-stevens-mike-rogers-together-church-abdul-el-sayed-michigan-senate/": "2026-11-02",
       "https://www.today.com/video/what-s-the-impact-of-haley-stevens-endorsement-of-mike-rogers-272750149924": "2026-11-03",
@@ -13,10 +12,10 @@
       "https://thehill.com/homenews/campaign/6214689-colom-leads-hyde-smith/": "2026-11-12",
       "https://news.ballotpedia.org/2026/11/16/campaigns-submit-signatures-for-2027-maine-sex-based-sports-eligibility-initiative-and-2028-massachusetts-abortion-referendum/": "2026-11-16",
       "https://thehill.com/homenews/campaign/6224056-james-comer-kentucky-governor-run/": "2026-11-17",
-      "https://thehill.com/homenews/campaign/6176074-peltola-wins-alaska-senate/": "2026-11-18"
+      "https://thehill.com/homenews/campaign/6176074-peltola-wins-alaska-senate/": "2026-11-18",
+      "https://news.ballotpedia.org/2026/11/18/mary-peltola-defeated-incumbent-sen-daniel-s-sullivan-r-and-two-other-candidates-in-the-general-election-for-the-u-s-senate-in-alaska/": "2026-11-19"
     },
     "AI+Policy": {
-      "https://www.theverge.com/ai-artificial-intelligence/1018676/data-center-midterm-election-energy-water-texas": "2026-10-28",
       "https://www.politico.com/news/2026/10/29/lawrence-barrett-michigan-tech-data-centers-01139189": "2026-10-29",
       "https://www.politico.com/news/2026/11/02/openai-is-already-pitching-2028-hopefuls-on-how-to-talk-about-ai-01144821": "2026-11-02",
       "https://thehill.com/policy/technology/6190399-ai-firms-election-day-readiness/": "2026-11-03",
@@ -28,10 +27,10 @@
       "https://thehill.com/homenews/senate/6215009-senator-cramer-calls-nvidia-ceo-resignation/": "2026-11-12",
       "https://www.theverge.com/ai-artificial-intelligence/1031740/jensen-huang-nvidia-scandal-isnt-slowing-down": "2026-11-16",
       "https://thehill.com/policy/technology/6223454-nvidia-board-rejects-huang-return/": "2026-11-17",
-      "https://www.politico.com/news/2026/11/17/jensen-huangs-return-is-off-the-table-nvidia-chair-says-01171687": "2026-11-18"
+      "https://www.politico.com/news/2026/11/17/jensen-huangs-return-is-off-the-table-nvidia-chair-says-01171687": "2026-11-18",
+      "https://thehill.com/policy/technology/6227405-nvidia-jensen-huang-return-unlikely-affair-scandals/": "2026-11-19"
     },
     "Energy": {
-      "https://insideclimatenews.org/news/28102026/antarctic-sea-ice-decline-triggers-ocean-changes/": "2026-10-28",
       "https://insideclimatenews.org/news/29102026/new-york-gas-pipeline-gubernatorial-election/": "2026-10-29",
       "https://www.utilitydive.com/spons/utilities-need-to-become-project-developers-are-they-ready/831847/": "2026-11-02",
       "https://www.politico.com/news/2026/11/03/renewable-energy-environmentalists-permitting-split-01143886": "2026-11-03",
@@ -43,10 +42,10 @@
       "https://insideclimatenews.org/news/12112026/pennsylvania-democrat-trifecta-clean-energy-affordability/": "2026-11-12",
       "https://www.utilitydive.com/spons/utilities-dont-need-cheaper-vendors-they-need-to-stop-guessing/874537/": "2026-11-16",
       "https://thehill.com/policy/transportation/6223078-airfare-gas-prices-thanksgiving-holiday-travel-predictions/": "2026-11-17",
-      "https://insideclimatenews.org/news/18112026/western-pennsylvania-residents-unplugged-oil-wells/": "2026-11-18"
+      "https://insideclimatenews.org/news/18112026/western-pennsylvania-residents-unplugged-oil-wells/": "2026-11-18",
+      "https://insideclimatenews.org/news/19112026/florida-stanton-coal-plant-trump-emergency-orders/": "2026-11-19"
     },
     "Economy": {
-      "https://thehill.com/business/6175539-fed-to-decide-interest-rates-midterms/": "2026-10-28",
       "https://www.cbsnews.com/news/federal-reserve-holds-interest-rates-steady-inflation/": "2026-10-29",
       "https://www.semafor.com/article/11/01/2026/north-korea-blamed-for-crypto-heist": "2026-11-02",
       "https://www.cbsnews.com/news/binance-customers-withdraw-billions-crypto-hack/": "2026-11-03",
@@ -58,10 +57,10 @@
       "https://thehill.com/homenews/administration/6213592-bessent-moves-military-base/": "2026-11-12",
       "https://fortune.com/2026/11/16/nvidia-stock-jensen-huang-return-odds-musk/": "2026-11-16",
       "https://www.semafor.com/article/11/16/2026/united-airlines-major-us-banks-report-system-outages": "2026-11-17",
-      "https://thehill.com/business/6226457-nvidia-q3-earnings-strong/": "2026-11-18"
+      "https://thehill.com/business/6226457-nvidia-q3-earnings-strong/": "2026-11-18",
+      "https://thehill.com/homenews/administration/6229360-live-updates-trump-xi-putin-china-summit-crypto-alaska-tech-outages/": "2026-11-19"
     },
     "Legislative": {
-      "https://www.nbcnews.com/politics/justice-department/grand-jury-declines-indict-former-trump-aide-cassidy-hutchinson-jan-6-rcna603233": "2026-10-28",
       "https://thehill.com/homenews/senate/6178270-peltola-denies-sullivan-recruitment-alaska-senate-report/": "2026-10-29",
       "https://thehill.com/regulation/court-battles/6186982-judge-dismisses-trump-alaska-lawsuit/": "2026-11-02",
       "https://www.npr.org/2026/11/03/g-s1-151305/2026-midterms-house-races-to-watch": "2026-11-03",
@@ -73,10 +72,10 @@
       "https://rollcall.com/2026/11/11/scott-colom-wins-mississippi-senate-election/": "2026-11-12",
       "https://thehill.com/homenews/house/6219857-democrats-clash-funding-iran/": "2026-11-16",
       "https://thehill.com/the-120/6223661-jeffries-speakership-challenges-democrats-disputes/": "2026-11-17",
-      "https://www.politico.com/live-updates/2026/11/17/congress/comer-makes-kentucky-governor-bid-official-01170838": "2026-11-18"
+      "https://www.politico.com/live-updates/2026/11/17/congress/comer-makes-kentucky-governor-bid-official-01170838": "2026-11-18",
+      "https://www.politico.com/live-updates/2026/11/18/congress/hakeem-jeffries-speaker-nomination-01172291": "2026-11-19"
     },
     "Media": {
-      "https://www.mediaite.com/media/news/mike-johnson-irked-by-reporter-asking-if-gop-will-peacefully-transfer-power-little-silly-you-have-to-ask/": "2026-10-28",
       "https://pressgazette.co.uk/news/norwegian-media-companies-take-meta-to-court-over-ai-scraping-terms/": "2026-10-29",
       "https://www.poynter.org/reporting-editing/2026/haley-stevens-endorses-mike-rogers-michigan-senate-race/": "2026-11-02",
       "https://www.poynter.org/educators-students/2026/student-journalists-election-coverage-2026-midterms/": "2026-11-03",
@@ -88,10 +87,10 @@
       "https://www.mediaite.com/politics/i-saw-you-right-here-with-minutes-to-spare-tmz-dc-reporter-grills-house-dem-who-blamed-traffic-for-missing-hegseth-vote/": "2026-11-12",
       "https://www.poynter.org/business-work/2026/ohio-investigation-dangerous-dog-laws-averys-law/": "2026-11-16",
       "https://www.poynter.org/news-release/2026/poynter-announces-30-journalists-selected-for-inaugural-brain-health-reporting-fellowship/": "2026-11-17",
-      "https://www.mediaite.com/media/tv/thats-horrific-cnns-jake-tapper-shocked-as-paris-hilton-says-more-than-half-of-all-congresswomen-have-sexual-deepfakes-online/": "2026-11-18"
+      "https://www.mediaite.com/media/tv/thats-horrific-cnns-jake-tapper-shocked-as-paris-hilton-says-more-than-half-of-all-congresswomen-have-sexual-deepfakes-online/": "2026-11-18",
+      "https://thehill.com/homenews/media/6229710-china-blocks-bloomberg-reporter-trump-question/": "2026-11-19"
     },
     "PR & Comms Industry": {
-      "https://www.provokemedia.com/latest/article/provokeglobal-why-the-cco-s-influence-walks-out-the-door": "2026-10-28",
       "https://www.provokemedia.com/latest/article/vodafone-corporate-affairs-chief-joakim-reiter-leaving-for-ert-role": "2026-10-29",
       "https://www.provokemedia.com/latest/article/sourcecode-hires-florian-hohenauer-to-lead-german-expansion": "2026-11-02",
       "https://www.provokemedia.com/latest/article/hopscotch-launches-brussels-based-public-engagament-unit": "2026-11-03",
@@ -103,7 +102,8 @@
       "https://www.provokemedia.com/podcast/article/provoke-podcast-andrew-bleeker-on-lessons-to-be-learned-from-the-midterms": "2026-11-12",
       "https://www.provokemedia.com/latest/article/danaher-s-jo%C3%A3o-belo-moves-to-mars-snacking-to-lead-corporate-affairs": "2026-11-16",
       "https://www.provokemedia.com/latest/article/finn-partners-to-lead-azerbaijan-tourism-account-across-key-european-markets": "2026-11-17",
-      "https://www.provokemedia.com/latest/article/provoke-media-cco-podcast-hyundai's-trevor-hale": "2026-11-18"
+      "https://www.provokemedia.com/latest/article/provoke-media-cco-podcast-hyundai's-trevor-hale": "2026-11-18",
+      "https://www.provokemedia.com/latest/article/spreckley-red-rose-and-my-friday-expand-joint-uk-eu-policy-offer": "2026-11-19"
     }
   }
 }
